@@ -10,18 +10,21 @@
 ```
 ai-software-factory/
 ├── README.md
+├── AGENTS.md             # Agent entrypoint
 ├── pyproject.toml
 ├── requirements.txt
 ├── docker-compose.yml
 ├── .env.example
-├── docs/                 # Foundation (executable truth)
+├── docs/                 # Foundation (incl. Agent-Toolkit, Dev-Setup)
 ├── decisions/            # Short ADRs
 ├── backlog/              # Future / Ideas / Research
 ├── tasks/                # Epics for delivery
 ├── prompts/              # Mode prompts
 ├── schemas/              # JSON schemas
 ├── templates/            # Product-type hints
-├── .cursor/rules/        # Cursor constraints
+├── .cursor/
+│   ├── rules/            # Persistent Cursor rules
+│   └── skills/asf-mvp/   # Project implementation skill
 ├── apps/api/             # FastAPI entrypoint
 ├── core/                 # config, db, models, coordinator
 ├── knowledge/            # entity/relation repositories

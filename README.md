@@ -46,6 +46,15 @@ Customer (Telegram text|voice)
   → Simple MVP (website | bot | service | automation)
 ```
 
+## For Cursor agents
+
+| Entry | Purpose |
+|-------|---------|
+| [AGENTS.md](AGENTS.md) | How to work in this repo |
+| [docs/12-Agent-Toolkit.md](docs/12-Agent-Toolkit.md) | Rules, skills, docs map |
+| [docs/13-Dev-Setup.md](docs/13-Dev-Setup.md) | Run / test / env |
+| [.cursor/skills/asf-mvp](.cursor/skills/asf-mvp/SKILL.md) | MVP implementation skill |
+
 ## Documentation
 
 Start here:

@@ -21,3 +21,5 @@
 | Foundation | Documentation baseline (this v0.1 set) |
 | Future | Deferred ideas in `backlog/Future.md` |
 | ADR / DEC | Architecture Decision Record in `decisions/` |
+| AGENTS.md | Entrypoint for Cursor agents working in the repo |
+| Agent Toolkit | Map of rules/skills/docs for MVP work (`docs/12-Agent-Toolkit.md`) |

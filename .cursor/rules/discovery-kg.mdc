@@ -1,0 +1,17 @@
+---
+description: Discovery FSM and Knowledge Graph rules
+globs: "{discovery,knowledge,prompts,schemas,templates}/**/*"
+alwaysApply: false
+---
+
+# Discovery & Knowledge Graph
+
+- KG is SoT: write `entity` / `relation` first; Markdown artifacts are derived
+- MVP entity types: Project, Message, Requirement, Decision, Task, Artifact, Risk
+- MVP relations: derived_from, decides, implements, blocks, related_to
+- Modes must not freely scan the whole DB later — prefer a context builder
+- Discovery adapts to customer IT literacy; one clear question at a time when possible
+- Voice transcripts are normal Messages (`kind=VOICE`) after STT
+- Canonical English in stored knowledge; customer replies may be localized
+- Product type hints live in `templates/`; do not invent new product types ad hoc
+- Blocking ambiguity → `WAITING_OWNER` / HumanDecisionRequired, not silent defaults

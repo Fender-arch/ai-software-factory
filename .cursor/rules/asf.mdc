@@ -1,13 +1,13 @@
 ---
 description: ASF Foundation constraints for Cursor
-globs:
-  - "**/*"
 alwaysApply: true
 ---
 
 # ASF Cursor Rules
 
+- Start from `AGENTS.md` and the active `tasks/EPIC-*.md`.
 - Treat `docs/` and `decisions/` as source of truth. Do not contradict Accepted ADRs.
+- Use project skill `.cursor/skills/asf-mvp` when implementing MVP work.
 - MVP stack: FastAPI, PostgreSQL, Telegram, Whisper STT. No Redis, no Neo4j, no microservices.
 - Keep modular monolith package boundaries (`apps`, `core`, `knowledge`, `discovery`, `integrations`).
 - Prefer stubs/interfaces for LLM and STT; inject real providers via settings.

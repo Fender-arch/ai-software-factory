@@ -1,0 +1,15 @@
+---
+description: FastAPI / SQLAlchemy / Alembic conventions for ASF
+globs: "{apps,core,knowledge,discovery,shared,tests,alembic}/**/*.py"
+alwaysApply: false
+---
+
+# Python backend
+
+- Thin routers in `apps/api`; business logic in `core` / domain packages
+- SQLAlchemy 2 mapped models; all schema changes via Alembic
+- Prefer explicit Pydantic request/response models
+- Injectable STT/LLM providers; tests use stubs
+- Async only at I/O boundaries (Telegram, STT, LLM); keep DB session usage clear
+- After behavior change: add/update pytest
+- Do not introduce Redis, Celery, or microservices

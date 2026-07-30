@@ -1,0 +1,15 @@
+---
+description: Telegram and STT/Whisper integration rules
+globs: "integrations/**/*"
+alwaysApply: false
+---
+
+# Integrations (Telegram + STT)
+
+- Handlers are I/O only; call `core.services` for persistence
+- Text and voice share the same ingest semantics after transcription
+- `STT_PROVIDER=stub` for local/tests; `whisper` needs `OPENAI_API_KEY`
+- On STT failure: ask user to resend as text; do not drop the project state
+- Never log full bot tokens or raw secrets
+- Keep aiogram/ equests isolated in `integrations/telegram`
+- Whisper client stays in `integrations/stt`; no OpenAI calls from routers
