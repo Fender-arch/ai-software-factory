@@ -1,0 +1,17 @@
+---
+description: ASF Foundation constraints for Cursor
+globs:
+  - "**/*"
+alwaysApply: true
+---
+
+# ASF Cursor Rules
+
+- Treat `docs/` and `decisions/` as source of truth. Do not contradict Accepted ADRs.
+- MVP stack: FastAPI, PostgreSQL, Telegram, Whisper STT. No Redis, no Neo4j, no microservices.
+- Keep modular monolith package boundaries (`apps`, `core`, `knowledge`, `discovery`, `integrations`).
+- Prefer stubs/interfaces for LLM and STT; inject real providers via settings.
+- Do not invent scope beyond product types: website, telegram_bot, rest_service, ai_automation.
+- Raise human review instead of guessing on blocking product decisions.
+- New platform features must pass the MVP filter or go to `backlog/Future.md`.
+- Write tests for new behavior; keep handlers thin.

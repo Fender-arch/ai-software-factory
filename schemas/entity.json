@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://asf.local/schemas/entity.json",
+  "title": "Entity",
+  "type": "object",
+  "required": ["type", "name", "payload"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "type": {
+      "type": "string",
+      "enum": [
+        "Project",
+        "Message",
+        "Requirement",
+        "Decision",
+        "Task",
+        "Artifact",
+        "Risk"
+      ]
+    },
+    "name": { "type": "string", "minLength": 1 },
+    "status": { "type": "string" },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "payload": { "type": "object" }
+  },
+  "additionalProperties": false
+}

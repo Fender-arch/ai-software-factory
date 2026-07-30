@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://asf.local/schemas/task.json",
+  "title": "Task",
+  "type": "object",
+  "required": ["title", "status"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "title": { "type": "string" },
+    "description": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["NEW", "IN_PROGRESS", "WAITING_USER", "DONE", "FAILED"]
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": true
+}

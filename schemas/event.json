@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://asf.local/schemas/event.json",
+  "title": "DomainEvent",
+  "type": "object",
+  "required": ["type", "project_id", "occurred_at"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "ProjectCreated",
+        "MessageReceived",
+        "KnowledgeUpdated",
+        "DiscoveryReady",
+        "HumanDecisionRequired",
+        "TaskCreated",
+        "TaskCompleted"
+      ]
+    },
+    "project_id": { "type": "string", "format": "uuid" },
+    "payload": { "type": "object" },
+    "occurred_at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

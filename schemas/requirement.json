@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://asf.local/schemas/requirement.json",
+  "title": "RequirementPayload",
+  "type": "object",
+  "required": ["title", "description", "priority"],
+  "properties": {
+    "title": { "type": "string" },
+    "description": { "type": "string" },
+    "priority": { "type": "string", "enum": ["must", "should", "could", "wont"] },
+    "acceptance_criteria": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "product_type": {
+      "type": "string",
+      "enum": ["website", "telegram_bot", "rest_service", "ai_automation"]
+    }
+  },
+  "additionalProperties": true
+}
