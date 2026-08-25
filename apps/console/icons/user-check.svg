@@ -1,0 +1,17 @@
+<!-- @license lucide-static v0.511.0 - ISC -->
+<svg
+  class="lucide lucide-user-check"
+  xmlns="http://www.w3.org/2000/svg"
+  width="128"
+  height="128"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="#f4ead2"
+  stroke-width="2.25"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+><rect width="128" height="128" rx="12" fill="#141a22"/>
+  <path d="m16 11 2 2 4-4" />
+  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+  <circle cx="9" cy="7" r="4" />
+</svg>

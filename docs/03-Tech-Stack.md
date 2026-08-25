@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.1 |
-| Updated | 2026-07-30 |
+| Version | 0.4 |
+| Updated | 2026-08-21 |
 | Owner | ASF Core |
 
 Locked choices for MVP. Alternatives belong in Future, not in endless bake-offs.
@@ -16,13 +16,14 @@ Locked choices for MVP. Alternatives belong in Future, not in endless bake-offs.
 | ORM / migrations | SQLAlchemy 2 + Alembic |
 | Database | PostgreSQL 16 (`entity`, `relation`, JSONB) |
 | Queue / cache | **None in MVP** (Postgres statuses); Redis = Future |
-| Customer UI | Telegram Bot API (aiogram) |
-| STT | OpenAI Whisper API (or compatible); `STT_PROVIDER=stub` for local/dev |
-| LLM | Pluggable router; stub in skeleton; OpenAI / OpenRouter later |
+| Customer UI | Telegram **Mini App** (fullscreen) + Bot API (aiogram) for entry/notifications/owner HITL |
+| Owner UI | Internal TZ graph console (`apps/console/`, vis-network); [DEC-007](../decisions/DEC-007-Owner-TZ-Console.md) |
+| STT | Mini App: Web Speech when capable, else **Groq Whisper**; also `whisper` (OpenAI) / `stub` |
+| LLM | Pluggable router; `stub` or **Groq** JSON (`LLM_PROVIDER=groq`) to adapt TZ outline / extra subsections |
 | Coding executor | Cursor (rules + task export); CLI integration later |
 | Containers | Docker + Docker Compose |
 | Tests | Pytest |
 
 ## Environment variables
 
-See `.env.example`: `DATABASE_URL`, `TELEGRAM_BOT_TOKEN`, `OPENAI_API_KEY`, `STT_PROVIDER`, `LLM_PROVIDER`, `OWNER_TELEGRAM_ID`.
+See `.env.example`: `DATABASE_URL`, `TELEGRAM_BOT_TOKEN`, `GROQ_API_KEY`, `OPENAI_API_KEY`, `STT_PROVIDER` (`stub`\|`groq`\|`whisper`), `STT_MODEL`, `LLM_PROVIDER` (`stub`\|`groq`), `LLM_MODEL`, `OWNER_TELEGRAM_ID`, `MINIAPP_URL`, `CONSOLE_TOKEN`.

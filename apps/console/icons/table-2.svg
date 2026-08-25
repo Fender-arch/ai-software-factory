@@ -1,0 +1,15 @@
+<!-- @license lucide-static v0.511.0 - ISC -->
+<svg
+  class="lucide lucide-table-2"
+  xmlns="http://www.w3.org/2000/svg"
+  width="128"
+  height="128"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="#f4ead2"
+  stroke-width="2.25"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+><rect width="128" height="128" rx="12" fill="#141a22"/>
+  <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18" />
+</svg>

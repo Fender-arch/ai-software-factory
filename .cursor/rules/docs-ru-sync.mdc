@@ -1,0 +1,17 @@
+---
+description: Keep docs/ru Russian mirrors in sync with English canonical docs
+globs:
+  - docs/**/*.md
+alwaysApply: false
+---
+
+# Docs EN → RU sync
+
+- Canonical Foundation docs are English files under `docs/*.md` (and `docs/README.md`).
+- `docs/ru/` is a **translation mirror for humans**. Never treat RU as source of truth for implementation.
+- When you create or edit any `docs/*.md` outside `docs/ru/`, update the matching `docs/ru/<same-name>.md` in the **same turn**.
+- Translation rules:
+  - Faithful meaning; keep code identifiers, paths, status enums, product types, table structure.
+  - Keep the banner: `> Перевод. Канон: [\`docs/<file>\`](../<file>)`
+  - Update `docs/ru/README.md` index if a new English doc is added.
+- Agents and MVP work continue to read English `docs/`, `AGENTS.md`, and ADRs.

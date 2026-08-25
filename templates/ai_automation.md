@@ -10,11 +10,16 @@
 ## Discovery checklist
 
 - [ ] Trigger
-- [ ] Inputs / outputs
-- [ ] Human approval needed?
+- [ ] Inputs / outputs and side effect
+- [ ] Human approval / guardrails
 - [ ] Failure handling
 - [ ] Cost / rate limits
 - [ ] Data sensitivity
+- [ ] Legal: 152-FZ if personal data goes into the model (impacts estimate)
+- [ ] What is logged after a run
+- [ ] Timeline and budget
+- [ ] Contact details and preferred channel
+- [ ] Acceptance
 
 ## Out of scope for this template
 

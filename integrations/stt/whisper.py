@@ -19,8 +19,12 @@ class WhisperSTT(SpeechToText):
                 "https://api.openai.com/v1/audio/transcriptions",
                 headers={"Authorization": f"Bearer {self.api_key}"},
                 files={"file": (filename, audio)},
-                data={"model": self.model},
+                data={"model": self.model, "language": "ru"},
             )
-            response.raise_for_status()
+            if response.status_code >= 400:
+                detail = response.text[:300]
+                raise RuntimeError(
+                    f"Whisper HTTP {response.status_code}: {detail}"
+                )
             payload = response.json()
             return str(payload.get("text", "")).strip()

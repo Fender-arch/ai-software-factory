@@ -2,7 +2,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | In progress |
+| Status | Done |
 | Version | 0.1 |
 
 ## Goal
@@ -12,12 +12,14 @@ Runnable platform skeleton: Docker Compose, PostgreSQL, Alembic, FastAPI health,
 ## Deliverables
 
 - [x] Repo structure + Foundation docs
-- [ ] `docker compose up` healthy
-- [ ] Migrations applied
-- [ ] `/health`, create project, ingest message APIs
-- [ ] Telegram bot stub
-- [ ] STT stub wired for voice messages
+- [x] `docker compose up` healthy
+- [x] Migrations applied
+- [x] `/health`, create project, ingest message APIs
+- [x] Telegram bot stub
+- [x] STT stub wired for voice messages
 
 ## Notes
 
 No Redis. No full Discovery LLM yet.
+
+Verified locally (2026-07-31): compose (db healthy + api), Alembic `0001_initial`, smoke `/health` → create project → text → voice stub; `pytest` 5 passed.

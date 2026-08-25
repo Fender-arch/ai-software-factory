@@ -11,7 +11,7 @@ Need a factory that can handle simple commercial specs without building a full A
 
 ## Decision
 
-MVP delivers Telegram Discovery → draft TZ → owner HITL → tasks → Cursor-ready export for product types:
+MVP delivers customer Discovery via Telegram Mini App (see [DEC-006](DEC-006-Telegram-Mini-App.md)) → draft TZ → owner HITL → tasks → Cursor-ready export for product types:
 
 - `website`
 - `telegram_bot`

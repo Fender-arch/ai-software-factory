@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ASF — Консоль ТЗ</title>
+  <link rel="stylesheet" href="./styles.css?v=12" />
+  <script src="./vendor/vis-network.min.js"></script>
+</head>
+<body>
+  <canvas id="foundry-field" class="foundry-field" aria-hidden="true"></canvas>
+  <a class="skip" href="#graph">К карте</a>
+  <header class="top">
+    <div class="brand-block">
+      <div class="foundry-core mini" aria-hidden="true">
+        <div class="foundry-cube">
+          <i class="f"></i><i class="bk"></i><i class="l"></i><i class="r"></i><i class="u"></i><i class="d"></i>
+        </div>
+      </div>
+      <div>
+        <div class="brand">ASF</div>
+        <div class="sub">Карта требований ТЗ — граф, а не простыня</div>
+      </div>
+    </div>
+    <label class="field inline">
+      Проект
+      <select id="project-select">
+        <option value="">— выберите —</option>
+      </select>
+    </label>
+    <label class="field inline search-field">
+      Поиск
+      <input id="graph-search" type="search" placeholder="Раздел или требование" autocomplete="off" />
+    </label>
+    <label class="field inline token-field">
+      Токен
+      <input id="console-token" type="password" autocomplete="off" placeholder="CONSOLE_TOKEN" />
+    </label>
+    <button type="button" id="token-save" class="btn">Сохранить</button>
+  </header>
+
+  <div id="auth-banner" class="banner hidden">Нужен CONSOLE_TOKEN. Вставьте его в шапку и сохраните.</div>
+  <div id="error-banner" class="banner error hidden"></div>
+
+  <main class="map">
+    <div id="graph" class="graph"></div>
+    <div class="hud" id="hud">
+      <div id="hud-stats" class="hud-stats">Выберите проект</div>
+      <div class="legend" aria-label="Легенда">
+        <span class="lg"><i class="dot new"></i> новое</span>
+        <span class="lg"><i class="dot processed"></i> отработано</span>
+        <span class="lg"><i class="dot needs_clarification"></i> уточняется</span>
+        <span class="lg"><i class="dot conflict"></i> конфликт</span>
+        <span class="lg"><i class="dot rejected"></i> отклонено</span>
+        <span class="lg"><i class="dot superseded"></i> заменено</span>
+        <span class="lg edge"><i class="line dep"></i> зависимость</span>
+        <span class="lg edge"><i class="line conf"></i> конфликт</span>
+      </div>
+    </div>
+    <aside id="panel" class="sheet">
+      <button type="button" id="panel-close" class="sheet-close" title="К обзору проекта">×</button>
+      <p class="hint" id="panel-hint">Проект в центре — «мозг» карты. Этапы по орбите. Клик по этапу раскрывает разделы; клик по листу открывает карточку требования. Скучные таблицы мы спрятали в PDF.</p>
+      <div id="panel-body" class="hidden"></div>
+    </aside>
+  </main>
+
+  <script src="./foundry.js?v=12"></script>
+  <script src="./app.js?v=13"></script>
+</body>
+</html>

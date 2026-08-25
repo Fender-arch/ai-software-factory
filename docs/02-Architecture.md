@@ -3,16 +3,19 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.1 |
-| Updated | 2026-07-30 |
+| Version | 0.3 |
+| Updated | 2026-08-16 |
 | Owner | ASF Core |
 
 ## Style
 
-**Modular monolith.** One deployable process today; clear package boundaries for future extraction.
+**Modular monolith.** One deployable API process today; clear package boundaries for future extraction. Customer UI is a Telegram Mini App served alongside Bot API integration.
 
 ```
-Telegram (text | voice)
+Telegram bot DM (RU onboarding | notifications)
+        │ Menu / WebApp
+        ▼
+Telegram Mini App (fullscreen) ── text | voice
         │
    Whisper STT ──┐
                  ▼
@@ -25,7 +28,9 @@ Telegram (text | voice)
         │
    Artifacts (Markdown, derived)
         │
-   Owner HITL → Planner → Cursor → Product MVP
+   Owner HITL (bot) → Planner → Cursor → Product MVP
+        │
+   Owner TZ console (`/console/`) ← KG view (DEC-007)
 ```
 
 ## Components
@@ -36,7 +41,9 @@ Telegram (text | voice)
 | AI Coordinator | Single worker with modes: Discovery, Reviewer, Architect, Planner, Developer, QA |
 | Knowledge Graph | Logical SoT: entities + relations in PostgreSQL |
 | STT | Voice → text (Whisper); then same path as text messages |
-| Telegram integration | Customer & owner channel |
+| Telegram Mini App | Primary customer UI: home actions, project workspace |
+| Telegram bot | Entry, notifications; owner HITL commands in MVP |
+| Owner TZ console | Internal graph of requirements + status/links (DEC-007); not customer UI |
 | Artifact generator | Markdown derived from graph (TZ, decisions, backlog export) |
 | Cursor executor | External coding agent; ASF prepares context and tasks |
 
@@ -62,7 +69,7 @@ No free-form multi-agent dialogue loops.
 
 ## Language
 
-- Customer channel: Russian (and whatever the customer uses)
+- Customer channel (Mini App + bot copy): **Russian**
 - Canonical storage & agent reasoning: English (Language Normalizer as **infrastructure**, not a workflow agent)
 - Localized artifacts may be generated for the customer
 
@@ -72,4 +79,4 @@ MVP uses **task/project statuses** in PostgreSQL. A richer event bus may appear 
 
 ## Package layout
 
-See [04-Repository-Structure.md](04-Repository-Structure.md).
+See [04-Repository-Structure.md](04-Repository-Structure.md). Customer UX: [14-Telegram-Customer-UX.md](14-Telegram-Customer-UX.md). Owner TZ console: [15-Owner-TZ-Console.md](15-Owner-TZ-Console.md).

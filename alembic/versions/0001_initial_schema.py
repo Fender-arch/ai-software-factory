@@ -17,7 +17,9 @@ down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
-project_status = sa.Enum(
+# create_type=False: types are created explicitly below so create_table
+# does not emit a second CREATE TYPE (DuplicateObject on Postgres).
+project_status = postgresql.ENUM(
     "NEW",
     "INTERVIEW",
     "ANALYZING",
@@ -26,15 +28,19 @@ project_status = sa.Enum(
     "READY",
     "ARCHIVED",
     name="project_status",
+    create_type=False,
 )
-message_kind = sa.Enum("TEXT", "VOICE", "SYSTEM", name="message_kind")
-task_status = sa.Enum(
+message_kind = postgresql.ENUM(
+    "TEXT", "VOICE", "SYSTEM", name="message_kind", create_type=False
+)
+task_status = postgresql.ENUM(
     "NEW",
     "IN_PROGRESS",
     "WAITING_USER",
     "DONE",
     "FAILED",
     name="task_status",
+    create_type=False,
 )
 
 

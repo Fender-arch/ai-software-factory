@@ -6,7 +6,7 @@ def test_create_project_and_message(client):
     assert created.status_code == 201
     project = created.json()
     assert project["name"] == "Auto CRM"
-    assert project["status"] == "NEW"
+    assert project["status"] == "WAITING_CUSTOMER"
 
     msg = client.post(
         f"/projects/{project['id']}/messages",
@@ -19,7 +19,8 @@ def test_create_project_and_message(client):
 
     got = client.get(f"/projects/{project['id']}")
     assert got.status_code == 200
-    assert got.json()["status"] == "INTERVIEW"
+    assert got.json()["status"] == "WAITING_CUSTOMER"
+    assert msg.json()["discovery_reply"]
 
 
 def test_ingest_voice_uses_stub_stt(client):

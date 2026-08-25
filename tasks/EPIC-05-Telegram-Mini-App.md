@@ -1,0 +1,33 @@
+# EPIC-05 — Telegram Mini App
+
+| Field | Value |
+|-------|-------|
+| Status | Done |
+| Version | 0.2 |
+
+## Goal
+
+Fullscreen Russian Mini App as primary customer UI: onboarding, create / change / implementation feedback, project workspace. Bot DM = entry + notifications + owner HITL.
+
+Refs: `docs/14-Telegram-Customer-UX.md`, `decisions/DEC-006-Telegram-Mini-App.md`.
+
+## Deliverables
+
+- [x] `apps/miniapp/` static Mini App (RU home + project workspace)
+- [x] Serve Mini App from API (`/miniapp/`)
+- [x] Customer APIs: list projects, workspace messages, implementation feedback
+- [x] Bot `/start` onboarding in Russian + WebApp / Menu Button when `MINIAPP_URL` set
+- [x] Tests for list / workspace / feedback paths
+
+## Notes
+
+Project “chat” = Mini App workspace bound to `project_id` (not a second Telegram DM). Owner HITL stays on bot commands. Transitional `/new` `/use` remain.
+
+APIs: `GET /projects?customer_telegram_id=`, `GET /projects/{id}/workspace`, `POST /projects/{id}/feedback`. KG type `Feedback`. Static UI at `/miniapp/`. Env: `MINIAPP_URL` for Telegram WebApp (HTTPS).
+
+## v0.2 — Discovery progress bar
+
+- [x] Workspace API returns live `discovery_progress` (done/total recomputed from the adapted outline)
+- [x] Mini App chat: gray track + green fill; bar rescales when more TZ sections appear
+
+Verified: `pytest` covers workspace progress growth after Mini App outline adapt.

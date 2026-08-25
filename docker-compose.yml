@@ -20,7 +20,7 @@ services:
       context: .
       dockerfile: docker/Dockerfile
     env_file:
-      - .env.example
+      - .env
     environment:
       DATABASE_URL: postgresql+psycopg://asf:asf@db:5432/asf
       ASF_ENV: docker

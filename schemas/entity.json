@@ -13,10 +13,12 @@
         "Project",
         "Message",
         "Requirement",
+        "OpenQuestion",
         "Decision",
         "Task",
         "Artifact",
-        "Risk"
+        "Risk",
+        "Feedback"
       ]
     },
     "name": { "type": "string", "minLength": 1 },

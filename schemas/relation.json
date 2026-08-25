@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://asf.local/schemas/relation.json",
+  "title": "Relation",
+  "type": "object",
+  "required": ["type", "from_entity_id", "to_entity_id"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "from_entity_id": { "type": "string", "format": "uuid" },
+    "to_entity_id": { "type": "string", "format": "uuid" },
+    "type": {
+      "type": "string",
+      "enum": [
+        "derived_from",
+        "decides",
+        "implements",
+        "blocks",
+        "related_to",
+        "depends_on",
+        "conflicts_with"
+      ]
+    },
+    "payload": { "type": "object" }
+  },
+  "additionalProperties": false
+}

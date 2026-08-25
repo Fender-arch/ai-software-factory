@@ -18,6 +18,8 @@ Implement epics in order:
 2. `tasks/EPIC-02-Discovery.md`
 3. `tasks/EPIC-03-Knowledge-Core.md`
 4. `tasks/EPIC-04-MVP-Generation.md`
+5. `tasks/EPIC-05-Telegram-Mini-App.md`
+6. `tasks/EPIC-06-Owner-TZ-Console.md`
 
 Before coding: open the epic, list unfinished checkboxes, implement only those.
 

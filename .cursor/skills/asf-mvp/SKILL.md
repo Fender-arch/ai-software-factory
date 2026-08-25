@@ -3,8 +3,9 @@ name: asf-mvp
 description: >-
   Implement AI Software Factory (ASF) MVP epics in this repo: Telegram Discovery,
   Whisper STT, PostgreSQL knowledge graph, AI Coordinator modes, HITL TZ gate,
-  and Cursor task export. Use when coding ASF features, advancing EPIC-01..04,
-  touching discovery/knowledge/integrations, or deciding MVP vs Future scope.
+  Cursor task export, and Telegram Mini App. Use when coding ASF features,
+  advancing EPIC-01..06, touching discovery/knowledge/integrations/miniapp/console,
+  or deciding MVP vs Future scope.
 ---
 
 # ASF MVP Implementation Skill
@@ -39,9 +40,9 @@ description: >-
 
 ## MVP allow / deny
 
-**Allow:** Telegram text+voice, Whisper STT, Coordinator modes, entity/relation KG, draft TZ artifacts, owner review, task breakdown/export, product templates.
+**Allow:** Telegram text+voice, Whisper STT, Coordinator modes, entity/relation KG, draft TZ artifacts, owner review, task breakdown/export, product templates, owner TZ graph console (DEC-007).
 
-**Deny without new ADR:** Redis, Neo4j, event sourcing, multi-agent OS processes, web review portal, sales/finance agents, second template repo.
+**Deny without new ADR:** Redis, Neo4j, event sourcing, multi-agent OS processes, customer web review portal, sales/finance agents, second template repo.
 
 ## Mode map (Coordinator)
 

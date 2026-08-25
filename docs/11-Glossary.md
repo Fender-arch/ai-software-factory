@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.1 |
-| Updated | 2026-07-30 |
+| Version | 0.3 |
+| Updated | 2026-08-16 |
 | Owner | ASF Core |
 
 | Term | Meaning |
@@ -18,7 +18,11 @@
 | TZ | Technical specification / requirements pack |
 | STT | Speech-to-text (Whisper in MVP) |
 | Product type | One of website, telegram_bot, rest_service, ai_automation |
-| Foundation | Documentation baseline (this v0.1 set) |
+| Telegram Mini App | Fullscreen customer UI inside Telegram (primary channel) |
+| Owner TZ console | Internal owner/analyst graph of TZ requirements (`/console/`, DEC-007) |
+| Project workspace | Mini App thread/UI bound to one `project_id` (“project chat”) |
+| Implementation feedback | Customer notes after reviewing a delivered MVP |
+| Foundation | Documentation baseline |
 | Future | Deferred ideas in `backlog/Future.md` |
 | ADR / DEC | Architecture Decision Record in `decisions/` |
 | AGENTS.md | Entrypoint for Cursor agents working in the repo |

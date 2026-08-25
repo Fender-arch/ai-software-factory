@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.1 |
-| Updated | 2026-07-30 |
+| Version | 0.2 |
+| Updated | 2026-07-31 |
 | Owner | ASF Core |
 
 ## Purpose
@@ -15,7 +15,7 @@ ASF is not “another AI coder”. It is a production line: Discovery → specif
 
 ## Success vision
 
-A small business or internal stakeholder writes (or speaks) into Telegram:
+A small business or internal stakeholder opens the ASF **Telegram Mini App** (or starts from the bot) and describes an idea in Russian (text or voice):
 
 > “I need a booking bot for my auto service.”
 
@@ -25,6 +25,8 @@ Within a short Discovery cycle they get a solid specification. After owner appro
 - Telegram bot
 - REST service / internal tool
 - light AI automation
+
+Customer home actions: create a project, change an existing project, or file implementation feedback after reviewing a delivered MVP. See [14-Telegram-Customer-UX.md](14-Telegram-Customer-UX.md).
 
 ## Non-goals (platform vision)
 

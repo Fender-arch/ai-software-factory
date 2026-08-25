@@ -3,14 +3,14 @@
 **Version:** Foundation v0.1  
 **Status:** Accepted
 
-ASF is an operating system for a small digital IT company: a customer describes an idea in Telegram (text or voice), the platform runs Discovery, produces a quality specification, waits for human review, breaks work into tasks, and drives delivery of a simple MVP via Cursor.
+ASF is an operating system for a small digital IT company: a customer describes an idea in a Telegram **Mini App** (text or voice), the platform runs Discovery, produces a quality specification, waits for human review, breaks work into tasks, and drives delivery of a simple MVP via Cursor.
 
 ## What this repository is
 
 - **Foundation docs** — source of truth for architecture and MVP scope
-- **Starter code** — modular monolith (FastAPI + PostgreSQL + Telegram + STT stub)
+- **Starter code** — modular monolith (FastAPI + PostgreSQL + Telegram + STT); customer UI under `apps/miniapp/` (`/miniapp/`); owner TZ console under `apps/console/` (`/console/`)
 
-Not in this release: full Discovery LLM logic, Cursor CLI automation, Redis, Neo4j, multi-agent runtime.
+Not in this release: real Discovery LLM provider, Cursor CLI automation, Redis, Neo4j, multi-agent runtime.
 
 ## Quick start
 
@@ -36,16 +36,17 @@ pytest
 ## Product flow (MVP)
 
 ```
-Customer (Telegram text|voice)
+Customer (Telegram Mini App text|voice)
   → Whisper STT (voice)
   → Discovery
   → Draft specification
-  → Owner review (HITL)
+  →    Owner review (HITL, bot) + TZ graph console (`/console/`)
   → Planner / tasks
   → Cursor executor
   → Simple MVP (website | bot | service | automation)
 ```
 
+Customer home actions: create project · change project · implementation feedback — see [docs/14-Telegram-Customer-UX.md](docs/14-Telegram-Customer-UX.md).
 ## For Cursor agents
 
 | Entry | Purpose |

@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.1 |
+| Version | 0.2 |
 | Updated | 2026-07-31 |
 | Owner | ASF Core |
 
@@ -14,7 +14,7 @@ What Cursor needs to implement the ASF MVP without re-deriving architecture from
 | Asset | Why |
 |-------|-----|
 | `AGENTS.md` | Session entrypoint + DoD |
-| `docs/00–11` | Vision, scope, architecture, Discovery, KG |
+| `docs/00–15` | Vision, scope, architecture, Discovery, KG, Mini App UX, owner TZ console |
 | `docs/13-Dev-Setup.md` | Run / test / env |
 | `decisions/` | Locked ADR choices |
 | `tasks/EPIC-*` | Delivery slices |
@@ -32,6 +32,7 @@ What Cursor needs to implement the ASF MVP without re-deriving architecture from
 | `python-backend.mdc` | Python / FastAPI / SQLAlchemy / Alembic |
 | `discovery-kg.mdc` | Discovery FSM, entities, relations, artifacts |
 | `integrations.mdc` | Telegram + STT / Whisper |
+| `product-templates.mdc` | Implementing exported tasks / product templates |
 
 ## Personal / global skills (use when relevant)
 
