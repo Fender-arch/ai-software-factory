@@ -54,6 +54,7 @@ Customer home actions: create project · change project · implementation feedba
 | [AGENTS.md](AGENTS.md) | How to work in this repo |
 | [docs/12-Agent-Toolkit.md](docs/12-Agent-Toolkit.md) | Rules, skills, docs map |
 | [docs/13-Dev-Setup.md](docs/13-Dev-Setup.md) | Run / test / env |
+| [docs/16-VPS-Deploy.md](docs/16-VPS-Deploy.md) | VPS deploy next to an existing website |
 | [.cursor/skills/asf-mvp](.cursor/skills/asf-mvp/SKILL.md) | MVP implementation skill |
 
 ## Documentation

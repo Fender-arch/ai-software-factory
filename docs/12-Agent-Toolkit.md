@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.2 |
-| Updated | 2026-07-31 |
+| Version | 0.3 |
+| Updated | 2026-08-26 |
 | Owner | ASF Core |
 
 What Cursor needs to implement the ASF MVP without re-deriving architecture from chat history.
@@ -14,8 +14,9 @@ What Cursor needs to implement the ASF MVP without re-deriving architecture from
 | Asset | Why |
 |-------|-----|
 | `AGENTS.md` | Session entrypoint + DoD |
-| `docs/00–15` | Vision, scope, architecture, Discovery, KG, Mini App UX, owner TZ console |
+| `docs/00–16` | Vision, scope, architecture, Discovery, KG, Mini App UX, owner TZ console, VPS deploy |
 | `docs/13-Dev-Setup.md` | Run / test / env |
+| `docs/16-VPS-Deploy.md` | VPS next to an existing website |
 | `decisions/` | Locked ADR choices |
 | `tasks/EPIC-*` | Delivery slices |
 | `prompts/` | Coordinator mode prompts |

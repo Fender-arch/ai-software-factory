@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.6 |
-| Updated | 2026-08-21 |
+| Version | 0.7 |
+| Updated | 2026-08-26 |
 | Owner | ASF Core |
 
 ## Prerequisites
@@ -91,3 +91,7 @@ Owner HITL (after draft TZ): `/review`, `/approve`, `/changes`, `/reject`, then 
 9. After a full interview, `GET /projects/{id}/artifacts/draft-tz` → markdown draft
 10. `POST /projects/{id}/hitl` with `{"action":"approve"}` → status `READY`
 11. `pytest` green
+
+## VPS (existing website)
+
+Production compose does **not** replace local `docker compose`. See [16-VPS-Deploy.md](16-VPS-Deploy.md): API on `127.0.0.1:18000`, extra nginx vhosts only, GitHub secrets in [`.github/SECRETS.md`](../.github/SECRETS.md).

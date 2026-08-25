@@ -5,8 +5,8 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.3 |
-| Updated | 2026-08-16 |
+| Version | 0.4 |
+| Updated | 2026-08-26 |
 | Owner | ASF Core |
 
 ```
@@ -16,7 +16,10 @@ ai-software-factory/
 ├── pyproject.toml
 ├── requirements.txt
 ├── docker-compose.yml
+├── docker-compose.prod.yml  # VPS: localhost API + bot; см. docs/16-VPS-Deploy.md
 ├── .env.example
+├── deploy/               # Хелперы .env/nginx для VPS (на хосте)
+├── .github/              # Actions deploy + SECRETS.md
 ├── docs/                 # Foundation (в т.ч. Agent-Toolkit, Dev-Setup, Telegram UX)
 ├── decisions/            # Короткие ADR
 ├── backlog/              # Future / Ideas / Research

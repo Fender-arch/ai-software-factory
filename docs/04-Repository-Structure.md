@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.3 |
-| Updated | 2026-08-16 |
+| Version | 0.4 |
+| Updated | 2026-08-26 |
 | Owner | ASF Core |
 
 ```
@@ -14,7 +14,10 @@ ai-software-factory/
 ├── pyproject.toml
 ├── requirements.txt
 ├── docker-compose.yml
+├── docker-compose.prod.yml  # VPS: localhost API + bot; see docs/16-VPS-Deploy.md
 ├── .env.example
+├── deploy/               # VPS env/nginx helpers (host-side)
+├── .github/              # Actions deploy + SECRETS.md
 ├── docs/                 # Foundation (incl. Agent-Toolkit, Dev-Setup, Telegram UX)
 ├── decisions/            # Short ADRs
 ├── backlog/              # Future / Ideas / Research

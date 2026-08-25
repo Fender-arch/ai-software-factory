@@ -5,8 +5,8 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.4 |
-| Updated | 2026-08-21 |
+| Version | 0.5 |
+| Updated | 2026-08-26 |
 | Owner | ASF Core |
 
 Зафиксированные выборы для MVP. Альтернативы — в Future, не в бесконечных bake-off.
@@ -23,9 +23,11 @@
 | STT | Mini App: Web Speech если окружение подходит, иначе **Groq Whisper**; также `whisper` (OpenAI) / `stub` |
 | LLM | Подключаемый router; `stub` или **Groq** JSON (`LLM_PROVIDER=groq`) для адаптации каркаса ТЗ / подразделов |
 | Coding executor | Cursor (rules + экспорт задач); CLI позже |
-| Контейнеры | Docker + Docker Compose |
+| Контейнеры | Docker + Docker Compose (локально `docker-compose.yml`; VPS `docker-compose.prod.yml`) |
 | Тесты | Pytest |
 
 ## Переменные окружения
 
 См. `.env.example`: `DATABASE_URL`, `TELEGRAM_BOT_TOKEN`, `GROQ_API_KEY`, `OPENAI_API_KEY`, `STT_PROVIDER` (`stub`\|`groq`\|`whisper`), `STT_MODEL`, `LLM_PROVIDER` (`stub`\|`groq`), `LLM_MODEL`, `OWNER_TELEGRAM_ID`, `MINIAPP_URL`, `CONSOLE_TOKEN`.
+
+Деплой на VPS (существующий сайт сохраняется): [16-VPS-Deploy.md](16-VPS-Deploy.md), секреты [`.github/SECRETS.md`](../../.github/SECRETS.md).

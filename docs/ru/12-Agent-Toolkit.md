@@ -5,8 +5,8 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.2 |
-| Updated | 2026-07-31 |
+| Version | 0.3 |
+| Updated | 2026-08-26 |
 | Owner | ASF Core |
 
 Что нужно Cursor, чтобы реализовать ASF MVP, не восстанавливая архитектуру из истории чатов.
@@ -16,8 +16,9 @@
 | Актив | Зачем |
 |-------|-------|
 | `AGENTS.md` | Точка входа сессии + DoD |
-| `docs/00–15` | Vision, scope, architecture, Discovery, KG, Mini App UX, консоль ТЗ владельца |
+| `docs/00–16` | Vision, scope, architecture, Discovery, KG, Mini App UX, консоль ТЗ владельца, деплой VPS |
 | `docs/13-Dev-Setup.md` | Запуск / тесты / env |
+| `docs/16-VPS-Deploy.md` | VPS рядом с существующим сайтом |
 | `decisions/` | Зафиксированные ADR |
 | `tasks/EPIC-*` | Слайсы поставки |
 | `prompts/` | Промпты режимов Coordinator |

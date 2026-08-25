@@ -9,7 +9,7 @@
 
 ## Source of truth
 
-English files in this folder (`docs/*.md`, including `15-Owner-TZ-Console.md`) are **canonical** for agents, ADRs, and implementation.
+English files in this folder (`docs/*.md`, including `15-Owner-TZ-Console.md` and `16-VPS-Deploy.md`) are **canonical** for agents, ADRs, and implementation.
 
 Russian mirror copies live in [`docs/ru/`](ru/) for human reading. They must not override English decisions.
 
@@ -35,3 +35,4 @@ When an English doc changes, update the matching file under `docs/ru/` (Cursor h
 | [13-Dev-Setup.md](13-Dev-Setup.md) | Local runbook |
 | [14-Telegram-Customer-UX.md](14-Telegram-Customer-UX.md) | Mini App customer UX |
 | [15-Owner-TZ-Console.md](15-Owner-TZ-Console.md) | Owner TZ graph console |
+| [16-VPS-Deploy.md](16-VPS-Deploy.md) | VPS deploy next to an existing website |

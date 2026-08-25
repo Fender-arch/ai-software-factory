@@ -1,3 +1,5 @@
+# Local development only (reload + bind-mount + published 5432/8000).
+# VPS: docker-compose.prod.yml — see docs/16-VPS-Deploy.md
 services:
   db:
     image: postgres:16-alpine

@@ -10,7 +10,7 @@
 
 ## Важно
 
-- **Канон для проекта, агентов и реализации** — документы на английском: `docs/00-Vision.md` … `docs/15-Owner-TZ-Console.md`.
+- **Канон для проекта, агентов и реализации** — документы на английском: `docs/00-Vision.md` … `docs/16-VPS-Deploy.md`.
 - Файлы в этой папке — **перевод-копия**. При расхождении приоритет у английской версии.
 - При изменении `docs/*.md` (не в `ru/`) соответствующий файл здесь обновляется автоматически в agent-сессиях (см. `.cursor/hooks/` и правило `docs-ru-sync.mdc`).
 
@@ -35,3 +35,4 @@
 | [13-Dev-Setup.md](../13-Dev-Setup.md) | [13-Dev-Setup.md](13-Dev-Setup.md) |
 | [14-Telegram-Customer-UX.md](../14-Telegram-Customer-UX.md) | [14-Telegram-Customer-UX.md](14-Telegram-Customer-UX.md) |
 | [15-Owner-TZ-Console.md](../15-Owner-TZ-Console.md) | [15-Owner-TZ-Console.md](15-Owner-TZ-Console.md) |
+| [16-VPS-Deploy.md](../16-VPS-Deploy.md) | [16-VPS-Deploy.md](16-VPS-Deploy.md) |

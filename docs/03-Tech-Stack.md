@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.4 |
-| Updated | 2026-08-21 |
+| Version | 0.5 |
+| Updated | 2026-08-26 |
 | Owner | ASF Core |
 
 Locked choices for MVP. Alternatives belong in Future, not in endless bake-offs.
@@ -21,9 +21,11 @@ Locked choices for MVP. Alternatives belong in Future, not in endless bake-offs.
 | STT | Mini App: Web Speech when capable, else **Groq Whisper**; also `whisper` (OpenAI) / `stub` |
 | LLM | Pluggable router; `stub` or **Groq** JSON (`LLM_PROVIDER=groq`) to adapt TZ outline / extra subsections |
 | Coding executor | Cursor (rules + task export); CLI integration later |
-| Containers | Docker + Docker Compose |
+| Containers | Docker + Docker Compose (local `docker-compose.yml`; VPS `docker-compose.prod.yml`) |
 | Tests | Pytest |
 
 ## Environment variables
 
 See `.env.example`: `DATABASE_URL`, `TELEGRAM_BOT_TOKEN`, `GROQ_API_KEY`, `OPENAI_API_KEY`, `STT_PROVIDER` (`stub`\|`groq`\|`whisper`), `STT_MODEL`, `LLM_PROVIDER` (`stub`\|`groq`), `LLM_MODEL`, `OWNER_TELEGRAM_ID`, `MINIAPP_URL`, `CONSOLE_TOKEN`.
+
+VPS deploy (existing website kept): [16-VPS-Deploy.md](16-VPS-Deploy.md), secrets [`.github/SECRETS.md`](../.github/SECRETS.md).

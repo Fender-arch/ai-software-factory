@@ -1,0 +1,89 @@
+# Production stack for a VPS that already hosts a website.
+# Binds API only to 127.0.0.1:${ASF_HOST_PORT:-18000} — never 80/443/5432.
+name: asf
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: asf
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: asf
+    volumes:
+      - asf_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U asf -d asf"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - asf_internal
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      ASF_ENV: production
+      ASF_DEBUG: "false"
+      UPLOAD_DIR: /data/uploads
+    ports:
+      - "127.0.0.1:${ASF_HOST_PORT:-18000}:8000"
+    volumes:
+      - asf_uploads:/data/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn apps.api.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='*'"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    networks:
+      - asf_internal
+
+  bot:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      ASF_ENV: production
+      ASF_DEBUG: "false"
+    depends_on:
+      api:
+        condition: service_healthy
+    command: >
+      sh -c 'if [ -z "$$TELEGRAM_BOT_TOKEN" ] || [ "$$TELEGRAM_BOT_TOKEN" = "SET_ME" ]; then
+               echo "TELEGRAM_BOT_TOKEN missing; bot idle";
+               sleep infinity;
+             else
+               python -m integrations.telegram.bot;
+             fi'
+    networks:
+      - asf_internal
+
+volumes:
+  asf_pgdata:
+  asf_uploads:
+
+networks:
+  asf_internal:
+    driver: bridge

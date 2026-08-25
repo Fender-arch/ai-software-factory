@@ -41,6 +41,7 @@ Before coding: open the epic, list unfinished checkboxes, implement only those.
 | Project skill | `.cursor/skills/asf-mvp/SKILL.md` |
 | Skill map | `docs/12-Agent-Toolkit.md` |
 | Dev setup | `docs/13-Dev-Setup.md` |
+| VPS deploy | `docs/16-VPS-Deploy.md` |
 
 ## Definition of done (any task)
 

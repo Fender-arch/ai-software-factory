@@ -5,8 +5,8 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.6 |
-| Updated | 2026-08-21 |
+| Version | 0.7 |
+| Updated | 2026-08-26 |
 | Owner | ASF Core |
 
 ## Предварительные требования
@@ -93,3 +93,7 @@ HITL владельца (после draft TZ): `/review`, `/approve`, `/changes`
 9. После полного интервью `GET /projects/{id}/artifacts/draft-tz` → markdown-черновик
 10. `POST /projects/{id}/hitl` с `{"action":"approve"}` → статус `READY`
 11. `pytest` зелёный
+
+## VPS (существующий сайт)
+
+Production compose **не** заменяет локальный `docker compose`. См. [16-VPS-Deploy.md](16-VPS-Deploy.md): API на `127.0.0.1:18000`, только дополнительные vhost nginx, секреты GitHub в [`.github/SECRETS.md`](../../.github/SECRETS.md).
