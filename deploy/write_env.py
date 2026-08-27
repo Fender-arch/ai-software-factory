@@ -86,6 +86,8 @@ def build_env_values(raw: dict[str, str] | None = None) -> dict[str, str]:
 
     miniapp_url = src.get("MINIAPP_URL") or miniapp_https_url(domain_miniapp)
     host_port = src.get("ASF_HOST_PORT") or "18000"
+    if not host_port.isdigit() or not (1 <= int(host_port) <= 65535):
+        host_port = "18000"
     stt_provider = src.get("STT_PROVIDER") or "groq"
     stt_model = src.get("STT_MODEL") or "whisper-large-v3-turbo"
     llm_provider = src.get("LLM_PROVIDER") or "stub"

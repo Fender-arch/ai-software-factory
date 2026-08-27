@@ -39,6 +39,12 @@ def test_build_env_values_sets_production_and_quoted_db_url():
     assert values["ASF_HOST_PORT"] == "18000"
 
 
+def test_invalid_host_port_falls_back_to_18000():
+    assert build_env_values(_base_raw(ASF_HOST_PORT="SET_ME"))["ASF_HOST_PORT"] == "18000"
+    assert build_env_values(_base_raw(ASF_HOST_PORT="not-a-port"))["ASF_HOST_PORT"] == "18000"
+    assert build_env_values(_base_raw(ASF_HOST_PORT="18080"))["ASF_HOST_PORT"] == "18080"
+
+
 def test_set_me_placeholders_rejected_for_required_fields():
     with pytest.raises(ValueError, match="POSTGRES_PASSWORD"):
         build_env_values(_base_raw(POSTGRES_PASSWORD="SET_ME"))

@@ -7,7 +7,10 @@ if [[ "$DEPLOY_PATH" == "SET_ME" || -z "$DEPLOY_PATH" ]]; then
   DEPLOY_PATH="/opt/asf"
 fi
 TARBALL="${ASF_TARBALL:-/tmp/asf-deploy.tgz}"
-ASF_HOST_PORT="${ASF_HOST_PORT:-18000}"
+if [[ -z "${ASF_HOST_PORT:-}" || "${ASF_HOST_PORT}" == "SET_ME" || ! "${ASF_HOST_PORT}" =~ ^[0-9]+$ ]]; then
+  ASF_HOST_PORT="18000"
+fi
+export ASF_HOST_PORT
 
 asf_sudo() {
   if [[ "$(id -u)" -eq 0 ]]; then
@@ -35,6 +38,19 @@ cd "$DEPLOY_PATH"
 export PYTHONPATH="$DEPLOY_PATH"
 export ASF_ENV_PATH="${DEPLOY_PATH}/.env"
 python3 deploy/write_env.py
+# Compose interpolates ${ASF_HOST_PORT} from the process env first.
+# GitHub placeholder SET_ME is non-empty, so ${ASF_HOST_PORT:-18000} would not apply.
+if [[ -z "${ASF_HOST_PORT:-}" || "${ASF_HOST_PORT}" == "SET_ME" || ! "${ASF_HOST_PORT}" =~ ^[0-9]+$ ]]; then
+  ASF_HOST_PORT="$(python3 -c "from pathlib import Path
+for line in Path('.env').read_text().splitlines():
+    if line.startswith('ASF_HOST_PORT='):
+        print(line.split('=',1)[1].strip().strip(chr(34))); break
+")"
+fi
+if [[ -z "${ASF_HOST_PORT:-}" || "${ASF_HOST_PORT}" == "SET_ME" || ! "${ASF_HOST_PORT}" =~ ^[0-9]+$ ]]; then
+  ASF_HOST_PORT="18000"
+fi
+export ASF_HOST_PORT
 
 compose() {
   if docker compose version >/dev/null 2>&1; then
