@@ -73,6 +73,16 @@ def test_nginx_vhost_is_not_default_server():
     assert "server_name mini.example.com;" in block
     assert "proxy_pass http://127.0.0.1:18000;" in block
     assert "listen 80;" in block
+    assert ".well-known/acme-challenge/" in block
+    assert "listen 443" not in block
+
+
+def test_tls_vhost_uses_letsencrypt_and_is_not_default():
+    block = render_server_block("ai-sf-fac.duckdns.org", "127.0.0.1:18000", tls=True)
+    assert "listen 443 ssl;" in block
+    assert "listen 443 ssl default_server" not in block
+    assert "ssl_certificate /etc/letsencrypt/live/ai-sf-fac.duckdns.org/fullchain.pem;" in block
+    assert "return 301 https://$host$request_uri;" in block
 
 
 def test_same_domain_emits_one_site_file(tmp_path: Path):
