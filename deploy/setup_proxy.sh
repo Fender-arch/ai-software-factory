@@ -87,6 +87,10 @@ issue_cert() {
     echo "LETSENCRYPT_EMAIL not set; skip certbot for ${domain}"
     return 0
   fi
+  if command -v apt-get >/dev/null 2>&1 || asf_sudo command -v apt-get >/dev/null 2>&1; then
+    asf_sudo apt-get update -qq || true
+    asf_sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python3-certbot-nginx || true
+  fi
   if ! command -v certbot >/dev/null 2>&1 && ! asf_sudo command -v certbot >/dev/null 2>&1; then
     echo "certbot not installed; ${domain} is HTTP-only until you run certbot"
     return 0
