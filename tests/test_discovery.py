@@ -848,6 +848,8 @@ def test_heuristic_rewrites_questions_and_option_chips():
     assert "функции записи" in blob
     assert "салон" in blob or "запис" in blob
     assert "не спрашиваю" in blob
+    assert "выберите вариант:" not in blob
+    assert not any(ln.strip().startswith("1. ") for ln in prompt.text.splitlines())
     labels = [c.label.lower() for c in prompt.choices]
     assert any("слот" in label or "запис" in label for label in labels)
 

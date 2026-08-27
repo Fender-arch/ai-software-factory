@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from discovery.adapt import context_preamble
 from discovery.fsm import DiscoveryStage
 from discovery.literacy import ITLiteracy
 from discovery.rephrase import apply_choice_overrides, format_outline_announcement, topic_title
@@ -143,33 +142,11 @@ def build_prompt(
         header = f"Подраздел ТЗ {index + 1}/{total} — {topic_title(topic, plan)}"
     override = (plan.question_overrides.get(topic.id) if plan else None)
     question = question_text(topic, literacy, product_type, override=override)
-    recommended = next((c for c in choices if c.recommended), None)
     lines: list[str] = []
     if announce_outline and plan:
         lines.extend([format_outline_announcement(plan), ""])
-    preamble = context_preamble(captured_snapshots or [], literacy=literacy)
-    if preamble:
-        lines.append(preamble.rstrip())
-        lines.append("")
-    lines.extend([header, "", question, ""])
-    if recommended:
-        lines.append(f"Рекомендуем: {recommended.label}")
-        lines.append("")
-    lines.append("Если не знаете точный ответ — выберите вариант:")
-    for i, opt in enumerate(choices, start=1):
-        mark = " (рекомендуем)" if opt.recommended else ""
-        lines.append(f"{i}. {opt.label}{mark}")
-    lines.extend(
-        [
-            "",
-            (
-                "Можно отметить несколько вариантов, затем нажать «Отправить». "
-                "Свои слова можно дописать в поле ввода."
-                if topic.multi
-                else "Можно ответить своими словами. Чтобы приостановить интервью, напишите «пауза»."
-            ),
-        ]
-    )
+    _ = captured_snapshots
+    lines.extend([header, "", question])
     return DiscoveryPrompt(
         text="\n".join(lines),
         choices=choices,

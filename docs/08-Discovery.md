@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.14 |
-| Updated | 2026-08-26 |
+| Version | 0.15 |
+| Updated | 2026-08-28 |
 | Owner | ASF Core |
 
 ## Purpose
@@ -19,7 +19,7 @@ Quality ideas (clarify pass, `[NEEDS CLARIFICATION]` instead of guessing, checkl
 
 ## Channels
 
-- Telegram **Mini App** project workspace (primary) — text + choice chips. The chat shows a **progress bar** (gray track, green fill); `done/total` is recomputed after every answer from the current adapted outline (extra modules, clarify items, wrap-up).
+- Telegram **Mini App** project workspace (primary) — text + **«Варианты ответа» popup**. New project: welcome popup then questions. The chat shows a **progress bar** (gray track, green fill); `done/total` is recomputed after every answer from the current adapted outline (extra modules, clarify items, wrap-up). The assistant message is the next question only.
 - Telegram **voice** (Mini App or bot) → Whisper STT → text (same pipeline)
 - Bot DM: transitional until Mini App; then notifications + deep links
 

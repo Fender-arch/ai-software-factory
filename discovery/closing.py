@@ -116,19 +116,8 @@ def render_closing_prompt(item: ClosingItem) -> tuple[str, list[Choice]]:
         "",
         item.question,
         "",
-        f"Зачем это важно: {item.why}",
-        "",
-        "Варианты:",
+        item.why,
     ]
-    for i, opt in enumerate(item.options, start=1):
-        lines.append(f"{i}. {opt.label}")
-    lines.extend(
-        [
-            "",
-            "Можно ответить номером, своими словами или прикрепить файл. "
-            "«Готово» отправит черновик как есть.",
-        ]
-    )
     return "\n".join(lines), list(item.options)
 
 

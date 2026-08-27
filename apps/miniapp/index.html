@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>ASF</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="./styles.css?v=20260828-fit" />
+  <link rel="stylesheet" href="./styles.css?v=20260828-ask" />
 </head>
 <body>
   <canvas id="foundry-field" class="foundry-field" aria-hidden="true"></canvas>
@@ -84,8 +84,6 @@
       </div>
       <div id="thread" class="thread"></div>
       <div id="ws-dock" class="ws-dock">
-        <div id="choice-hint" class="muted choice-hint hidden"></div>
-        <div id="choice-chips" class="choice-chips hidden"></div>
         <p id="send-hint" class="muted send-hint hidden"></p>
         <div id="tz-download" class="tz-download hidden">
           <p class="tz-download-title">Черновик ТЗ отправлен разработчику. Скачайте копию:</p>
@@ -96,23 +94,45 @@
           </div>
         </div>
         <form id="composer" class="composer">
-          <button type="button" id="btn-attach" class="icon-btn" title="Прикрепить файл">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.44 11.05l-8.49 8.49a5.25 5.25 0 0 1-7.43-7.43l8.49-8.49a3.5 3.5 0 0 1 4.95 4.95l-8.49 8.49a1.75 1.75 0 1 1-2.47-2.47l7.78-7.78"/></svg>
-            <span class="btn-label">Файл</span>
-          </button>
-          <button type="button" id="btn-voice" class="icon-btn" title="Надиктовать в поле ответа" aria-pressed="false">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 17v5"/><path d="M8 22h8"/></svg>
-            <span class="btn-label">Голос</span>
-          </button>
-          <textarea id="composer-text" rows="1" placeholder="Сообщение…"></textarea>
-          <button type="submit" class="btn primary send-btn" title="Отправить">Отправить</button>
+          <textarea id="composer-text" rows="4" placeholder="Сообщение…"></textarea>
+          <div class="composer-toolbar">
+            <button type="button" id="btn-choices" class="choices-btn hidden">Варианты ответа</button>
+            <button type="button" id="btn-attach" class="icon-btn" title="Прикрепить файл">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.44 11.05l-8.49 8.49a5.25 5.25 0 0 1-7.43-7.43l8.49-8.49a3.5 3.5 0 0 1 4.95 4.95l-8.49 8.49a1.75 1.75 0 1 1-2.47-2.47l7.78-7.78"/></svg>
+              <span class="btn-label">Файл</span>
+            </button>
+            <button type="button" id="btn-voice" class="icon-btn" title="Надиктовать в поле ответа" aria-pressed="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 17v5"/><path d="M8 22h8"/></svg>
+              <span class="btn-label">Голос</span>
+            </button>
+            <button type="submit" class="btn primary send-btn" title="Отправить">Отправить</button>
+          </div>
           <input id="file-input" type="file" class="hidden" />
         </form>
         <p id="voice-status" class="muted voice-status hidden"></p>
       </div>
     </section>
   </div>
-  <script src="./foundry.js?v=20260828-fit"></script>
-  <script src="./app.js?v=20260828-fit"></script>
+
+  <div id="welcome-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+    <div class="modal-card">
+      <h2 id="welcome-title">Сбор требований</h2>
+      <div id="welcome-body" class="modal-body"></div>
+      <button type="button" id="welcome-go" class="btn primary">Поехали</button>
+    </div>
+  </div>
+  <div id="choices-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="choices-title">
+    <div class="modal-card">
+      <h2 id="choices-title">Варианты ответа</h2>
+      <p id="choice-hint" class="muted choice-hint hidden"></p>
+      <div id="choice-chips" class="choice-chips"></div>
+      <div class="modal-actions">
+        <button type="button" id="choices-cancel" class="btn">Отмена</button>
+        <button type="button" id="choices-apply" class="btn primary hidden">Выбрать</button>
+      </div>
+    </div>
+  </div>
+  <script src="./foundry.js?v=20260828-ask"></script>
+  <script src="./app.js?v=20260828-ask"></script>
 </body>
 </html>

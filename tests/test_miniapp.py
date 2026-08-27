@@ -25,16 +25,21 @@ def test_miniapp_static_served(client):
     assert "String(ws.project_id) !== pid" in js.text
     assert "renderProgress" in js.text
     assert "discovery_progress" in js.text
-    assert "20260828-fit" in res.text
+    assert "20260828-ask" in res.text
     assert "ws-progress" in res.text
     assert "foundry-field" in res.text
     assert "tz-download" in res.text
+    assert "Поехали" in res.text
+    assert "Варианты ответа" in res.text
+    assert "welcome-modal" in res.text
+    assert "choices-modal" in res.text
     css = client.get("/miniapp/styles.css")
     assert css.status_code == 200
     assert ".ws-progress-track" in css.text
     assert "#2ecc71" in css.text
     assert "#5c5c5c" in css.text
     assert "--app-vh" in css.text
+    assert "flex: 0 0 24%" in css.text
     assert "microphone=(self)" in (res.headers.get("permissions-policy") or "")
     assert res.headers.get("cache-control") == "no-store"
 
@@ -49,6 +54,8 @@ def test_miniapp_js_uses_telegram_fullscreen_and_groq_voice(client):
     assert "pickRecorderMime" in js.text
     assert "visualViewport" in js.text
     assert "contentSafeAreaInset" in js.text
+    assert "applyWelcomeGate" in js.text
+    assert "openChoicesModal" in js.text
 
 
 def test_create_project_welcome_and_russian_question(client):
@@ -68,10 +75,12 @@ def test_create_project_welcome_and_russian_question(client):
     messages = ws.json()["messages"]
     assert len(messages) >= 2
     welcome = messages[0]["text"]
+    assert messages[0].get("meta_kind") == "welcome"
     assert "сбор требований" in welcome.lower() or "интервью" in welcome.lower()
     assert "ТЗ" in welcome
     first_q = messages[1]["text"]
     assert any(ch.isalpha() and ord(ch) > 127 for ch in first_q)
+    assert "выберите вариант" not in first_q.lower()
     assert ws.json().get("discovery_choices")
     assert ws.json().get("allow_multiple") is True
 
@@ -83,6 +92,7 @@ def test_create_project_welcome_and_russian_question(client):
     assert msg.status_code == 201
     reply = msg.json()["discovery_reply"] or ""
     assert any(ch.isalpha() and ord(ch) > 127 for ch in reply)
+    assert "уже зафиксировали" not in reply.lower()
 
 
 def test_new_project_chat_is_isolated_from_sibling(client):

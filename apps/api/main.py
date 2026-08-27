@@ -198,6 +198,7 @@ def api_project_workspace(
                 kind=m.kind.value,
                 text=m.text,
                 created_at=m.created_at,
+                meta_kind=(m.meta or {}).get("kind") if isinstance(m.meta, dict) else None,
             )
             for m in ws["messages"]
         ],

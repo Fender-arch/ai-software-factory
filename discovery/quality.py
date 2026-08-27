@@ -824,29 +824,13 @@ def build_clarify_queue(
 
 
 def render_clarify_prompt(item: ClarifyItem) -> tuple[str, list[Choice]]:
-    recommended = next((c for c in item.options if c.recommended), None)
     lines = [
         f"Уточнение {item.category}",
         "",
-        f"Вопрос: {item.question}",
+        item.question,
         "",
-        f"Зачем это важно: {item.why}",
-        "",
+        item.why,
     ]
-    if recommended:
-        lines.append(f"Рекомендуем: {recommended.label}")
-        lines.append("")
-    lines.append("Варианты:")
-    for i, opt in enumerate(item.options, start=1):
-        mark = " (рекомендуем)" if opt.recommended else ""
-        lines.append(f"{i}. {opt.label}{mark}")
-    lines.extend(
-        [
-            "",
-            "Ответьте номером, своими словами, «готово» (если качество уже достаточно) "
-            "или «остальное с разработчиком».",
-        ]
-    )
     return "\n".join(lines), list(item.options)
 
 

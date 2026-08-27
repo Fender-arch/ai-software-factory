@@ -96,6 +96,8 @@
     sending: false,
     recorderExt: "webm",
     recordingStartedAt: 0,
+    welcomePending: false,
+    wsMessages: [],
   };
 
   const SpeechRecognition =
@@ -152,7 +154,11 @@
     state.mode = name;
     const isWs = name === "workspace";
     const appEl = $("app");
-    if (appEl) appEl.classList.toggle("is-workspace", isWs);
+    if (appEl) {
+      appEl.classList.toggle("is-workspace", isWs);
+      if (!isWs) appEl.classList.remove("welcome-pending");
+    }
+    if (!isWs) closeWelcomeModal();
     document.documentElement.classList.toggle("asf-workspace", isWs);
     document.body.classList.toggle("asf-workspace", isWs);
     syncViewportHeight();
@@ -404,7 +410,7 @@
         ws.paused ? " · пауза" : ""
       }`;
       renderProgress(ws.discovery_progress, mode !== "feedback");
-      renderThread(ws.messages || []);
+      applyWelcomeGate(ws.messages || [], mode);
       renderChoices(
         mode === "feedback" ? [] : ws.discovery_choices || [],
         Boolean(ws.paused) && mode !== "feedback",
@@ -414,10 +420,10 @@
         mode === "feedback"
           ? "Что исправить или добавить в реализации…"
           : (ws.discovery_choices || []).length
-            ? "Ответьте на вопрос, выберите вариант или опишите идею…"
+            ? "Ответьте текстом или откройте варианты…"
           : ws.status === "WAITING_OWNER" || ws.status === "READY"
-            ? "Можно добавить уточнение — оно будет зафиксировано…"
-            : "Ответьте на вопрос, выберите вариант или опишите идею…";
+            ? "Можно добавить уточнение…"
+            : "Ответьте текстом или откройте варианты…";
       $("composer-text").placeholder = placeholder;
       renderTzDownload(Boolean(ws.tz_available));
       scrollThreadToLatest();
@@ -457,14 +463,84 @@
     }
   }
 
+  function isWelcomeMessage(m) {
+    if (!m || m.role === "customer") return false;
+    if (m.meta_kind === "welcome") return true;
+    const t = String(m.text || "").toLowerCase();
+    return t.includes("добро пожаловать") && t.includes("сбор требований");
+  }
+
+  function welcomeKey(pid) {
+    return `asf-welcome-ok:${pid}`;
+  }
+
+  function welcomeDismissed(pid) {
+    try {
+      return Boolean(sessionStorage.getItem(welcomeKey(pid)));
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function markWelcomeDismissed(pid) {
+    try {
+      sessionStorage.setItem(welcomeKey(pid), "1");
+    } catch (_) {
+      /* private mode */
+    }
+  }
+
+  function closeWelcomeModal() {
+    const modal = $("welcome-modal");
+    if (modal) modal.classList.add("hidden");
+    const appEl = $("app");
+    if (appEl) appEl.classList.remove("welcome-pending");
+    state.welcomePending = false;
+  }
+
+  function applyWelcomeGate(messages, mode) {
+    const list = Array.isArray(messages) ? messages : [];
+    const welcome = list.find(isWelcomeMessage);
+    const hasCustomer = list.some((m) => m.role === "customer");
+    const hold =
+      Boolean(welcome) &&
+      !hasCustomer &&
+      mode !== "feedback" &&
+      !welcomeDismissed(state.projectId);
+    state.wsMessages = list;
+    state.welcomePending = hold;
+    const appEl = $("app");
+    if (appEl) appEl.classList.toggle("welcome-pending", hold);
+    const modal = $("welcome-modal");
+    const body = $("welcome-body");
+    if (hold && modal && body && welcome) {
+      body.textContent = welcome.text || "";
+      modal.classList.remove("hidden");
+      renderThread([]);
+      return;
+    }
+    if (modal) modal.classList.add("hidden");
+    renderThread(list);
+  }
+
+  function visibleThreadMessages(messages) {
+    const hold = Boolean(state.welcomePending);
+    return (messages || []).filter((m) => {
+      if (isWelcomeMessage(m)) return false;
+      if (hold) return false;
+      return true;
+    });
+  }
+
   function renderThread(messages) {
     const thread = $("thread");
     thread.innerHTML = "";
-    messages.forEach((m, idx) => {
+    const rows = visibleThreadMessages(messages);
+    rows.forEach((m, idx) => {
       const div = document.createElement("div");
       const role = m.role === "customer" ? "customer" : "assistant";
       div.className = `bubble ${role}`;
-      if (idx === messages.length - 1) div.classList.add("latest");
+      if (idx === rows.length - 1) div.classList.add("latest");
       div.textContent = m.text;
       thread.appendChild(div);
     });
@@ -548,6 +624,8 @@
   function renderChoices(choices, paused, allowMultiple) {
     const box = $("choice-chips");
     const hint = $("choice-hint");
+    const openBtn = $("btn-choices");
+    const applyBtn = $("choices-apply");
     if (!box) return;
     box.innerHTML = "";
     state.choiceItems = Array.isArray(choices) ? choices : [];
@@ -558,15 +636,18 @@
       hint.classList.add("hidden");
       hint.textContent = "";
     }
+    if (applyBtn) applyBtn.classList.add("hidden");
+    closeChoicesModal();
     if (!state.choiceItems.length) {
-      box.classList.add("hidden");
+      if (openBtn) openBtn.classList.add("hidden");
       return;
     }
-    box.classList.remove("hidden");
+    if (openBtn) openBtn.classList.remove("hidden");
     if (hint && state.allowMultiple) {
       hint.classList.remove("hidden");
-      hint.textContent = "Можно отметить несколько вариантов, затем «Отправить».";
+      hint.textContent = "Можно отметить несколько вариантов, затем «Выбрать».";
     }
+    if (applyBtn) applyBtn.classList.toggle("hidden", !state.allowMultiple);
     state.choiceItems.forEach((choice) => {
       const btn = document.createElement("button");
       btn.type = "button";
@@ -583,6 +664,17 @@
       tip.textContent = "Интервью на паузе";
       box.appendChild(tip);
     }
+  }
+
+  function openChoicesModal() {
+    const modal = $("choices-modal");
+    if (!modal || !state.choiceItems.length) return;
+    modal.classList.remove("hidden");
+  }
+
+  function closeChoicesModal() {
+    const modal = $("choices-modal");
+    if (modal) modal.classList.add("hidden");
   }
 
   function paintSelectedChips() {
@@ -612,6 +704,7 @@
   async function onChoiceTap(choice) {
     if (!choice) return;
     if (choice.exclusive || !state.allowMultiple) {
+      closeChoicesModal();
       await sendDiscoveryText(choice.label || choice.id);
       return;
     }
@@ -649,6 +742,46 @@
     } finally {
       state.sending = false;
     }
+  }
+
+  const welcomeGo = $("welcome-go");
+  if (welcomeGo) {
+    welcomeGo.addEventListener("click", () => {
+      haptic("light");
+      markWelcomeDismissed(state.projectId);
+      closeWelcomeModal();
+      renderThread(state.wsMessages || []);
+      scrollThreadToLatest();
+    });
+  }
+  const btnChoices = $("btn-choices");
+  if (btnChoices) {
+    btnChoices.addEventListener("click", () => {
+      haptic("light");
+      openChoicesModal();
+    });
+  }
+  const choicesCancel = $("choices-cancel");
+  if (choicesCancel) {
+    choicesCancel.addEventListener("click", closeChoicesModal);
+  }
+  const choicesApply = $("choices-apply");
+  if (choicesApply) {
+    choicesApply.addEventListener("click", async () => {
+      const payload = encodeSelectedPayload("");
+      if (!payload) {
+        showSendHint("Отметьте варианты или нажмите «Отмена».");
+        return;
+      }
+      closeChoicesModal();
+      await sendDiscoveryText(payload);
+    });
+  }
+  const choicesModal = $("choices-modal");
+  if (choicesModal) {
+    choicesModal.addEventListener("click", (ev) => {
+      if (ev.target === choicesModal) closeChoicesModal();
+    });
   }
 
   $("composer").addEventListener("submit", async (ev) => {
@@ -755,10 +888,7 @@
   }
 
   function resizeComposer() {
-    const box = $("composer-text");
-    if (!box) return;
-    box.style.height = "auto";
-    box.style.height = `${Math.min(88, Math.max(40, box.scrollHeight))}px`;
+    /* textarea fills 20–25% composer via CSS flex */
   }
 
   function appendToComposer(transcript) {

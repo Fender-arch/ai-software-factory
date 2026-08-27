@@ -113,6 +113,7 @@ class WorkspaceMessage(BaseModel):
     kind: str
     text: str
     created_at: datetime
+    meta_kind: str | None = None
 
 
 class DiscoveryProgress(BaseModel):

@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.5 |
+| Version | 0.6 |
 | Updated | 2026-08-28 |
 | Owner | ASF Core |
 
@@ -21,7 +21,7 @@ All customer interaction with ASF happens in a **fullscreen Telegram Mini App** 
 | Mini App (fullscreen) | Home actions, project list, project workspace (Discovery / change / implementation feedback) |
 | Owner HITL (bot) | `/review`, `/approve`, `/changes`, `/reject`, `/plan`, `/export` (MVP) |
 
-On phone, the Mini App calls `Telegram.WebApp.expand()` and `requestFullscreen()` (Bot API 8.0) so the UI uses the full screen, with `safeAreaInset` / `contentSafeAreaInset` padding. Layout is compact: one viewport for home actions; workspace is a flex column (thread scrolls, composer stays pinned). `expand()` alone only grows the bottom sheet — that is why older builds overflowed.
+On phone, the Mini App calls `Telegram.WebApp.expand()` and `requestFullscreen()` (Bot API 8.0) so the UI uses the full screen, with `safeAreaInset` / `contentSafeAreaInset` padding. Layout is compact: one viewport for home actions; workspace is a flex column (thread scrolls, composer is **20–25%** of the workspace with File / Voice / Send inside that box). Answer options open in a **popup** from «Варианты ответа», not as chips in the chat. New projects start with a **welcome popup** («Поехали»); TZ questions appear after that. `expand()` alone only grows the bottom sheet — that is why older builds overflowed.
 
 ## Why not a separate Telegram chat per project
 
@@ -43,7 +43,7 @@ Then three actions (Russian labels in product UI):
 
 1. Create `project` for this Telegram user.
 2. Open that project’s workspace in the Mini App.
-3. Run Discovery (text, **choice chips**, and/or voice). Inside Telegram, voice is **recorded in the Mini App and sent to Groq Whisper** (`POST /stt/transcribe`); Web Speech is not used in the Telegram WebView because it often starts with no transcript. Outside Telegram (browser smoke with `?uid=`), Web Speech may still be used. The transcript is inserted into the composer, then ingest is the same as text. Interview covers TZ sections until the customer pauses, hands remaining items to the developer, or confirms «готово» after coverage and wrap-up (extra notes, budget figure, attached brief). The workspace shows a **progress bar** (gray track, green fill) for requirements gathering; `done/total` is recomputed after every answer if the outline grows (extra modules, clarify, wrap-up). After send, the workspace offers a download of the same draft TZ.
+3. Run Discovery (text, **choice popup**, and/or voice). After create, a popup explains the interview; «Поехали» starts the first TZ question. The next assistant turn is **only the next question** (no “we recorded that” recap; options live in «Варианты ответа», not in the chat). Inside Telegram, voice is **recorded in the Mini App and sent to Groq Whisper** (`POST /stt/transcribe`); Web Speech is not used in the Telegram WebView because it often starts with no transcript. Outside Telegram (browser smoke with `?uid=`), Web Speech may still be used. The transcript is inserted into the composer, then ingest is the same as text. Interview covers TZ sections until the customer pauses, hands remaining items to the developer, or confirms «готово» after coverage and wrap-up (extra notes, budget figure, attached brief). The workspace shows a **progress bar** (gray track, green fill) for requirements gathering; `done/total` is recomputed after every answer if the outline grows (extra modules, clarify, wrap-up). After send, the workspace offers a download of the same draft TZ.
 4. Bot may notify when owner review is needed or when the customer must answer.
 
 ### Change project
