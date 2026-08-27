@@ -55,8 +55,8 @@ jobs:
         run: |
           tar --exclude='.git' --exclude='.venv' --exclude='__pycache__' \
               --exclude='.pytest_cache' --exclude='data' --exclude='.env' \
-              --exclude='asf-deploy.tgz' \
-              -czf asf-deploy.tgz .
+              -C "$GITHUB_WORKSPACE" -czf /tmp/asf-deploy.tgz .
+          cp /tmp/asf-deploy.tgz "$GITHUB_WORKSPACE/asf-deploy.tgz"
 
       - name: Copy archive to VPS
         if: steps.gate.outputs.ready == 'true'
