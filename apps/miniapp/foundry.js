@@ -8,7 +8,9 @@
     const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return { stop() {} };
 
-    const N = 52;
+    const small =
+      Math.min(window.innerWidth || 400, window.innerHeight || 400) < 640;
+    const N = small ? 22 : 40;
     const pts = Array.from({ length: N }, () => {
       const u = Math.random() * Math.PI * 2;
       const v = Math.acos(2 * Math.random() - 1);

@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.4 |
-| Updated | 2026-08-25 |
+| Version | 0.5 |
+| Updated | 2026-08-28 |
 | Owner | ASF Core |
 
 ADR: [DEC-006](../decisions/DEC-006-Telegram-Mini-App.md)
@@ -20,6 +20,8 @@ All customer interaction with ASF happens in a **fullscreen Telegram Mini App** 
 | Bot DM | `/start` onboarding (RU), Menu Button / WebApp button, push notifications |
 | Mini App (fullscreen) | Home actions, project list, project workspace (Discovery / change / implementation feedback) |
 | Owner HITL (bot) | `/review`, `/approve`, `/changes`, `/reject`, `/plan`, `/export` (MVP) |
+
+On phone, the Mini App calls `Telegram.WebApp.expand()` and `requestFullscreen()` (Bot API 8.0) so the UI uses the full screen, with `safeAreaInset` / `contentSafeAreaInset` padding. Layout is compact: one viewport for home actions; workspace is a flex column (thread scrolls, composer stays pinned). `expand()` alone only grows the bottom sheet — that is why older builds overflowed.
 
 ## Why not a separate Telegram chat per project
 
@@ -41,7 +43,7 @@ Then three actions (Russian labels in product UI):
 
 1. Create `project` for this Telegram user.
 2. Open that project’s workspace in the Mini App.
-3. Run Discovery (text, **choice chips**, and/or voice → STT → same ingest as today). Interview covers TZ sections until the customer pauses, hands remaining items to the developer, or confirms «готово» after coverage and wrap-up (extra notes, budget figure, attached brief). The workspace shows a **progress bar** (gray track, green fill) for requirements gathering; `done/total` is recomputed after every answer if the outline grows (extra modules, clarify, wrap-up). After send, the workspace offers a download of the same draft TZ.
+3. Run Discovery (text, **choice chips**, and/or voice). Inside Telegram, voice is **recorded in the Mini App and sent to Groq Whisper** (`POST /stt/transcribe`); Web Speech is not used in the Telegram WebView because it often starts with no transcript. Outside Telegram (browser smoke with `?uid=`), Web Speech may still be used. The transcript is inserted into the composer, then ingest is the same as text. Interview covers TZ sections until the customer pauses, hands remaining items to the developer, or confirms «готово» after coverage and wrap-up (extra notes, budget figure, attached brief). The workspace shows a **progress bar** (gray track, green fill) for requirements gathering; `done/total` is recomputed after every answer if the outline grows (extra modules, clarify, wrap-up). After send, the workspace offers a download of the same draft TZ.
 4. Bot may notify when owner review is needed or when the customer must answer.
 
 ### Change project

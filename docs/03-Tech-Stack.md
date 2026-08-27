@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.5 |
-| Updated | 2026-08-26 |
+| Version | 0.6 |
+| Updated | 2026-08-28 |
 | Owner | ASF Core |
 
 Locked choices for MVP. Alternatives belong in Future, not in endless bake-offs.
@@ -18,7 +18,7 @@ Locked choices for MVP. Alternatives belong in Future, not in endless bake-offs.
 | Queue / cache | **None in MVP** (Postgres statuses); Redis = Future |
 | Customer UI | Telegram **Mini App** (fullscreen) + Bot API (aiogram) for entry/notifications/owner HITL |
 | Owner UI | Internal TZ graph console (`apps/console/`, vis-network); [DEC-007](../decisions/DEC-007-Owner-TZ-Console.md) |
-| STT | Mini App: Web Speech when capable, else **Groq Whisper**; also `whisper` (OpenAI) / `stub` |
+| STT | Mini App in Telegram: **Groq Whisper** via recorded audio; Web Speech only outside Telegram. Also `whisper` (OpenAI) / `stub` |
 | LLM | Pluggable router; `stub` or **Groq** JSON (`LLM_PROVIDER=groq`) to adapt TZ outline / extra subsections |
 | Coding executor | Cursor (rules + task export); CLI integration later |
 | Containers | Docker + Docker Compose (local `docker-compose.yml`; VPS `docker-compose.prod.yml`) |

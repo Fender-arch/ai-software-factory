@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.1 |
-| Updated | 2026-08-26 |
+| Version | 0.2 |
+| Updated | 2026-08-28 |
 | Owner | ASF Core |
 
 ## Goal
@@ -37,7 +37,7 @@ Point **A/AAAA** records to the VPS IP **before** expecting HTTPS:
 - `DOMAIN_MINIAPP` → Mini App `https://<domain>/miniapp/`
 - `DOMAIN_CONSOLE` → Console `https://<domain>/console/` (may be the same hostname)
 
-In @BotFather set the Mini App URL to `https://<DOMAIN_MINIAPP>/miniapp/`.
+In @BotFather set the Mini App URL to `https://<DOMAIN_MINIAPP>/miniapp/`. The Mini App itself requests fullscreen on open (`requestFullscreen`); fully close and reopen the WebApp after a deploy so Telegram does not keep a cached HTML/JS bundle.
 
 ## GitHub secrets
 

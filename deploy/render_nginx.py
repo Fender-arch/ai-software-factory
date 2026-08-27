@@ -14,6 +14,8 @@ server {{
     server_name {server_name};
 
     client_max_body_size 25m;
+    add_header Permissions-Policy "microphone=(self)" always;
+    add_header Feature-Policy "microphone 'self'" always;
 
     location /.well-known/acme-challenge/ {{
         root {acme_root};
@@ -65,6 +67,8 @@ server {{
     ssl_protocols TLSv1.2 TLSv1.3;
 
     client_max_body_size 25m;
+    add_header Permissions-Policy "microphone=(self)" always;
+    add_header Feature-Policy "microphone 'self'" always;
 
     location / {{
         proxy_pass http://{upstream};

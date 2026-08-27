@@ -6,7 +6,7 @@ from typing import Literal
 
 from urllib.parse import quote
 
-from fastapi import Depends, FastAPI, File, HTTPException, Query, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, Query, Request, UploadFile
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.exc import SQLAlchemyError
@@ -62,6 +62,22 @@ from knowledge.repository import KnowledgeRepository
 settings = get_settings()
 app = FastAPI(title="AI Software Factory", version="0.1.0")
 app.include_router(console_router)
+
+
+@app.middleware("http")
+async def miniapp_client_headers(request: Request, call_next):
+    """Allow microphone in Telegram WebView and avoid stale Mini App HTML."""
+    response = await call_next(request)
+    path = request.url.path
+    if path.startswith("/miniapp"):
+        response.headers["Permissions-Policy"] = "microphone=(self), camera=()"
+        response.headers["Feature-Policy"] = "microphone 'self'"
+        content_type = response.headers.get("content-type", "")
+        if "text/html" in content_type:
+            response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 coordinator = AICoordinator(LLMRouter(provider=settings.llm_provider))
 
 _MINIAPP_DIR = Path(__file__).resolve().parents[1] / "miniapp"

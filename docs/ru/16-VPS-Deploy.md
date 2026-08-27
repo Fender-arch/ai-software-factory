@@ -5,8 +5,8 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.1 |
-| Updated | 2026-08-26 |
+| Version | 0.2 |
+| Updated | 2026-08-28 |
 | Owner | ASF Core |
 
 ## Цель
@@ -39,7 +39,7 @@ ASF не занимает порты хоста **80**, **443** и **5432**. API
 - `DOMAIN_MINIAPP` → Mini App `https://<domain>/miniapp/`
 - `DOMAIN_CONSOLE` → консоль ТЗ `https://<domain>/console/` (может совпадать с Mini App)
 
-В @BotFather укажите URL Mini App: `https://<DOMAIN_MINIAPP>/miniapp/`.
+В @BotFather укажите URL Mini App: `https://<DOMAIN_MINIAPP>/miniapp/`. Само Mini App запрашивает полноэкранный режим при открытии (`requestFullscreen`); после деплоя полностью закройте WebApp и откройте снова, чтобы Telegram не держал старый HTML/JS.
 
 ## Секреты GitHub
 

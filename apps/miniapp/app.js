@@ -13,14 +13,57 @@
     }
   }
 
+  function inTelegramWebView() {
+    if (!tg) return false;
+    if (tg.initData) return true;
+    if (tg.platform && tg.platform !== "unknown") return true;
+    return /Telegram/i.test(navigator.userAgent || "");
+  }
+
+  function enterTelegramFullscreen() {
+    if (!tg) return;
+    try {
+      tg.ready();
+    } catch (_) {
+      /* ready optional */
+    }
+    try {
+      tg.expand();
+    } catch (_) {
+      /* expand optional */
+    }
+    try {
+      if (typeof tg.disableVerticalSwipes === "function") tg.disableVerticalSwipes();
+    } catch (_) {
+      /* older clients */
+    }
+    try {
+      if (typeof tg.setHeaderColor === "function") tg.setHeaderColor("#07060b");
+      if (typeof tg.setBackgroundColor === "function") tg.setBackgroundColor("#07060b");
+      if (typeof tg.setBottomBarColor === "function") tg.setBottomBarColor("#07060b");
+    } catch (_) {
+      /* theme optional */
+    }
+    try {
+      if (!tg.isFullscreen && typeof tg.requestFullscreen === "function") {
+        tg.requestFullscreen();
+      }
+    } catch (_) {
+      /* desktop / old clients keep expanded sheet */
+    }
+  }
+
   if (tg) {
-    tg.ready();
-    tg.expand();
+    enterTelegramFullscreen();
     try {
       applyTelegramTheme();
     } catch (_) {
       /* theme optional */
     }
+    document.addEventListener("pointerdown", enterTelegramFullscreen, {
+      once: true,
+      capture: true,
+    });
   }
 
   if (window.ASFFoundry) {
@@ -51,20 +94,47 @@
     choiceItems: [],
     allowMultiple: false,
     sending: false,
+    recorderExt: "webm",
+    recordingStartedAt: 0,
   };
 
   const SpeechRecognition =
     window.SpeechRecognition || window.webkitSpeechRecognition || null;
 
-  /** Prefer Web Speech only when the Telegram/WebView environment looks capable. */
+  /** Web Speech is unreliable in Telegram WebView — record + Groq instead. */
   function canUseWebSpeech() {
     if (state.webSpeechDisabled) return false;
+    if (inTelegramWebView()) return false;
     if (!SpeechRecognition) return false;
     if (!window.isSecureContext) return false;
     const ua = navigator.userAgent || "";
-    // iOS Telegram WebView: SpeechRecognition is often missing or broken.
     if (/iPhone|iPad|iPod/i.test(ua)) return false;
     return true;
+  }
+
+  function pickRecorderMime() {
+    const fallback = { mime: "", ext: "webm" };
+    if (typeof MediaRecorder === "undefined") return fallback;
+    const candidates = [
+      ["audio/webm;codecs=opus", "webm"],
+      ["audio/webm", "webm"],
+      ["audio/mp4", "mp4"],
+      ["audio/aac", "m4a"],
+      ["audio/ogg;codecs=opus", "ogg"],
+      ["audio/ogg", "ogg"],
+      ["audio/wav", "wav"],
+    ];
+    if (typeof MediaRecorder.isTypeSupported !== "function") return fallback;
+    for (let i = 0; i < candidates.length; i += 1) {
+      const mime = candidates[i][0];
+      const ext = candidates[i][1];
+      try {
+        if (MediaRecorder.isTypeSupported(mime)) return { mime, ext };
+      } catch (_) {
+        /* skip */
+      }
+    }
+    return fallback;
   }
 
   const $ = (id) => document.getElementById(id);
@@ -89,13 +159,29 @@
   }
 
   function syncViewportHeight() {
-    const h =
-      (tg && (tg.viewportStableHeight || tg.viewportHeight)) ||
-      window.innerHeight ||
-      0;
+    const root = document.documentElement;
+    const vv = window.visualViewport;
+    const tgH = tg && (tg.viewportStableHeight || tg.viewportHeight);
+    const candidates = [];
+    if (vv && vv.height) candidates.push(vv.height);
+    if (tgH) candidates.push(tgH);
+    if (window.innerHeight) candidates.push(window.innerHeight);
+    const h = candidates.length ? Math.round(Math.min.apply(null, candidates)) : 0;
     if (h) {
-      document.documentElement.style.setProperty("--app-vh", `${Math.round(h)}px`);
+      root.style.setProperty("--app-vh", `${h}px`);
     }
+    const safe = (tg && tg.safeAreaInset) || {};
+    const content = (tg && tg.contentSafeAreaInset) || {};
+    root.style.setProperty(
+      "--safe-top",
+      `${(Number(safe.top) || 0) + (Number(content.top) || 0)}px`
+    );
+    root.style.setProperty(
+      "--safe-bottom",
+      `${(Number(safe.bottom) || 0) + (Number(content.bottom) || 0)}px`
+    );
+    root.style.setProperty("--safe-left", `${Number(safe.left) || Number(content.left) || 0}px`);
+    root.style.setProperty("--safe-right", `${Number(safe.right) || Number(content.right) || 0}px`);
   }
 
   function apiBase() {
@@ -655,7 +741,10 @@
   function setVoiceUi(active, statusText) {
     state.recording = active;
     voiceBtn.classList.toggle("recording", active);
-    voiceBtn.textContent = active ? "⏹ Стоп" : "🎤 Голос";
+    voiceBtn.setAttribute("aria-pressed", active ? "true" : "false");
+    const label = voiceBtn.querySelector(".btn-label");
+    if (label) label.textContent = active ? "Стоп" : "Голос";
+    voiceBtn.title = active ? "Остановить запись" : "Надиктовать в поле ответа";
     if (statusText) {
       voiceStatus.classList.remove("hidden");
       voiceStatus.textContent = statusText;
@@ -663,6 +752,13 @@
       voiceStatus.classList.add("hidden");
       voiceStatus.textContent = "";
     }
+  }
+
+  function resizeComposer() {
+    const box = $("composer-text");
+    if (!box) return;
+    box.style.height = "auto";
+    box.style.height = `${Math.min(88, Math.max(40, box.scrollHeight))}px`;
   }
 
   function appendToComposer(transcript) {
@@ -674,6 +770,7 @@
       .trim();
     if (!piece) return;
     box.value = existing ? `${existing} ${piece}` : piece;
+    resizeComposer();
     box.focus();
     const len = box.value.length;
     try {
@@ -805,28 +902,42 @@
   }
 
   async function startMediaDictation() {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    if (
+      typeof MediaRecorder === "undefined" ||
+      !navigator.mediaDevices ||
+      !navigator.mediaDevices.getUserMedia
+    ) {
       alert(
-        "Голосовой ввод недоступен в этом клиенте. Нужен микрофон и поддержка записи, либо введите текст."
+        "Голосовой ввод недоступен в этом клиенте Telegram. Разрешите микрофон для Telegram в настройках телефона или введите текст. Голосовые в чат бота тоже принимаются."
       );
       return;
     }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-        ? "audio/webm;codecs=opus"
-        : MediaRecorder.isTypeSupported("audio/webm")
-          ? "audio/webm"
-          : MediaRecorder.isTypeSupported("audio/ogg")
-            ? "audio/ogg"
-            : "";
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true },
+        });
+      } catch (_) {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
+      const picked = pickRecorderMime();
       state.chunks = [];
+      state.recorderExt = picked.ext;
       state.voiceMode = "media";
-      state.mediaRecorder = mime
-        ? new MediaRecorder(stream, { mimeType: mime })
+      state.recordingStartedAt = Date.now();
+      state.mediaRecorder = picked.mime
+        ? new MediaRecorder(stream, { mimeType: picked.mime })
         : new MediaRecorder(stream);
       state.mediaRecorder.ondataavailable = (ev) => {
         if (ev.data && ev.data.size > 0) state.chunks.push(ev.data);
+      };
+      state.mediaRecorder.onerror = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        state.mediaRecorder = null;
+        state.voiceMode = null;
+        setVoiceUi(false, "");
+        alert("Ошибка записи. Попробуйте ещё раз или введите текст.");
       };
       state.mediaRecorder.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
@@ -837,27 +948,32 @@
       } catch (_) {
         state.mediaRecorder.start();
       }
-      setVoiceUi(true, "Запись для Groq Whisper… нажмите Стоп");
+      setVoiceUi(true, "Идёт запись… нажмите микрофон ещё раз, чтобы остановить");
     } catch (err) {
       state.voiceMode = null;
       setVoiceUi(false, "");
-      alert("Не удалось получить доступ к микрофону: " + (err.message || err));
+      const msg = String(err && err.message ? err.message : err);
+      alert(
+        "Не удалось получить доступ к микрофону. В Android: Настройки → приложения → Telegram → разрешения → Микрофон. Затем закройте Mini App и откройте снова. " +
+          msg
+      );
     }
   }
 
   async function dictationViaServer() {
     state.voiceMode = null;
+    const elapsed = Date.now() - (state.recordingStartedAt || 0);
     try {
       const type =
         (state.chunks[0] && state.chunks[0].type) || "audio/webm";
       const blob = new Blob(state.chunks, { type });
       state.chunks = [];
-      if (!blob.size) {
+      if (!blob.size || elapsed < 400) {
         setVoiceUi(false, "");
-        alert("Пустая запись. Удерживайте дольше или проверьте микрофон.");
+        alert("Слишком короткая запись. Нажмите микрофон, говорите, затем нажмите ещё раз.");
         return;
       }
-      const ext = type.includes("ogg") ? "ogg" : "webm";
+      const ext = state.recorderExt || (type.includes("ogg") ? "ogg" : type.includes("mp4") || type.includes("aac") ? "mp4" : "webm");
       const fd = new FormData();
       fd.append("file", blob, `voice.${ext}`);
       setVoiceUi(false, "Распознавание (Groq)…");
@@ -865,11 +981,11 @@
       const text = (res.text || "").trim();
       if (!text) {
         setVoiceUi(false, "");
-        alert("Не удалось распознать речь. Попробуйте ещё раз.");
+        alert("Не удалось распознать речь. Попробуйте ещё раз или введите текст.");
         return;
       }
       appendToComposer(text);
-      setVoiceUi(false, "Текст вставлен — можно править или договорить");
+      setVoiceUi(false, "Текст вставлен — можно править и отправить");
       setTimeout(() => {
         if (!state.recording) {
           voiceStatus.classList.add("hidden");
@@ -895,12 +1011,28 @@
       syncViewportHeight();
       if (state.mode === "workspace") scrollThreadToLatest();
     });
+    tg.onEvent("fullscreenChanged", () => {
+      syncViewportHeight();
+      if (state.mode === "workspace") scrollThreadToLatest();
+    });
+    tg.onEvent("safeAreaChanged", syncViewportHeight);
+    tg.onEvent("contentSafeAreaChanged", syncViewportHeight);
     tg.onEvent("themeChanged", applyTelegramTheme);
   }
   window.addEventListener("resize", () => {
     syncViewportHeight();
     if (state.mode === "workspace") scrollThreadToLatest();
   });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", () => {
+      syncViewportHeight();
+      if (state.mode === "workspace") scrollThreadToLatest();
+    });
+  }
+  const composerBox = $("composer-text");
+  if (composerBox) {
+    composerBox.addEventListener("input", resizeComposer);
+  }
   syncViewportHeight();
 
   if (!userId) {

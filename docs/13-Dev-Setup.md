@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.7 |
-| Updated | 2026-08-26 |
+| Version | 0.8 |
+| Updated | 2026-08-28 |
 | Owner | ASF Core |
 
 ## Prerequisites
@@ -60,7 +60,7 @@ pytest
 
 Served by the API at http://localhost:8000/miniapp/ (browser smoke: add `?uid=<telegram_user_id>`).
 
-For Telegram WebApp, expose the API with HTTPS and set `MINIAPP_URL` to that `/miniapp/` URL, then restart the bot.
+For Telegram WebApp, expose the API with HTTPS and set `MINIAPP_URL` to that `/miniapp/` URL, then restart the bot. The Mini App requests fullscreen and, inside Telegram, records voice for Groq Whisper (allow the Telegram app microphone permission on Android).
 
 ## Owner TZ console
 

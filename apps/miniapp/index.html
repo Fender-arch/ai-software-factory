@@ -5,19 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>ASF</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="./styles.css?v=20260825-progress" />
+  <link rel="stylesheet" href="./styles.css?v=20260828-fit" />
 </head>
 <body>
   <canvas id="foundry-field" class="foundry-field" aria-hidden="true"></canvas>
   <div id="app">
     <header class="top">
-      <div class="foundry-core" aria-hidden="true">
-        <div class="foundry-cube">
-          <i class="f"></i><i class="bk"></i><i class="l"></i><i class="r"></i><i class="u"></i><i class="d"></i>
+      <div class="brand-row">
+        <div class="foundry-core" aria-hidden="true">
+          <div class="foundry-cube">
+            <i class="f"></i><i class="bk"></i><i class="l"></i><i class="r"></i><i class="u"></i><i class="d"></i>
+          </div>
+        </div>
+        <div class="brand-copy">
+          <div class="brand">ASF</div>
+          <p class="hook" id="subtitle">ТЗ, от которого не хочется зевать.</p>
         </div>
       </div>
-      <div class="brand">ASF</div>
-      <p class="hook" id="subtitle">ТЗ, от которого не хочется зевать.</p>
     </header>
 
     <section id="view-home" class="view">
@@ -29,14 +33,12 @@
         <li>MVP</li>
       </ol>
       <p class="lead">
-        Расскажите идею. Мы не гоняем анкету ради галочек — собираем спецификацию,
-        по которой можно делать продукт. Голос, кнопки, файлы. Шутки оставляем себе,
-        смысл — вам.
+        Идея → спецификация → MVP. Голос, кнопки, файлы.
       </p>
       <div class="actions">
         <button type="button" data-action="create" class="btn primary">
           <span class="btn-title">Создать проект</span>
-          <span class="btn-desc">Новое интервью. Без «ну что хотите?»</span>
+          <span class="btn-desc">Новое интервью</span>
         </button>
         <button type="button" data-action="change" class="btn">
           <span class="btn-title">Изменить проект</span>
@@ -67,16 +69,18 @@
     </section>
 
     <section id="view-workspace" class="view hidden">
-      <button type="button" class="linkback" data-back-workspace>← К проектам</button>
-      <div class="ws-head">
-        <h1 id="ws-name">Проект</h1>
-        <div id="ws-progress" class="ws-progress hidden" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Сбор требований">
-          <div class="ws-progress-track">
-            <div id="ws-progress-fill" class="ws-progress-fill"></div>
+      <div class="ws-chrome">
+        <button type="button" class="linkback" data-back-workspace>← К проектам</button>
+        <div class="ws-head">
+          <h1 id="ws-name">Проект</h1>
+          <div id="ws-progress" class="ws-progress hidden" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Сбор требований">
+            <div class="ws-progress-track">
+              <div id="ws-progress-fill" class="ws-progress-fill"></div>
+            </div>
+            <div id="ws-progress-label" class="ws-progress-label"></div>
           </div>
-          <div id="ws-progress-label" class="ws-progress-label"></div>
+          <div id="ws-meta" class="muted"></div>
         </div>
-        <div id="ws-meta" class="muted"></div>
       </div>
       <div id="thread" class="thread"></div>
       <div id="ws-dock" class="ws-dock">
@@ -92,25 +96,23 @@
           </div>
         </div>
         <form id="composer" class="composer">
-        <textarea id="composer-text" rows="2" placeholder="Сообщение…"></textarea>
-        <div class="composer-toolbar">
           <button type="button" id="btn-attach" class="icon-btn" title="Прикрепить файл">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.44 11.05l-8.49 8.49a5.25 5.25 0 0 1-7.43-7.43l8.49-8.49a3.5 3.5 0 0 1 4.95 4.95l-8.49 8.49a1.75 1.75 0 1 1-2.47-2.47l7.78-7.78"/></svg>
-            Файл
+            <span class="btn-label">Файл</span>
           </button>
-          <button type="button" id="btn-voice" class="icon-btn" title="Надиктовать в поле ответа">
+          <button type="button" id="btn-voice" class="icon-btn" title="Надиктовать в поле ответа" aria-pressed="false">
             <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 17v5"/><path d="M8 22h8"/></svg>
-            Голос
+            <span class="btn-label">Голос</span>
           </button>
-          <span id="voice-status" class="muted voice-status hidden"></span>
-          <button type="submit" class="btn primary send-btn">Отправить</button>
-        </div>
-        <input id="file-input" type="file" class="hidden" />
-      </form>
+          <textarea id="composer-text" rows="1" placeholder="Сообщение…"></textarea>
+          <button type="submit" class="btn primary send-btn" title="Отправить">Отправить</button>
+          <input id="file-input" type="file" class="hidden" />
+        </form>
+        <p id="voice-status" class="muted voice-status hidden"></p>
       </div>
     </section>
   </div>
-  <script src="./foundry.js?v=20260825-progress"></script>
-  <script src="./app.js?v=20260825-progress"></script>
+  <script src="./foundry.js?v=20260828-fit"></script>
+  <script src="./app.js?v=20260828-fit"></script>
 </body>
 </html>

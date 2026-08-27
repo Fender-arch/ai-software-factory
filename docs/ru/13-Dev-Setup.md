@@ -5,8 +5,8 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.7 |
-| Updated | 2026-08-26 |
+| Version | 0.8 |
+| Updated | 2026-08-28 |
 | Owner | ASF Core |
 
 ## Предварительные требования
@@ -62,7 +62,7 @@ pytest
 
 Отдаётся API по адресу http://localhost:8000/miniapp/ (smoke в браузере: `?uid=<telegram_user_id>`).
 
-Для Telegram WebApp нужен HTTPS на API и `MINIAPP_URL` на этот `/miniapp/`, затем перезапуск бота.
+Для Telegram WebApp нужен HTTPS на API и `MINIAPP_URL` на этот `/miniapp/`, затем перезапуск бота. Mini App запрашивает fullscreen, а внутри Telegram пишет голос и отдаёт его в Groq Whisper (на Android разрешите микрофон приложению Telegram).
 
 ## Консоль ТЗ владельца
 

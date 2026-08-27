@@ -25,7 +25,7 @@ def test_miniapp_static_served(client):
     assert "String(ws.project_id) !== pid" in js.text
     assert "renderProgress" in js.text
     assert "discovery_progress" in js.text
-    assert "20260825-progress" in res.text
+    assert "20260828-fit" in res.text
     assert "ws-progress" in res.text
     assert "foundry-field" in res.text
     assert "tz-download" in res.text
@@ -34,6 +34,21 @@ def test_miniapp_static_served(client):
     assert ".ws-progress-track" in css.text
     assert "#2ecc71" in css.text
     assert "#5c5c5c" in css.text
+    assert "--app-vh" in css.text
+    assert "microphone=(self)" in (res.headers.get("permissions-policy") or "")
+    assert res.headers.get("cache-control") == "no-store"
+
+
+def test_miniapp_js_uses_telegram_fullscreen_and_groq_voice(client):
+    js = client.get("/miniapp/app.js")
+    assert js.status_code == 200
+    assert "requestFullscreen" in js.text
+    assert "disableVerticalSwipes" in js.text
+    assert "inTelegramWebView" in js.text
+    assert "if (inTelegramWebView()) return false" in js.text
+    assert "pickRecorderMime" in js.text
+    assert "visualViewport" in js.text
+    assert "contentSafeAreaInset" in js.text
 
 
 def test_create_project_welcome_and_russian_question(client):
