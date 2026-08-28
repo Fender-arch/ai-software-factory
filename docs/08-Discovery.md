@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.15 |
+| Version | 0.16 |
 | Updated | 2026-08-28 |
 | Owner | ASF Core |
 
@@ -69,7 +69,7 @@ The catalog is a **library**, not the interview script. `discovery/adapt.py` bui
 3. **Capability modules** — booking rules, notifications, API consumers, voice, failure path — only when the captured idea needs them
 4. **Dynamic subsections** (`custom:…`) — heuristics add a few task-specific extras (for example who books a slot); Groq may add up to 8 when `LLM_PROVIDER=groq`
 5. **Skips** — public identity / offer / visitor CTA / brand / pages / **promotion (SEO, ads)** / **design references and direction** when there is no public presence; Mini App already chosen → skip “bot vs Mini App”
-6. **Wording** — after the idea is captured, remaining **questions, section titles, and choice chips** are rewritten from that task so the interview is not a generic form. The next turn announces added and skipped sections.
+6. **Wording** — after the idea is captured, remaining **questions, section titles, and choice chips** are rewritten from that task **and from later answers** so the interview is not a generic form. Catalog chip ids stay; labels are retargeted, irrelevant chips are hidden, and extra `ctx:*` chips may echo a fact already given (heuristic always; Groq refines when `LLM_PROVIDER=groq`). The next turn announces added and skipped sections.
 
 FSM stages stay the same. The agent still advances **one topic per answer**. Owner console virtual nodes follow the adapted outline (no new Section entity type).
 
@@ -117,7 +117,7 @@ Out of MVP even if asked: payments/SaaS, multi-tenant, unrestricted tool-using a
 
 ## When the customer does not know
 
-Every topic offers **choices**. Safe defaults may be marked **recommended** (for example “no payments in v1”, “greenfield”). Do **not** recommend goal, budget, or contacts. Topics like out-of-scope, roles, and integrations allow **several options in one answer**. Exclusive actions (pause, discuss with developer, ready) still submit immediately.
+Every topic offers **choices**. Those choices **follow previous answers**: if the customer said they book in WhatsApp, later chips mention WhatsApp instead of a generic “messengers”. Safe defaults may be marked **recommended** (for example “no payments in v1”, “greenfield”). Do **not** recommend goal, budget, or contacts. Topics like out-of-scope, roles, and integrations allow **several options in one answer**. Exclusive actions (pause, discuss with developer, ready) still submit immediately.
 
 A **choice chip** is enough to close a section **unless** the topic needs implementation content (public name, service list, visitor contact, brand colors, **what they like in a reference**, lead destination, existing host/domain). Those sections close only with written details or an explicit stub chip («пока заглушки», «референсов нет»). **Vague free text** (`удобно`, `быстро`, `как обычно`, and similarly empty phrases) does **not** close the section: the same topic is re-asked once, then escalated to the developer.
 

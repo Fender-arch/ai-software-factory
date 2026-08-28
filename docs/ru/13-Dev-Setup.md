@@ -50,7 +50,7 @@ pytest
 | `OPENAI_API_KEY` | OpenAI Whisper при `STT_PROVIDER=whisper` (+ будущий LLM) |
 | `STT_PROVIDER` | `stub` \| `groq` \| `whisper` |
 | `STT_MODEL` | напр. `whisper-large-v3-turbo` (Groq) или `whisper-1` (OpenAI) |
-| `LLM_PROVIDER` | `stub` \| `groq` (адаптация каркаса ТЗ JSON; ходы заказчика остаются детерминированными) |
+| `LLM_PROVIDER` | `stub` \| `groq` (адаптация каркаса ТЗ и вариантов ответа JSON; ходы заказчика остаются детерминированными) |
 | `LLM_MODEL` | Модель Groq chat (по умолчанию `llama-3.3-70b-versatile`; для stub не нужна) |
 | `OWNER_TELEGRAM_ID` | Чат владельца для HITL |
 | `MINIAPP_URL` | HTTPS URL Mini App (например `https://host/miniapp/`) для Menu Button / WebApp |

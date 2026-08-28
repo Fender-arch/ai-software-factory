@@ -19,7 +19,7 @@ Locked choices for MVP. Alternatives belong in Future, not in endless bake-offs.
 | Customer UI | Telegram **Mini App** (fullscreen) + Bot API (aiogram) for entry/notifications/owner HITL |
 | Owner UI | Internal TZ graph console (`apps/console/`, vis-network); [DEC-007](../decisions/DEC-007-Owner-TZ-Console.md) |
 | STT | Mini App in Telegram: **Groq Whisper** via recorded audio; Web Speech only outside Telegram. Also `whisper` (OpenAI) / `stub` |
-| LLM | Pluggable router; `stub` or **Groq** JSON (`LLM_PROVIDER=groq`) to adapt TZ outline / extra subsections |
+| LLM | Pluggable router; `stub` or **Groq** JSON (`LLM_PROVIDER=groq`) to adapt TZ outline, extra subsections, and next-question choice chips |
 | Coding executor | Cursor (rules + task export); CLI integration later |
 | Containers | Docker + Docker Compose (local `docker-compose.yml`; VPS `docker-compose.prod.yml`) |
 | Tests | Pytest |

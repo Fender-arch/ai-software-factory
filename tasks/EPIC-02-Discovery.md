@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Done |
-| Version | 0.8 |
+| Version | 0.9 |
 
 ## Goal
 
@@ -58,3 +58,9 @@ Verified: `pytest` covers substance gates, infer skip, bare reference URLs, disc
 - [x] After the idea is captured, remaining questions, section titles, and choice chips are rewritten from that task (heuristic; Groq may refine)
 - [x] Next turn announces added and skipped sections
 - [x] Heuristic extras (e.g. who books a slot) without waiting for Groq
+
+## v0.9 — Choice chips follow previous answers
+
+- [x] Remaining chips are retargeted from captured answers (tools/process), not only the task brief
+- [x] Irrelevant catalog chips are hidden; extra `ctx:*` chips may echo a previous fact
+- [x] Groq JSON (`prompts/discovery-choices.md`) refines the next topic's chips; stub keeps the heuristic

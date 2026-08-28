@@ -26,6 +26,48 @@ CAPABILITY_TOPIC_IDS: tuple[str, ...] = (
 )
 
 LOCKED_OVERRIDE_TOPIC_IDS = frozenset({"design_direction"})
+FROZEN_CHOICE_TOPIC_IDS = frozenset(
+    {
+        "budget",
+        "contacts",
+        "preferred_contact",
+        "timeline",
+        "legal_compliance",
+    }
+)
+CTX_OPTION_ID_RE = re.compile(r"^ctx:[a-z0-9_]{2,32}$")
+MAX_EXTRA_OPTIONS = 3
+
+# pattern → (slug, display name)
+_TOOL_PATTERNS: tuple[tuple[str, str, str], ...] = (
+    (r"whatsapp|ватсап|вацап", "whatsapp", "WhatsApp"),
+    (r"telegram|телеграм", "telegram", "Telegram"),
+    (r"google\s*sheet|гугл\s*таблиц", "sheets", "Google Sheets"),
+    (r"excel|эксель", "excel", "Excel"),
+    (r"\b1\s*с\b|\b1c\b", "onec", "1С"),
+    (r"bitrix|битрикс", "bitrix", "Битрикс"),
+    (r"amocrm|amo\s*crm", "amocrm", "amoCRM"),
+    (r"instagram|инстаграм", "instagram", "Instagram"),
+    (r"тетрад", "notebook", "тетрадки"),
+    (r"звонк|по телефону", "phone", "звонков"),
+    (r"crm", "crm", "CRM"),
+)
+
+_CHAT_TOOL_SLUGS = frozenset({"whatsapp", "telegram", "instagram", "phone"})
+_LEDGER_TOOL_SLUGS = frozenset({"sheets", "excel", "notebook", "onec"})
+_PROCESS_HINTS = (
+    "сейчас",
+    "ведём",
+    "ведем",
+    "записыва",
+    "через",
+    "вместо",
+    "в тетрад",
+    "вручную",
+    "as-is",
+    "as is",
+)
+_AMBIGUOUS_TOOL_SLUGS = frozenset({"telegram"})
 
 # topic_id → template; `{brief}` is replaced with the captured task phrase.
 _QUESTION_BY_TOPIC: dict[str, str] = {
@@ -282,6 +324,186 @@ def extract_task_brief(texts: list[str]) -> str:
     return best
 
 
+def extract_mentioned_tools(texts: list[str]) -> list[tuple[str, str]]:
+    """Unique (slug, display) tools/channels named as the current process."""
+    blob = " ".join(texts).lower()
+    found: list[tuple[str, str]] = []
+    seen: set[str] = set()
+    for pattern, slug, display in _TOOL_PATTERNS:
+        if slug in seen:
+            continue
+        match = re.search(pattern, blob, flags=re.I)
+        if not match:
+            continue
+        if slug in _AMBIGUOUS_TOOL_SLUGS:
+            window_before = blob[max(0, match.start() - 36) : match.start()]
+            if not any(hint in window_before for hint in _PROCESS_HINTS):
+                continue
+        seen.add(slug)
+        found.append((slug, display))
+    return found
+
+
+def _previous_corpus(previous: dict[str, str] | None, brief: str = "") -> list[str]:
+    texts = [value for value in (previous or {}).values() if value and value.strip()]
+    if brief:
+        texts.append(brief)
+    return texts
+
+
+def build_hidden_option_ids(
+    *,
+    capabilities: frozenset[str],
+    product_type: str | None,
+    task_shape: str | None,
+    previous: dict[str, str] | None = None,
+) -> dict[str, tuple[str, ...]]:
+    """Drop catalog chips that contradict the captured task (keep index-stable prefix)."""
+    _ = previous
+    hidden: dict[str, list[str]] = {}
+    shape_hidden: list[str] = []
+    # Keep website / bot / miniapp in original order so numbered chip tests stay stable.
+    if "ai" not in capabilities and (task_shape or "") not in {
+        "ai_agent",
+        "process_automation",
+        "ai_automation",
+    }:
+        shape_hidden.extend(["shape_agent", "shape_ai"])
+    if "admin_data" not in capabilities and task_shape != "database_tool":
+        shape_hidden.append("shape_db")
+    if "integration" not in capabilities and task_shape != "integration":
+        shape_hidden.append("shape_integration")
+    if "api_consumers" not in capabilities and product_type != "rest_service":
+        shape_hidden.append("shape_api")
+    if shape_hidden:
+        hidden["product_shape"] = shape_hidden
+
+    scenario_hidden: list[str] = []
+    if "booking" not in capabilities:
+        scenario_hidden.append("sc_book")
+    if "integration" not in capabilities and "ai" not in capabilities:
+        scenario_hidden.append("sc_sync")
+    if scenario_hidden:
+        hidden["primary_scenario"] = scenario_hidden
+    return {key: tuple(dict.fromkeys(ids)) for key, ids in hidden.items() if ids}
+
+
+def build_extra_options(
+    *,
+    brief: str,
+    previous: dict[str, str] | None,
+    capabilities: frozenset[str],
+) -> dict[str, tuple[Choice, ...]]:
+    """Task-specific chips grounded in what the customer already said."""
+    _ = capabilities
+    tools = extract_mentioned_tools(_previous_corpus(previous, brief))
+    extras: dict[str, list[Choice]] = {}
+    if not tools:
+        return {}
+    asis: list[Choice] = []
+    for slug, display in tools[:2]:
+        if slug in _CHAT_TOOL_SLUGS:
+            asis.append(
+                Choice(
+                    f"ctx:asis_{slug}",
+                    f"Сейчас через {display} — это и автоматизируем",
+                )
+            )
+        elif slug in _LEDGER_TOOL_SLUGS:
+            asis.append(
+                Choice(
+                    f"ctx:asis_{slug}",
+                    f"Сейчас ведём в {display} — переносим в продукт",
+                )
+            )
+    if asis:
+        extras["as_is_process"] = asis[:MAX_EXTRA_OPTIONS]
+
+    integ: list[Choice] = []
+    for slug, display in tools[:2]:
+        if slug in {"phone", "notebook"}:
+            continue
+        integ.append(
+            Choice(
+                f"ctx:int_{slug}",
+                f"Связать с {display}, как уже обсудили",
+            )
+        )
+    if integ:
+        extras["integrations"] = integ[:MAX_EXTRA_OPTIONS]
+
+    ledger = next((d for s, d in tools if s in _LEDGER_TOOL_SLUGS), None)
+    if ledger:
+        extras["records"] = [
+            Choice("ctx:data_current", f"Те же данные, что сейчас в {ledger}"),
+        ]
+
+    chat = next((d for s, d in tools if s in _CHAT_TOOL_SLUGS), None)
+    if chat or ledger:
+        source = " и ".join(x for x in (chat, ledger) if x)
+        extras["must_features"] = [
+            Choice(
+                "ctx:feat_replace",
+                f"Заменить текущий процесс ({source}) в первой версии",
+            )
+        ]
+    return {
+        key: tuple(value)
+        for key, value in extras.items()
+        if key not in FROZEN_CHOICE_TOPIC_IDS and value
+    }
+
+
+def merge_extra_options(
+    previous: dict[str, tuple[Choice, ...]],
+    incoming: dict[str, tuple[Choice, ...]],
+) -> dict[str, tuple[Choice, ...]]:
+    merged: dict[str, dict[str, Choice]] = {
+        key: {choice.id: choice for choice in value} for key, value in previous.items()
+    }
+    for key, value in incoming.items():
+        slot = merged.setdefault(key, {})
+        for choice in value:
+            slot[choice.id] = choice
+    return {
+        key: tuple(slot.values())[:MAX_EXTRA_OPTIONS]
+        for key, slot in merged.items()
+        if slot
+    }
+
+
+def _ground_labels_with_previous(
+    merged: dict[str, dict[str, str]],
+    *,
+    brief: str,
+    previous: dict[str, str] | None,
+) -> None:
+    tools = extract_mentioned_tools(_previous_corpus(previous, brief))
+    if not tools:
+        return
+    chat = [d for s, d in tools if s in _CHAT_TOOL_SLUGS]
+    ledger = [d for s, d in tools if s in _LEDGER_TOOL_SLUGS]
+    asis = merged.setdefault("as_is_process", {})
+    if chat:
+        asis["asis_chat"] = f"Сейчас в {', '.join(chat)} / мессенджерах"
+    if ledger:
+        asis["asis_sheets"] = f"Сейчас в {', '.join(ledger)}"
+    integ = merged.setdefault("integrations", {})
+    named = [d for s, d in tools if s not in {"phone", "notebook"}]
+    if named:
+        integ["int_this_chat"] = integ.get("int_this_chat") or (
+            f"Оставить в этом Telegram, без {named[0]}"
+        )
+    records = merged.setdefault("records", {})
+    if ledger:
+        records["data_ops"] = f"Те поля, что уже в {ledger[0]}"
+        feats = merged.setdefault("must_features", {})
+        feats["feat_admin"] = f"Журнал вместо {ledger[0]}"
+    feats = merged.setdefault("must_features", {})
+    if chat and chat[0].lower() not in feats.get("feat_notify", "").lower():
+        feats["feat_notify"] = f"Уведомление нам (сейчас это {chat[0]})"
+
+
 def _capability_order(caps: frozenset[str]) -> tuple[str, ...]:
     preferred = (
         "booking",
@@ -360,10 +582,13 @@ def build_option_overrides(
     capabilities: frozenset[str],
     product_type: str | None,
     task_shape: str | None,
+    previous: dict[str, str] | None = None,
 ) -> dict[str, dict[str, str]]:
     merged: dict[str, dict[str, str]] = {}
     for cap in _capability_order(capabilities):
         for topic_id, labels in _OPTION_BY_CAPABILITY.get(cap, {}).items():
+            if topic_id in FROZEN_CHOICE_TOPIC_IDS:
+                continue
             slot = merged.setdefault(topic_id, {})
             for choice_id, label in labels.items():
                 slot[choice_id] = _fill(label, brief)[:180]
@@ -378,6 +603,7 @@ def build_option_overrides(
             "shape_integration": f"Связка систем для «{brief}»",
             "shape_api": f"API / сервис для «{brief}»",
         }
+    _ground_labels_with_previous(merged, brief=brief, previous=previous)
     _ = product_type
     _ = task_shape
     return merged
@@ -388,6 +614,7 @@ def build_recommended_option_ids(
     capabilities: frozenset[str],
     product_type: str | None,
     task_shape: str | None,
+    previous: dict[str, str] | None = None,
 ) -> dict[str, str]:
     recommended: dict[str, str] = {}
     for cap in _capability_order(capabilities):
@@ -396,6 +623,13 @@ def build_recommended_option_ids(
     shape_choice = _SHAPE_RECOMMEND.get(shape_key or "")
     if shape_choice:
         recommended["product_shape"] = shape_choice
+    tools = extract_mentioned_tools(_previous_corpus(previous))
+    chat = [slug for slug, _ in tools if slug in _CHAT_TOOL_SLUGS]
+    ledger = [slug for slug, _ in tools if slug in _LEDGER_TOOL_SLUGS]
+    if chat and "as_is_process" not in recommended:
+        recommended["as_is_process"] = "asis_chat"
+    elif ledger and "as_is_process" not in recommended:
+        recommended["as_is_process"] = "asis_sheets"
     return recommended
 
 
@@ -478,6 +712,17 @@ def apply_choice_overrides(topic: TzTopic, plan: OutlinePlan | None) -> tuple[Ch
         if label != choice.label or recommended != choice.recommended:
             choice = replace(choice, label=label[:180], recommended=recommended)
         out.append(choice)
+    seen = {choice.id for choice in out}
+    for extra in plan.extra_options.get(topic.id) or ():
+        if extra.id in seen or extra.id in hidden:
+            continue
+        recommended = extra.recommended
+        if recommend_id:
+            recommended = extra.id == recommend_id
+        if recommended != extra.recommended:
+            extra = replace(extra, recommended=recommended)
+        out.append(extra)
+        seen.add(extra.id)
     return tuple(out)
 
 

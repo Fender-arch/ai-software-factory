@@ -17,12 +17,18 @@ from discovery.literacy import ITLiteracy
 from discovery.quality import is_underspecified
 from discovery.rephrase import (
     LOCKED_OVERRIDE_TOPIC_IDS,
+    CTX_OPTION_ID_RE,
+    FROZEN_CHOICE_TOPIC_IDS,
+    MAX_EXTRA_OPTIONS,
+    build_extra_options,
+    build_hidden_option_ids,
     build_option_overrides,
     build_question_overrides,
     build_recommended_option_ids,
     build_title_overrides,
     extract_task_brief,
     heuristic_extra_topics,
+    merge_extra_options,
 )
 from discovery.substance import infer_skips_topic
 from discovery.tz_outline import (
@@ -34,6 +40,8 @@ from discovery.tz_outline import (
     Choice,
     OutlinePlan,
     TzTopic,
+    choices_from_raw,
+    remaining_topics,
     topic_by_id,
     topic_from_dict,
 )
@@ -145,6 +153,7 @@ ADAPT_AFTER_TOPIC_IDS = frozenset(
 )
 
 _PROMPT_PATH = Path(__file__).resolve().parents[1] / "prompts" / "discovery-outline.md"
+_CHOICES_PROMPT_PATH = Path(__file__).resolve().parents[1] / "prompts" / "discovery-choices.md"
 
 LlmJsonFn = Callable[[str, str], dict[str, Any] | None]
 
@@ -189,8 +198,10 @@ def heuristic_plan(
     texts: list[str],
     previous: OutlinePlan | None = None,
     locked_ids: set[str] | None = None,
+    previous_answers: dict[str, str] | None = None,
 ) -> OutlinePlan:
     """Build an outline plan from type/shape/captured text (no LLM)."""
+    answers = dict(previous_answers or {})
     caps = detect_capabilities(texts, product_type=product_type, task_shape=task_shape)
     if previous:
         caps = frozenset(caps | previous.capabilities)
@@ -233,6 +244,42 @@ def heuristic_plan(
         task_shape=task_shape,
         previous=locked_overrides,
     )
+    hidden = build_hidden_option_ids(
+        capabilities=caps,
+        product_type=product_type,
+        task_shape=task_shape,
+        previous=answers,
+    )
+    if previous:
+        for key, value in previous.hidden_option_ids.items():
+            hidden[key] = tuple(dict.fromkeys(list(hidden.get(key, ())) + list(value)))
+    extra_choices = merge_extra_options(
+        previous.extra_options if previous else {},
+        build_extra_options(brief=brief, previous=answers, capabilities=caps),
+    )
+    option_overrides = build_option_overrides(
+        brief=brief,
+        capabilities=caps,
+        product_type=product_type,
+        task_shape=task_shape,
+        previous=answers,
+    )
+    if previous:
+        merged_opts = {key: dict(value) for key, value in previous.option_overrides.items()}
+        for topic_id, labels in option_overrides.items():
+            slot = merged_opts.setdefault(topic_id, {})
+            slot.update(labels)
+        option_overrides = merged_opts
+    recommended = build_recommended_option_ids(
+        capabilities=caps,
+        product_type=product_type,
+        task_shape=task_shape,
+        previous=answers,
+    )
+    if previous:
+        merged_rec = dict(previous.recommended_option_ids)
+        merged_rec.update(recommended)
+        recommended = merged_rec
     return OutlinePlan(
         capabilities=caps,
         skipped_ids=tuple(sorted(skipped)),
@@ -240,19 +287,11 @@ def heuristic_plan(
         adapted=True,
         reasons=reasons,
         question_overrides=overrides,
-        option_overrides=build_option_overrides(
-            brief=brief,
-            capabilities=caps,
-            product_type=product_type,
-            task_shape=task_shape,
-        ),
+        option_overrides=option_overrides,
         title_overrides=build_title_overrides(capabilities=caps),
-        recommended_option_ids=build_recommended_option_ids(
-            capabilities=caps,
-            product_type=product_type,
-            task_shape=task_shape,
-        ),
-        hidden_option_ids=dict(previous.hidden_option_ids) if previous else {},
+        recommended_option_ids=recommended,
+        hidden_option_ids=hidden,
+        extra_options=extra_choices,
         task_brief=brief,
     )
 
@@ -275,6 +314,7 @@ def sanitize_llm_proposal(
         title_overrides=dict(heuristic.title_overrides),
         recommended_option_ids=dict(heuristic.recommended_option_ids),
         hidden_option_ids=dict(heuristic.hidden_option_ids),
+        extra_options={k: tuple(v) for k, v in heuristic.extra_options.items()},
         task_brief=heuristic.task_brief,
     )
     if not proposal:
@@ -367,14 +407,17 @@ def sanitize_llm_proposal(
         for topic_id, labels in option_ov.items():
             if not isinstance(labels, dict):
                 continue
-            slot = plan.option_overrides.setdefault(str(topic_id), {})
-            topic = topic_by_id(str(topic_id), plan.extra_topics)
-            known_ids = {c.id for c in topic.options} if topic else set(slot)
-            for choice_id, label in labels.items():
-                text = str(label).strip()
-                cid = str(choice_id)
-                if text and (not known_ids or cid in known_ids):
-                    slot[cid] = text[:180]
+            _apply_option_labels(plan, str(topic_id), labels)
+
+    extra_ov = proposal.get("extra_options") or {}
+    if isinstance(extra_ov, dict):
+        for topic_id, raw_choices in extra_ov.items():
+            _merge_topic_extras(plan, str(topic_id), raw_choices)
+
+    hidden_ov = proposal.get("hidden_option_ids") or {}
+    if isinstance(hidden_ov, dict):
+        for topic_id, raw_ids in hidden_ov.items():
+            _merge_hidden_ids(plan, str(topic_id), raw_ids)
 
     rec = proposal.get("recommended_option_ids") or {}
     if isinstance(rec, dict):
@@ -383,6 +426,101 @@ def sanitize_llm_proposal(
             if cid:
                 plan.recommended_option_ids[str(key)] = cid[:40]
     return plan
+
+
+def _known_choice_ids(plan: OutlinePlan, topic_id: str) -> set[str]:
+    topic = topic_by_id(topic_id, plan.extra_topics)
+    ids = {c.id for c in topic.options} if topic else set()
+    ids |= {c.id for c in plan.extra_options.get(topic_id, ())}
+    ids |= set(plan.option_overrides.get(topic_id) or {})
+    return ids
+
+
+def _apply_option_labels(plan: OutlinePlan, topic_id: str, labels: dict) -> None:
+    if topic_id in FROZEN_CHOICE_TOPIC_IDS:
+        return
+    slot = plan.option_overrides.setdefault(topic_id, {})
+    known_ids = _known_choice_ids(plan, topic_id)
+    for choice_id, label in labels.items():
+        text = str(label).strip()
+        cid = str(choice_id)
+        if text and (not known_ids or cid in known_ids):
+            slot[cid] = text[:180]
+
+
+def _merge_topic_extras(plan: OutlinePlan, topic_id: str, raw_choices: object) -> None:
+    if topic_id in FROZEN_CHOICE_TOPIC_IDS:
+        return
+    parsed = [
+        choice
+        for choice in choices_from_raw(raw_choices)
+        if CTX_OPTION_ID_RE.match(choice.id)
+    ]
+    if not parsed:
+        return
+    incoming = {topic_id: tuple(parsed[:MAX_EXTRA_OPTIONS])}
+    plan.extra_options = merge_extra_options(plan.extra_options, incoming)
+
+
+def _merge_hidden_ids(plan: OutlinePlan, topic_id: str, raw_ids: object) -> None:
+    if topic_id in FROZEN_CHOICE_TOPIC_IDS:
+        return
+    if not isinstance(raw_ids, (list, tuple)):
+        return
+    known = _known_choice_ids(plan, topic_id)
+    incoming = [
+        str(item)
+        for item in raw_ids
+        if str(item).strip()
+        and str(item) in known
+        and str(item) != "discuss_with_developer"
+    ]
+    if not incoming:
+        return
+    existing = list(plan.hidden_option_ids.get(topic_id) or ())
+    merged = tuple(dict.fromkeys(existing + incoming))
+    topic = topic_by_id(topic_id, plan.extra_topics)
+    catalog_count = len(topic.options) if topic else 0
+    visible = catalog_count - len([cid for cid in merged if topic and any(c.id == cid for c in topic.options)])
+    if topic and visible < 2:
+        return
+    plan.hidden_option_ids[topic_id] = merged
+
+
+def _remaining_option_catalog(
+    heuristic: OutlinePlan,
+    *,
+    product_type: str | None,
+    task_shape: str | None,
+    locked_ids: set[str],
+) -> list[dict[str, Any]]:
+    leftover = remaining_topics(
+        product_type,
+        task_shape=task_shape,
+        done_ids=locked_ids,
+        plan=heuristic,
+    )
+    out: list[dict[str, Any]] = []
+    for topic in leftover[:8]:
+        labels = heuristic.option_overrides.get(topic.id) or {}
+        hidden = set(heuristic.hidden_option_ids.get(topic.id) or ())
+        options: list[dict[str, str]] = []
+        for choice in topic.options:
+            if choice.id in hidden:
+                continue
+            options.append(
+                {"id": choice.id, "label": str(labels.get(choice.id) or choice.label)}
+            )
+        for extra in heuristic.extra_options.get(topic.id) or ():
+            options.append({"id": extra.id, "label": extra.label})
+        out.append(
+            {
+                "id": topic.id,
+                "title_ru": topic.title_ru,
+                "options": options,
+            }
+        )
+    return out
 
 
 def _load_outline_prompt() -> str:
@@ -402,6 +540,8 @@ def _proposal_from_llm(
     texts: list[str],
     heuristic: OutlinePlan,
     llm_json: LlmJsonFn | None,
+    previous_answers: dict[str, str] | None = None,
+    locked_ids: set[str] | None = None,
 ) -> dict[str, Any] | None:
     if llm_json is None:
         return None
@@ -409,7 +549,15 @@ def _proposal_from_llm(
         {
             "product_type": product_type,
             "task_shape": task_shape,
+            "task_brief": heuristic.task_brief,
             "captured": texts[:12],
+            "previous_answers": previous_answers or {},
+            "remaining_topics": _remaining_option_catalog(
+                heuristic,
+                product_type=product_type,
+                task_shape=task_shape,
+                locked_ids=locked_ids or set(),
+            ),
             "heuristic_capabilities": sorted(heuristic.capabilities),
             "heuristic_skipped": list(heuristic.skipped_ids),
             "core_topic_ids": sorted(CORE_TOPIC_IDS),
@@ -432,6 +580,7 @@ def adapt_outline(
     previous: OutlinePlan | None = None,
     locked_ids: set[str] | None = None,
     llm_json: LlmJsonFn | None = None,
+    previous_answers: dict[str, str] | None = None,
 ) -> OutlinePlan:
     locked = locked_ids or set()
     heuristic = heuristic_plan(
@@ -440,6 +589,7 @@ def adapt_outline(
         texts=texts,
         previous=previous,
         locked_ids=locked,
+        previous_answers=previous_answers,
     )
     proposal = _proposal_from_llm(
         product_type=product_type,
@@ -447,8 +597,77 @@ def adapt_outline(
         texts=texts,
         heuristic=heuristic,
         llm_json=llm_json,
+        previous_answers=previous_answers,
+        locked_ids=locked,
     )
     return sanitize_llm_proposal(proposal, heuristic=heuristic, locked_ids=locked)
+
+
+def _load_choices_prompt() -> str:
+    try:
+        return _CHOICES_PROMPT_PATH.read_text(encoding="utf-8")
+    except OSError:
+        return (
+            "Rewrite this topic's Russian choice labels using previous_answers. "
+            "Keep catalog ids. You may hide irrelevant ids and add ctx:* extras. JSON only."
+        )
+
+
+def adapt_topic_choices(
+    *,
+    topic: TzTopic,
+    plan: OutlinePlan,
+    previous_answers: dict[str, str],
+    llm_json: LlmJsonFn | None = None,
+) -> OutlinePlan:
+    """Refine chips for the next question from already captured answers."""
+    if topic.id in FROZEN_CHOICE_TOPIC_IDS or llm_json is None:
+        return plan
+    from discovery.rephrase import apply_choice_overrides
+
+    current = apply_choice_overrides(topic, plan)
+    user = json.dumps(
+        {
+            "topic_id": topic.id,
+            "title_ru": topic.title_ru,
+            "task_brief": plan.task_brief,
+            "previous_answers": previous_answers,
+            "current_options": [
+                {"id": choice.id, "label": choice.label} for choice in current
+            ],
+        },
+        ensure_ascii=False,
+    )
+    try:
+        proposal = llm_json(_load_choices_prompt(), user)
+    except Exception:
+        logger.exception("Choice adaptation LLM failed; keeping heuristic chips")
+        return plan
+    if not isinstance(proposal, dict):
+        return plan
+    labels = proposal.get("option_overrides") or {}
+    if isinstance(labels, dict):
+        nested = labels.get(topic.id) if any(k == topic.id for k in labels) else labels
+        if isinstance(nested, dict):
+            _apply_option_labels(plan, topic.id, nested)
+    extras = proposal.get("extra_options")
+    if isinstance(extras, dict):
+        _merge_topic_extras(plan, topic.id, extras.get(topic.id) or extras.get("options"))
+    elif isinstance(extras, list):
+        _merge_topic_extras(plan, topic.id, extras)
+    hidden = proposal.get("hidden_option_ids")
+    if isinstance(hidden, dict):
+        _merge_hidden_ids(plan, topic.id, hidden.get(topic.id) or hidden.get("ids"))
+    elif isinstance(hidden, list):
+        _merge_hidden_ids(plan, topic.id, hidden)
+    rec = proposal.get("recommended_option_id") or proposal.get("recommended_option_ids")
+    if isinstance(rec, str) and rec.strip():
+        plan.recommended_option_ids[topic.id] = rec.strip()[:40]
+    elif isinstance(rec, dict):
+        cid = str(rec.get(topic.id) or "").strip()
+        if cid:
+            plan.recommended_option_ids[topic.id] = cid[:40]
+    return plan
 
 
 def infer_already_answered(

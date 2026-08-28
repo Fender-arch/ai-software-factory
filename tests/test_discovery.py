@@ -894,6 +894,150 @@ def test_described_task_rewrites_next_question_and_chips(client):
     assert "салон" in body or "бот" in body
 
 
+def test_previous_answers_ground_next_choice_chips():
+    from discovery.adapt import heuristic_plan
+    from discovery.literacy import ITLiteracy
+    from discovery.questions import build_prompt
+    from discovery.rephrase import apply_choice_overrides, extract_mentioned_tools
+    from discovery.tz_outline import topic_by_id
+
+    idea = (
+        "Нужен Telegram-бот записи в салон красоты. "
+        "Сейчас записываем в WhatsApp и в тетрадку."
+    )
+    tools = extract_mentioned_tools([idea])
+    assert any(slug == "whatsapp" for slug, _ in tools)
+    assert any(slug == "notebook" for slug, _ in tools)
+    assert not any(slug == "telegram" for slug, _ in tools)
+
+    plan = heuristic_plan(
+        product_type="telegram_bot",
+        task_shape="telegram_bot",
+        texts=[idea],
+        previous_answers={"purpose_problem": idea},
+    )
+    asis = topic_by_id("as_is_process")
+    assert asis is not None
+    labels = [c.label.lower() for c in apply_choice_overrides(asis, plan)]
+    blob = " ".join(labels)
+    assert "whatsapp" in blob
+    assert "тетрад" in blob
+    assert any(c.id.startswith("ctx:") for c in apply_choice_overrides(asis, plan))
+    hidden_shape = plan.hidden_option_ids.get("product_shape") or ()
+    assert "shape_api" in hidden_shape
+    assert "shape_website" not in hidden_shape
+    assert "shape_bot" not in hidden_shape
+
+    prompt = build_prompt(
+        stage=DiscoveryStage.UNDERSTANDING_IDEA,
+        literacy=ITLiteracy.LOW,
+        product_type="telegram_bot",
+        task_shape="telegram_bot",
+        topic_id="as_is_process",
+        done_ids={"purpose_problem", "product_shape"},
+        plan=plan,
+    )
+    choice_blob = " ".join(c.label.lower() for c in prompt.choices)
+    assert "whatsapp" in choice_blob
+
+
+def test_llm_adds_contextual_choice_chips_from_previous_answers():
+    from discovery.adapt import adapt_outline, adapt_topic_choices, heuristic_plan
+    from discovery.rephrase import apply_choice_overrides
+    from discovery.tz_outline import topic_by_id
+
+    idea = "Бот записи. Сейчас клиенты пишут в WhatsApp."
+    heuristic = heuristic_plan(
+        product_type="telegram_bot",
+        task_shape="telegram_bot",
+        texts=[idea],
+        previous_answers={"purpose_problem": idea},
+    )
+
+    def fake_outline(_system: str, _user: str) -> dict:
+        return {
+            "option_overrides": {
+                "as_is_process": {
+                    "asis_chat": "Как вы сказали: запись сейчас идёт в WhatsApp",
+                }
+            },
+            "extra_options": {
+                "as_is_process": [
+                    {
+                        "id": "ctx:keep_whatsapp",
+                        "label": "WhatsApp остаётся, бот только напоминает",
+                    }
+                ]
+            },
+        }
+
+    plan = adapt_outline(
+        product_type="telegram_bot",
+        task_shape="telegram_bot",
+        texts=[idea],
+        previous_answers={"purpose_problem": idea},
+        llm_json=fake_outline,
+    )
+    asis = topic_by_id("as_is_process", plan.extra_topics)
+    assert asis is not None
+    labels = {c.id: c.label for c in apply_choice_overrides(asis, plan)}
+    assert "whatsapp" in labels["asis_chat"].lower()
+    assert "ctx:keep_whatsapp" in labels
+
+    def fake_next(_system: str, _user: str) -> dict:
+        return {
+            "option_overrides": {
+                "asis_sheets": "Тетрадку не ведём — только WhatsApp",
+            },
+            "extra_options": [
+                {"id": "ctx:wa_admin", "label": "Админ переносит заявки из WhatsApp"}
+            ],
+            "recommended_option_id": "asis_chat",
+        }
+
+    plan = adapt_topic_choices(
+        topic=asis,
+        plan=plan,
+        previous_answers={"purpose_problem": idea},
+        llm_json=fake_next,
+    )
+    labels = {c.id: c.label for c in apply_choice_overrides(asis, plan)}
+    assert "тетрад" in labels["asis_sheets"].lower() or "whatsapp" in labels["asis_sheets"].lower()
+    assert "ctx:wa_admin" in labels
+
+
+def test_described_task_chips_follow_previous_answers(client):
+    created = client.post("/projects", json={"name": "SalonWA"})
+    pid = created.json()["id"]
+    first = client.post(
+        f"/projects/{pid}/messages",
+        json={
+            "text": (
+                "Нужен Telegram-бот записи в салон красоты. "
+                "Сейчас записываем в WhatsApp и в тетрадку."
+            )
+        },
+    )
+    assert first.status_code == 201
+    assert first.json().get("topic_id") == "product_shape"
+    shape_ids = [c.get("id") for c in first.json().get("discovery_choices") or []]
+    assert "shape_bot" in shape_ids
+    assert "shape_api" not in shape_ids
+    assert "shape_website" in shape_ids
+
+    second = client.post(
+        f"/projects/{pid}/messages",
+        json={"text": "2. Telegram-бот"},
+    )
+    assert second.status_code == 201
+    assert second.json().get("topic_id") == "as_is_process"
+    asis_labels = " ".join(
+        str(c.get("label") or "") for c in second.json().get("discovery_choices") or []
+    ).lower()
+    assert "whatsapp" in asis_labels
+    assert "тетрад" in asis_labels
+
+
 def test_llm_cannot_skip_core_topics():
     from discovery.adapt import heuristic_plan, sanitize_llm_proposal
 

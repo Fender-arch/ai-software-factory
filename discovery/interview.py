@@ -35,6 +35,7 @@ from discovery.substance import design_deadline_override, should_reask
 from discovery.adapt import (
     ADAPT_AFTER_TOPIC_IDS,
     adapt_outline,
+    adapt_topic_choices,
     infer_already_answered,
 )
 from discovery.questions import DiscoveryPrompt, build_prompt, first_topic
@@ -965,6 +966,13 @@ def run_discovery_turn(
         return enter_review(prefix="Разделы ТЗ покрыты. Проверьте уточнения и подтвердите отправку.")
 
     nxt = leftover_after[0]
+    answers_now = _previous_answers(kg, project.id)
+    plan = adapt_topic_choices(
+        topic=nxt,
+        plan=plan,
+        previous_answers=answers_now,
+        llm_json=_llm_json if (plan.adapted and not should_adapt) else None,
+    )
     prompt = prompt_for(nxt.stage, tid=nxt.id, done_ids=done_after, announce=announce)
     return persist_and_result(
         reply=prompt.text,
@@ -977,15 +985,20 @@ def run_discovery_turn(
 
 
 def _requirement_texts(kg: KnowledgeRepository, project_id: uuid.UUID) -> list[str]:
-    texts: list[str] = []
+    return list(_previous_answers(kg, project_id).values())
+
+
+def _previous_answers(kg: KnowledgeRepository, project_id: uuid.UUID) -> dict[str, str]:
+    out: dict[str, str] = {}
     for entity in kg.list_entities(project_id, type_="Requirement"):
         if entity.status == "archived":
             continue
         payload = entity.payload or {}
+        tid = str(payload.get("topic_id") or "").strip()
         blob = str(payload.get("description") or entity.name or "").strip()
-        if blob:
-            texts.append(blob)
-    return texts
+        if tid and blob:
+            out[tid] = blob[:400]
+    return out
 
 
 def _captured_snapshots(kg: KnowledgeRepository, project_id: uuid.UUID) -> list[str]:
@@ -1014,6 +1027,7 @@ def _refresh_outline_plan(
     name = (project.name or "").strip()
     if len(name) >= 6:
         texts.append(name)
+    answers = _previous_answers(kg, project.id)
     return adapt_outline(
         product_type=project.product_type,
         task_shape=task_shape,
@@ -1021,6 +1035,7 @@ def _refresh_outline_plan(
         previous=previous,
         locked_ids=locked_ids,
         llm_json=llm_json,
+        previous_answers=answers,
     )
 
 

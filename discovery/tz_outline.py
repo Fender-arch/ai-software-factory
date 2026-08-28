@@ -1357,6 +1357,7 @@ class OutlinePlan:
     title_overrides: dict[str, str] = field(default_factory=dict)
     recommended_option_ids: dict[str, str] = field(default_factory=dict)
     hidden_option_ids: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    extra_options: dict[str, tuple[Choice, ...]] = field(default_factory=dict)
     task_brief: str = ""
 
 
@@ -1426,25 +1427,7 @@ def topic_from_dict(raw: dict) -> TzTopic | None:
             }
     if not questions:
         return None
-    options_raw = raw.get("options") or ()
-    options: list[Choice] = []
-    if isinstance(options_raw, (list, tuple)):
-        for item in options_raw:
-            if not isinstance(item, dict):
-                continue
-            cid = str(item.get("id") or "").strip()
-            label = str(item.get("label") or "").strip()
-            if not cid or not label:
-                continue
-            options.append(
-                Choice(
-                    id=cid[:40],
-                    label=label[:180],
-                    exclusive=bool(item.get("exclusive")),
-                    recommended=bool(item.get("recommended")),
-                    sufficient=item.get("sufficient", True) is not False,
-                )
-            )
+    options = list(choices_from_raw(raw.get("options")))
     applies = raw.get("applies_to")
     caps = raw.get("capabilities")
     return TzTopic(
@@ -1463,6 +1446,29 @@ def topic_from_dict(raw: dict) -> TzTopic | None:
         dynamic=True,
         applies_to=frozenset(str(x) for x in applies) if applies else None,
     )
+
+
+def choices_from_raw(raw: object) -> tuple[Choice, ...]:
+    if not isinstance(raw, (list, tuple)):
+        return ()
+    options: list[Choice] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        cid = str(item.get("id") or "").strip()
+        label = str(item.get("label") or "").strip()
+        if not cid or not label:
+            continue
+        options.append(
+            Choice(
+                id=cid[:40],
+                label=label[:180],
+                exclusive=bool(item.get("exclusive")),
+                recommended=bool(item.get("recommended")),
+                sufficient=item.get("sufficient", True) is not False,
+            )
+        )
+    return tuple(options)
 
 
 def _str_map(payload: object) -> dict[str, str]:
@@ -1494,6 +1500,10 @@ def plan_to_state(plan: OutlinePlan) -> dict[str, object]:
         "title_overrides": dict(plan.title_overrides),
         "recommended_option_ids": dict(plan.recommended_option_ids),
         "hidden_option_ids": {k: list(v) for k, v in plan.hidden_option_ids.items()},
+        "extra_options": {
+            key: [choice_as_dict(c) | {"sufficient": c.sufficient} for c in value]
+            for key, value in plan.extra_options.items()
+        },
         "task_brief": plan.task_brief,
     }
 
@@ -1516,6 +1526,13 @@ def plan_from_state(state: dict | None) -> OutlinePlan:
         for key, value in hidden_raw.items():
             if isinstance(value, (list, tuple)):
                 hidden[str(key)] = tuple(str(x) for x in value if str(x).strip())
+    extra_raw = payload.get("extra_options") or {}
+    extra_choice_map: dict[str, tuple[Choice, ...]] = {}
+    if isinstance(extra_raw, dict):
+        for key, value in extra_raw.items():
+            parsed = choices_from_raw(value)
+            if parsed:
+                extra_choice_map[str(key)] = parsed
     return OutlinePlan(
         capabilities=frozenset(str(x) for x in caps),
         skipped_ids=tuple(str(x) for x in skipped),
@@ -1529,6 +1546,7 @@ def plan_from_state(state: dict | None) -> OutlinePlan:
         title_overrides=_str_map(payload.get("title_overrides")),
         recommended_option_ids=_str_map(payload.get("recommended_option_ids")),
         hidden_option_ids=hidden,
+        extra_options=extra_choice_map,
         task_brief=str(payload.get("task_brief") or "").strip()[:90],
     )
 

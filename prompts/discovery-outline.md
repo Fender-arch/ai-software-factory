@@ -12,7 +12,9 @@ You reshape the interview outline for **this** customer task so that filling the
 - Do not guess commercial facts; keep those topics
 - Prefer fewer precise subsections over a long generic form
 - Question overrides may rephrase an existing topic using facts already captured; still one question
-- Option overrides may retarget existing chip ids (same id, new Russian label) so answers match this task
+- Option overrides may retarget existing chip ids (same id, new Russian label) so answers match this task **and previous answers**
+- Extra options (`ctx:<snake_case>`) may add 1–3 chips that echo a captured fact as an answer to a later question
+- Hidden option ids may drop catalog chips that contradict earlier answers; keep website/bot/miniapp order on `product_shape`
 - Title overrides may shorten a section title to the task (e.g. «Функции записи»)
 
 ## Output JSON shape
@@ -48,6 +50,14 @@ You reshape the interview outline for **this** customer task so that filling the
     "must_features": {
       "feat_intake": "Запись на услугу / слот"
     }
+  },
+  "extra_options": {
+    "as_is_process": [
+      {"id": "ctx:whatsapp", "label": "Сейчас записывают в WhatsApp — это и автоматизируем"}
+    ]
+  },
+  "hidden_option_ids": {
+    "product_shape": ["shape_api", "shape_db"]
   },
   "recommended_option_ids": {
     "primary_scenario": "sc_book"

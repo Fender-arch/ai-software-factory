@@ -21,7 +21,7 @@
 | UI заказчика | Telegram **Mini App** (fullscreen) + Bot API (aiogram) для входа/уведомлений/owner HITL |
 | UI владельца | Внутренняя консоль графа ТЗ (`apps/console/`, vis-network); [DEC-007](../../decisions/DEC-007-Owner-TZ-Console.md) |
 | STT | Mini App в Telegram: **Groq Whisper** по записанному аудио; Web Speech только вне Telegram. Также `whisper` (OpenAI) / `stub` |
-| LLM | Подключаемый router; `stub` или **Groq** JSON (`LLM_PROVIDER=groq`) для адаптации каркаса ТЗ / подразделов |
+| LLM | Подключаемый router; `stub` или **Groq** JSON (`LLM_PROVIDER=groq`) для адаптации каркаса ТЗ / подразделов и вариантов ответа на следующий вопрос |
 | Coding executor | Cursor (rules + экспорт задач); CLI позже |
 | Контейнеры | Docker + Docker Compose (локально `docker-compose.yml`; VPS `docker-compose.prod.yml`) |
 | Тесты | Pytest |
