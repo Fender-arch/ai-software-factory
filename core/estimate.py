@@ -6,6 +6,7 @@ nothing is guessed away. Persist the payload on the draft TZ Artifact.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Any, Sequence
 
@@ -48,6 +49,30 @@ PRODUCT_TYPE_RU = {
 
 METHOD = "heuristic_v1"
 
+# Customer budget chips (Discovery topic `budget`) — context only, never the quote.
+_BUDGET_MID_RE = re.compile(r"50\s*[–\-]\s*200", re.I)
+_BUDGET_SMALL_RE = re.compile(r"до\s*~?\s*50(\s*тыс)?", re.I)
+_BUDGET_LARGE_RE = re.compile(r"от\s*~?\s*200(\s*тыс)?", re.I)
+_BUDGET_QUOTE_RE = re.compile(
+    r"нужна оценка|не фиксирую|бюджета пока нет|изучаем",
+    re.I,
+)
+_FIGURE_RE = re.compile(
+    r"(?P<num>\d{1,3}(?:[\s\u00a0]\d{3})+|\d+(?:[.,]\d+)?)\s*"
+    r"(?P<unit>тыс(?:яч)?|₽|руб(?:лей|ля)?|rub)?",
+    re.I,
+)
+
+
+@dataclass(frozen=True)
+class CustomerBudgetHint:
+    """Stated envelope from Discovery. Not a price quote."""
+
+    label: str
+    min_amount: int | None = None
+    max_amount: int | None = None
+    kind: str = "none"  # none | range | figure | quote_requested
+
 
 @dataclass(frozen=True)
 class DeliveryEstimate:
@@ -66,6 +91,10 @@ class DeliveryEstimate:
     open_question_count: int
     risk_count: int
     rationale: list[str]
+    customer_budget_label: str = ""
+    customer_budget_min: int | None = None
+    customer_budget_max: int | None = None
+    budget_fit: str = "none"
     method: str = METHOD
 
     def as_dict(self) -> dict[str, Any]:
@@ -85,6 +114,10 @@ class DeliveryEstimate:
             "open_question_count": self.open_question_count,
             "risk_count": self.risk_count,
             "rationale": list(self.rationale),
+            "customer_budget_label": self.customer_budget_label,
+            "customer_budget_min": self.customer_budget_min,
+            "customer_budget_max": self.customer_budget_max,
+            "budget_fit": self.budget_fit,
             "method": self.method,
         }
 
@@ -116,8 +149,21 @@ class DeliveryEstimate:
             open_question_count=int(data.get("open_question_count") or 0),
             risk_count=int(data.get("risk_count") or 0),
             rationale=[str(x) for x in rationale],
+            customer_budget_label=str(data.get("customer_budget_label") or ""),
+            customer_budget_min=_opt_int(data.get("customer_budget_min")),
+            customer_budget_max=_opt_int(data.get("customer_budget_max")),
+            budget_fit=str(data.get("budget_fit") or "none"),
             method=str(data.get("method") or METHOD),
         )
+
+
+def _opt_int(value: Any) -> int | None:
+    if value is None or value == "":
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def base_hours_for(product_type: str | None) -> float:
@@ -178,6 +224,134 @@ def format_money(amount: int, currency: str) -> str:
     return f"{grouped} {currency}"
 
 
+def _budget_requirement_texts(requirements: Sequence[Any]) -> list[str]:
+    texts: list[str] = []
+    for ent in requirements:
+        payload = _payload_of(ent)
+        topic = str(payload.get("topic_id") or "")
+        if topic != "budget":
+            continue
+        desc = str(payload.get("description") or getattr(ent, "name", "") or "")
+        if desc.strip():
+            texts.append(desc.strip())
+    return texts
+
+
+def _parse_explicit_figure(text: str) -> int | None:
+    """Parse a customer-typed amount; ignore the standard chip numbers 50 / 200."""
+    chip_span = False
+    if _BUDGET_MID_RE.search(text) or _BUDGET_SMALL_RE.search(text) or _BUDGET_LARGE_RE.search(
+        text
+    ):
+        chip_span = True
+    best: int | None = None
+    for match in _FIGURE_RE.finditer(text):
+        raw = match.group("num").replace("\u00a0", " ").replace(" ", "").replace(",", ".")
+        try:
+            value = float(raw)
+        except ValueError:
+            continue
+        unit = (match.group("unit") or "").lower()
+        if unit.startswith("тыс"):
+            value *= 1000
+        elif not unit and value < 1000:
+            # Bare 50 / 200 from chips — not a typed quote.
+            if chip_span and value in {50, 200}:
+                continue
+            continue
+        amount = int(round(value))
+        if amount <= 0:
+            continue
+        if chip_span and amount in {50, 200, 50_000, 200_000} and unit.startswith("тыс"):
+            continue
+        best = amount
+    return best
+
+
+def parse_customer_budget(requirements: Sequence[Any] = ()) -> CustomerBudgetHint:
+    """Read Discovery budget chips / figures. Never treat them as the studio quote."""
+    texts = _budget_requirement_texts(requirements)
+    if not texts:
+        return CustomerBudgetHint(label="не указан", kind="none")
+    blob = " \n ".join(texts)
+    figure = _parse_explicit_figure(blob)
+    if figure is not None:
+        return CustomerBudgetHint(
+            label=f"названная сумма ≈ {format_money(figure, 'RUB')}",
+            min_amount=figure,
+            max_amount=figure,
+            kind="figure",
+        )
+    if _BUDGET_MID_RE.search(blob):
+        return CustomerBudgetHint(
+            label="ориентир примерно 50–200 тыс. ₽ (чип интервью, не котировка)",
+            min_amount=50_000,
+            max_amount=200_000,
+            kind="range",
+        )
+    if _BUDGET_SMALL_RE.search(blob):
+        return CustomerBudgetHint(
+            label="ориентир до ~50 тыс. ₽ (чип интервью, не котировка)",
+            min_amount=None,
+            max_amount=50_000,
+            kind="range",
+        )
+    if _BUDGET_LARGE_RE.search(blob):
+        return CustomerBudgetHint(
+            label="ориентир от 200 тыс. ₽ (чип интервью, не котировка)",
+            min_amount=200_000,
+            max_amount=None,
+            kind="range",
+        )
+    if _BUDGET_QUOTE_RE.search(blob):
+        return CustomerBudgetHint(
+            label="сумму не фиксировал — просит оценку разработчика",
+            kind="quote_requested",
+        )
+    snippet = blob.replace("\n", " ").strip()
+    if len(snippet) > 120:
+        snippet = snippet[:117] + "…"
+    return CustomerBudgetHint(label=snippet or "не указан", kind="none")
+
+
+def compare_to_customer_budget(
+    cost: int,
+    currency: str,
+    hint: CustomerBudgetHint,
+) -> str:
+    if hint.kind in {"none", "quote_requested"}:
+        return "none" if hint.kind == "none" else "quote_requested"
+    if (currency or "").upper() != "RUB":
+        return "uncompared"
+    lo, hi = hint.min_amount, hint.max_amount
+    if lo is not None and hi is not None:
+        if cost < lo:
+            return "below"
+        if cost > hi:
+            return "above"
+        return "within"
+    if hi is not None:
+        return "above" if cost > hi else "within"
+    if lo is not None:
+        return "below" if cost < lo else "within"
+    return "none"
+
+
+def _budget_rationale(hint: CustomerBudgetHint, fit: str, cost: int, currency: str) -> str:
+    fit_ru = {
+        "above": "оценка ВЫШЕ ориентира заказчика",
+        "below": "оценка НИЖЕ ориентира заказчика",
+        "within": "оценка внутри ориентира заказчика",
+        "quote_requested": "сравнивать не с чем — просил оценку",
+        "uncompared": f"сравнение только в RUB, сейчас {currency}",
+        "none": "ориентир не разобран как диапазон",
+    }.get(fit, fit)
+    return (
+        f"Ориентир заказчика: {hint.label}. {fit_ru} "
+        f"(наша оценка {format_money(cost, currency)}; чип/цифра заказчика — не котировка)."
+    )
+
+
 def estimate_delivery(
     *,
     product_type: str | None,
@@ -223,6 +397,8 @@ def estimate_delivery(
     hours = cap if capped else hours_uncapped
     hours = round(hours, 1)
     cost = int(round(hours * rate))
+    budget = parse_customer_budget(requirements)
+    budget_fit = compare_to_customer_budget(cost, curr, budget)
 
     type_label = PRODUCT_TYPE_RU.get(product_type or "", product_type or "не указан")
     type_note = (
@@ -233,26 +409,17 @@ def estimate_delivery(
     rationale: list[str] = [
         f"Тип продукта: {type_label} — база {format_hours(base)} ч по {type_note}.",
         (
-            f"Must/P1: {must_n} × {format_hours(HOURS_MUST)} ч = "
-            f"{format_hours(must_n * HOURS_MUST)} ч."
+            f"Требования: must/P1 {must_n} (+{format_hours(must_n * HOURS_MUST)} ч), "
+            f"should {should_n} (+{format_hours(should_n * HOURS_SHOULD)} ч), "
+            f"could {could_n} (+{format_hours(could_n * HOURS_COULD)} ч)."
         ),
         (
-            f"Should: {should_n} × {format_hours(HOURS_SHOULD)} ч = "
-            f"{format_hours(should_n * HOURS_SHOULD)} ч."
+            f"Неопределённость: открытых вопросов {open_n} "
+            f"(+{format_hours(open_n * HOURS_OPEN_QUESTION)} ч), "
+            f"рисков {risk_n} (+{format_hours(risk_n * HOURS_RISK)} ч) — "
+            "не закрываем догадками."
         ),
-        (
-            f"Could: {could_n} × {format_hours(HOURS_COULD)} ч = "
-            f"{format_hours(could_n * HOURS_COULD)} ч."
-        ),
-        (
-            f"Открытые вопросы: {open_n} × {format_hours(HOURS_OPEN_QUESTION)} ч = "
-            f"{format_hours(open_n * HOURS_OPEN_QUESTION)} ч "
-            "(эскалации не закрываем догадками — часы на разбор)."
-        ),
-        (
-            f"Риски: {risk_n} × {format_hours(HOURS_RISK)} ч = "
-            f"{format_hours(risk_n * HOURS_RISK)} ч."
-        ),
+        _budget_rationale(budget, budget_fit, cost, curr),
     ]
     if capped:
         rationale.append(
@@ -263,7 +430,6 @@ def estimate_delivery(
         f"Итого {format_hours(hours)} ч × {format_hours(rate)} {curr}/ч "
         f"= {format_money(cost, curr)}."
     )
-    # 6 core bullets + optional cap + total ≤ 8.
     rationale = rationale[:8]
 
     return DeliveryEstimate(
@@ -282,6 +448,10 @@ def estimate_delivery(
         open_question_count=open_n,
         risk_count=risk_n,
         rationale=rationale,
+        customer_budget_label=budget.label,
+        customer_budget_min=budget.min_amount,
+        customer_budget_max=budget.max_amount,
+        budget_fit=budget_fit,
     )
 
 
@@ -331,13 +501,15 @@ def format_owner_draft_ready_message(
         estimate.product_type or "", estimate.product_type or "не указан"
     )
     return (
-        f"Черновик ТЗ готов — оценка поставки\n\n"
+        f"Черновик ТЗ готов — оценка для владельца\n"
+        f"HITL обязателен: это не цена клиенту и не автоодобрение.\n\n"
         f"Проект: {name}\n"
         f"ID: `{project_id}`\n"
         f"Тип: {type_label}\n\n"
         f"Оценка: {format_money(estimate.cost, estimate.currency)} "
         f"(~{format_hours(estimate.hours)} ч × "
-        f"{format_hours(estimate.hourly_rate)} {estimate.currency}/ч)\n\n"
+        f"{format_hours(estimate.hourly_rate)} {estimate.currency}/ч)\n"
+        f"Ориентир заказчика: {estimate.customer_budget_label or 'не указан'}\n\n"
         f"Почему так:\n{bullets}\n\n"
         f"/review {project_id}"
     )
@@ -350,7 +522,8 @@ def format_estimate_review_block(estimate: DeliveryEstimate | dict | None) -> st
         return ""
     bullets = "\n".join(f"• {line}" for line in estimate.rationale)
     return (
-        f"Оценка: {format_money(estimate.cost, estimate.currency)} "
-        f"(~{format_hours(estimate.hours)} ч, {estimate.currency})\n"
+        f"Оценка для владельца: {format_money(estimate.cost, estimate.currency)} "
+        f"(~{format_hours(estimate.hours)} ч, {estimate.currency}). HITL обязателен.\n"
+        f"Ориентир заказчика: {estimate.customer_budget_label or 'не указан'}\n"
         f"{bullets}"
     )

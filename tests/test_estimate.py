@@ -122,8 +122,73 @@ def test_owner_message_includes_cost_and_review_command():
     assert "/review" in text
     assert pid in text.split("/review", 1)[1]
     assert "Почему так" in text
-    assert format_estimate_review_block(est)
-    assert "Оценка:" in format_estimate_review_block(est)
+    assert "оценка для владельца" in text.lower()
+    assert "HITL" in text
+    review = format_estimate_review_block(est)
+    assert review
+    assert "Оценка" in review
+
+
+def _budget(description: str):
+    return SimpleNamespace(
+        status="new",
+        payload={
+            "topic_id": "budget",
+            "description": description,
+            "priority": "should",
+        },
+    )
+
+
+def test_customer_budget_chip_is_context_not_quote():
+    est = estimate_delivery(
+        product_type="website",
+        requirements=[_req("must"), _req("must"), _budget("Есть ориентир до ~50 тыс. ₽")],
+        hourly_rate=3000,
+        currency="RUB",
+    )
+    # 16 + 4 must + 1 should(budget) = 21h → 63 000, above 50k chip
+    assert est.hours == 21
+    assert est.cost == 63_000
+    assert est.cost != 50_000
+    assert est.budget_fit == "above"
+    assert "50" in est.customer_budget_label
+    assert any("ВЫШЕ" in line for line in est.rationale)
+
+
+def test_customer_budget_mid_range_and_quote_request():
+    mid = estimate_delivery(
+        product_type="website",
+        requirements=[_budget("Ориентир примерно 50–200 тыс. ₽")],
+        hourly_rate=3000,
+        currency="RUB",
+    )
+    assert mid.budget_fit == "within"
+    assert mid.customer_budget_min == 50_000
+    assert mid.customer_budget_max == 200_000
+
+    asked = estimate_delivery(
+        product_type="website",
+        requirements=[
+            _budget("Сумму не фиксирую — сначала оценка от разработчика")
+        ],
+        hourly_rate=3000,
+        currency="RUB",
+    )
+    assert asked.budget_fit == "quote_requested"
+    assert "не котировка" in " ".join(asked.rationale) or "просит оценку" in asked.customer_budget_label
+
+
+def test_customer_typed_figure_overrides_chip_numbers():
+    est = estimate_delivery(
+        product_type="website",
+        requirements=[_budget("Сейчас напишу сумму. 80 тыс ₽")],
+        hourly_rate=3000,
+        currency="RUB",
+    )
+    assert est.customer_budget_min == 80_000
+    assert est.budget_fit == "below"  # 16h+1 should = 17h * 3000 = 51 000
+    assert est.cost == 51_000
 
 
 def test_draft_tz_persists_estimate_and_notifies_owner(client, monkeypatch):
