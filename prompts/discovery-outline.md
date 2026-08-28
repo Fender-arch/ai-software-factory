@@ -14,6 +14,7 @@ You reshape the interview outline for **this** customer task so that filling the
 - Question overrides may rephrase an existing topic using facts already captured; still one question
 - Option overrides may retarget existing chip ids (same id, new Russian label) so answers match this task **and previous answers**
 - Extra options (`ctx:<snake_case>`) may add 1–3 chips that echo a captured fact as an answer to a later question
+- If the customer asked for Android / iOS / a mobile app, `product_shape` **must** include extra chips `ctx:shape_android` and `ctx:shape_ios` (do not only show website/bot/API)
 - Hidden option ids may drop catalog chips that contradict earlier answers; keep website/bot/miniapp order on `product_shape`
 - Title overrides may shorten a section title to the task (e.g. «Функции записи»)
 

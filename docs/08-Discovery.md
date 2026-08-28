@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.16 |
+| Version | 0.17 |
 | Updated | 2026-08-28 |
 | Owner | ASF Core |
 
@@ -69,7 +69,7 @@ The catalog is a **library**, not the interview script. `discovery/adapt.py` bui
 3. **Capability modules** — booking rules, notifications, API consumers, voice, failure path — only when the captured idea needs them
 4. **Dynamic subsections** (`custom:…`) — heuristics add a few task-specific extras (for example who books a slot); Groq may add up to 8 when `LLM_PROVIDER=groq`
 5. **Skips** — public identity / offer / visitor CTA / brand / pages / **promotion (SEO, ads)** / **design references and direction** when there is no public presence; Mini App already chosen → skip “bot vs Mini App”
-6. **Wording** — after the idea is captured, remaining **questions, section titles, and choice chips** are rewritten from that task **and from later answers** so the interview is not a generic form. Catalog chip ids stay; labels are retargeted, irrelevant chips are hidden, and extra `ctx:*` chips may echo a fact already given (heuristic always; Groq refines when `LLM_PROVIDER=groq`). The next turn announces added and skipped sections.
+6. **Wording** — after the idea is captured, remaining **questions, section titles, and choice chips** are rewritten from that task **and from later answers**. If the customer asked for an Android or iOS app, those chips appear on the solution-type question (even though native mobile is outside factory product types — website / bot / API / AI). Catalog chip ids stay; labels are retargeted, irrelevant chips are hidden, and extra `ctx:*` chips may echo a fact already given (heuristic always; Groq refines when `LLM_PROVIDER=groq`). The next turn announces added and skipped sections.
 
 FSM stages stay the same. The agent still advances **one topic per answer**. Owner console virtual nodes follow the adapted outline (no new Section entity type).
 

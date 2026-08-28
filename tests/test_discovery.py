@@ -1038,6 +1038,41 @@ def test_described_task_chips_follow_previous_answers(client):
     assert "тетрад" in asis_labels
 
 
+def test_android_idea_puts_android_and_ios_on_solution_type(client):
+    from discovery.rephrase import extract_requested_surfaces
+
+    assert any(slug == "android" for slug, _ in extract_requested_surfaces(
+        ["Нужно создать приложение для Android с каталогом товаров."]
+    ))
+
+    created = client.post("/projects", json={"name": "AndroidApp"})
+    pid = created.json()["id"]
+    first = client.post(
+        f"/projects/{pid}/messages",
+        json={
+            "text": (
+                "Нужно создать приложение для Android с каталогом товаров "
+                "и корзиной для клиентов."
+            )
+        },
+    )
+    assert first.status_code == 201
+    assert first.json().get("topic_id") == "product_shape"
+    choices = first.json().get("discovery_choices") or []
+    ids = [c.get("id") for c in choices]
+    labels = [str(c.get("label") or "").lower() for c in choices]
+    blob = " ".join(labels)
+    assert ids[0] == "ctx:shape_android"
+    assert "ctx:shape_ios" in ids
+    assert "android" in blob
+    assert "ios" in blob
+    recommended = [c for c in choices if c.get("recommended")]
+    assert recommended
+    assert recommended[0]["id"] == "ctx:shape_android"
+    reply = (first.json().get("discovery_reply") or "").lower()
+    assert "android" in reply
+
+
 def test_llm_cannot_skip_core_topics():
     from discovery.adapt import heuristic_plan, sanitize_llm_proposal
 

@@ -36,7 +36,7 @@ FROZEN_CHOICE_TOPIC_IDS = frozenset(
     }
 )
 CTX_OPTION_ID_RE = re.compile(r"^ctx:[a-z0-9_]{2,32}$")
-MAX_EXTRA_OPTIONS = 3
+MAX_EXTRA_OPTIONS = 4
 
 # pattern → (slug, display name)
 _TOOL_PATTERNS: tuple[tuple[str, str, str], ...] = (
@@ -68,6 +68,18 @@ _PROCESS_HINTS = (
     "as is",
 )
 _AMBIGUOUS_TOOL_SLUGS = frozenset({"telegram"})
+
+# Requested delivery surface (not the as-is process). Used on product_shape.
+_SURFACE_PATTERNS: tuple[tuple[str, str, str], ...] = (
+    (r"android|андроид|\bapk\b", "android", "Приложение для Android"),
+    (r"\bios\b|iphone|айфон|айпад|app store", "ios", "Приложение для iOS"),
+    (
+        r"мобильн(?:ое|ый|ая)?\s+приложен|приложен\w*\s+для\s+телефон|"
+        r"native app|нативн\w*\s+приложен",
+        "mobile",
+        "Мобильное приложение",
+    ),
+)
 
 # topic_id → template; `{brief}` is replaced with the captured task phrase.
 _QUESTION_BY_TOPIC: dict[str, str] = {
@@ -344,6 +356,20 @@ def extract_mentioned_tools(texts: list[str]) -> list[tuple[str, str]]:
     return found
 
 
+def extract_requested_surfaces(texts: list[str]) -> list[tuple[str, str]]:
+    """Platforms the customer asked to build (Android / iOS / mobile)."""
+    blob = " ".join(texts).lower()
+    found: list[tuple[str, str]] = []
+    seen: set[str] = set()
+    for pattern, slug, display in _SURFACE_PATTERNS:
+        if slug in seen:
+            continue
+        if re.search(pattern, blob, flags=re.I):
+            seen.add(slug)
+            found.append((slug, display))
+    return found
+
+
 def _previous_corpus(previous: dict[str, str] | None, brief: str = "") -> list[str]:
     texts = [value for value in (previous or {}).values() if value and value.strip()]
     if brief:
@@ -388,6 +414,60 @@ def build_hidden_option_ids(
     return {key: tuple(dict.fromkeys(ids)) for key, ids in hidden.items() if ids}
 
 
+def _shape_extras_from_request(
+    *,
+    brief: str,
+    previous: dict[str, str] | None,
+) -> tuple[Choice, ...]:
+    surfaces = extract_requested_surfaces(_previous_corpus(previous, brief))
+    if not surfaces:
+        return ()
+    slugs = {slug for slug, _ in surfaces}
+    extras: list[Choice] = []
+    if "android" in slugs:
+        extras.append(
+            Choice(
+                "ctx:shape_android",
+                "Приложение для Android (как вы описали)",
+                recommended=True,
+            )
+        )
+    if "ios" in slugs:
+        extras.append(
+            Choice(
+                "ctx:shape_ios",
+                "Приложение для iOS (как вы описали)",
+                recommended="android" not in slugs,
+            )
+        )
+    if "android" in slugs and "ios" not in slugs:
+        extras.append(Choice("ctx:shape_ios", "Приложение для iOS"))
+    elif "ios" in slugs and "android" not in slugs:
+        extras.append(Choice("ctx:shape_android", "Приложение для Android"))
+    if "mobile" in slugs and "android" not in slugs and "ios" not in slugs:
+        extras = [
+            Choice(
+                "ctx:shape_android",
+                "Приложение для Android",
+                recommended=True,
+            ),
+            Choice("ctx:shape_ios", "Приложение для iOS"),
+            Choice("ctx:shape_mobile", "Мобильное приложение на Android и iOS"),
+        ]
+    elif "android" in slugs and "ios" in slugs:
+        extras.append(
+            Choice("ctx:shape_mobile", "Оба: Android и iOS"),
+        )
+    seen: set[str] = set()
+    unique: list[Choice] = []
+    for choice in extras:
+        if choice.id in seen:
+            continue
+        seen.add(choice.id)
+        unique.append(choice)
+    return tuple(unique[:MAX_EXTRA_OPTIONS])
+
+
 def build_extra_options(
     *,
     brief: str,
@@ -396,10 +476,18 @@ def build_extra_options(
 ) -> dict[str, tuple[Choice, ...]]:
     """Task-specific chips grounded in what the customer already said."""
     _ = capabilities
-    tools = extract_mentioned_tools(_previous_corpus(previous, brief))
     extras: dict[str, list[Choice]] = {}
+    shape_extras = _shape_extras_from_request(brief=brief, previous=previous)
+    if shape_extras:
+        extras["product_shape"] = list(shape_extras)
+
+    tools = extract_mentioned_tools(_previous_corpus(previous, brief))
     if not tools:
-        return {}
+        return {
+            key: tuple(value)
+            for key, value in extras.items()
+            if key not in FROZEN_CHOICE_TOPIC_IDS and value
+        }
     asis: list[Choice] = []
     for slug, display in tools[:2]:
         if slug in _CHAT_TOOL_SLUGS:
@@ -466,10 +554,16 @@ def merge_extra_options(
         for choice in value:
             slot[choice.id] = choice
     return {
-        key: tuple(slot.values())[:MAX_EXTRA_OPTIONS]
+        key: _prefer_shape_extras(tuple(slot.values()))
         for key, slot in merged.items()
         if slot
     }
+
+
+def _prefer_shape_extras(choices: tuple[Choice, ...]) -> tuple[Choice, ...]:
+    shape = [c for c in choices if c.id.startswith("ctx:shape_")]
+    rest = [c for c in choices if not c.id.startswith("ctx:shape_")]
+    return tuple((shape + rest)[:MAX_EXTRA_OPTIONS])
 
 
 def _ground_labels_with_previous(
@@ -559,6 +653,14 @@ def build_question_overrides(
                 "Куда уходит заявка из Mini App: этот Telegram, отдельный канал "
                 "(@имя или ссылка), почта, таблица — или никуда кроме уведомления?"
             )
+    surfaces = extract_requested_surfaces([brief])
+    slugs = {slug for slug, _ in surfaces}
+    if slugs & {"android", "ios", "mobile"}:
+        overrides["product_shape"] = (
+            f"Вы описали: «{brief or 'мобильное приложение'}». "
+            "Это нативное приложение для Android, для iOS, оба, "
+            "или в первой версии сайт / бот / Mini App?"
+        )
     if previous:
         for key, value in previous.items():
             if key in LOCKED_OVERRIDE_TOPIC_IDS and value.strip():
@@ -615,6 +717,7 @@ def build_recommended_option_ids(
     product_type: str | None,
     task_shape: str | None,
     previous: dict[str, str] | None = None,
+    brief: str = "",
 ) -> dict[str, str]:
     recommended: dict[str, str] = {}
     for cap in _capability_order(capabilities):
@@ -630,6 +733,14 @@ def build_recommended_option_ids(
         recommended["as_is_process"] = "asis_chat"
     elif ledger and "as_is_process" not in recommended:
         recommended["as_is_process"] = "asis_sheets"
+    surfaces = extract_requested_surfaces(_previous_corpus(previous, brief))
+    slugs = {slug for slug, _ in surfaces}
+    if "android" in slugs:
+        recommended["product_shape"] = "ctx:shape_android"
+    elif "ios" in slugs:
+        recommended["product_shape"] = "ctx:shape_ios"
+    elif "mobile" in slugs:
+        recommended["product_shape"] = "ctx:shape_android"
     return recommended
 
 
@@ -701,7 +812,7 @@ def apply_choice_overrides(topic: TzTopic, plan: OutlinePlan | None) -> tuple[Ch
     labels = plan.option_overrides.get(topic.id) or {}
     hidden = set(plan.hidden_option_ids.get(topic.id) or ())
     recommend_id = (plan.recommended_option_ids or {}).get(topic.id)
-    out: list[Choice] = []
+    catalog: list[Choice] = []
     for choice in topic.options:
         if choice.id in hidden:
             continue
@@ -711,8 +822,10 @@ def apply_choice_overrides(topic: TzTopic, plan: OutlinePlan | None) -> tuple[Ch
             recommended = choice.id == recommend_id
         if label != choice.label or recommended != choice.recommended:
             choice = replace(choice, label=label[:180], recommended=recommended)
-        out.append(choice)
-    seen = {choice.id for choice in out}
+        catalog.append(choice)
+    seen = {choice.id for choice in catalog}
+    leading: list[Choice] = []
+    trailing: list[Choice] = []
     for extra in plan.extra_options.get(topic.id) or ():
         if extra.id in seen or extra.id in hidden:
             continue
@@ -721,9 +834,12 @@ def apply_choice_overrides(topic: TzTopic, plan: OutlinePlan | None) -> tuple[Ch
             recommended = extra.id == recommend_id
         if recommended != extra.recommended:
             extra = replace(extra, recommended=recommended)
-        out.append(extra)
+        if extra.id.startswith("ctx:shape_"):
+            leading.append(extra)
+        else:
+            trailing.append(extra)
         seen.add(extra.id)
-    return tuple(out)
+    return tuple(leading + catalog + trailing)
 
 
 def topic_title(topic: TzTopic, plan: OutlinePlan | None) -> str:

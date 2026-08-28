@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Done |
-| Version | 0.9 |
+| Version | 0.10 |
 
 ## Goal
 
@@ -64,3 +64,7 @@ Verified: `pytest` covers substance gates, infer skip, bare reference URLs, disc
 - [x] Remaining chips are retargeted from captured answers (tools/process), not only the task brief
 - [x] Irrelevant catalog chips are hidden; extra `ctx:*` chips may echo a previous fact
 - [x] Groq JSON (`prompts/discovery-choices.md`) refines the next topic's chips; stub keeps the heuristic
+
+## v0.10 — Requested surfaces on solution-type chips
+
+- [x] If the idea names Android / iOS / a mobile app, those chips are prepended on `product_shape` (heuristic, no Groq required)

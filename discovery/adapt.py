@@ -275,6 +275,7 @@ def heuristic_plan(
         product_type=product_type,
         task_shape=task_shape,
         previous=answers,
+        brief=brief,
     )
     if previous:
         merged_rec = dict(previous.recommended_option_ids)
