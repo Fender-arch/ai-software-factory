@@ -28,3 +28,5 @@
 #   LLM_PROVIDER        Default stub (set groq to enable LLM-driven Discovery)
 #   LLM_MODEL
 #   DISCOVERY_ENGINE    auto | llm | fsm (default auto = llm when LLM_PROVIDER is not stub)
+#   ASF_ESTIMATE_HOURLY_RATE  Owner TZ cost heuristic (default 3000)
+#   ASF_ESTIMATE_CURRENCY     Currency for that estimate (default RUB)
