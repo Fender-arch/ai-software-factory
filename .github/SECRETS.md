@@ -25,5 +25,6 @@
 #   OPENAI_API_KEY      Only if STT_PROVIDER=whisper
 #   STT_PROVIDER        Default groq
 #   STT_MODEL           Default whisper-large-v3-turbo
-#   LLM_PROVIDER        Default stub
+#   LLM_PROVIDER        Default stub (set groq to enable LLM-driven Discovery)
 #   LLM_MODEL
+#   DISCOVERY_ENGINE    auto | llm | fsm (default auto = llm when LLM_PROVIDER is not stub)

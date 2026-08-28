@@ -402,6 +402,15 @@ h1 { font-size: 1.05rem; margin: 4px 0 8px; }
   align-self: flex-start;
   border-bottom-left-radius: 6px;
 }
+.bubble.assistant.typing {
+  color: var(--muted);
+  font-style: italic;
+  animation: asf-typing-pulse 1.2s ease-in-out infinite;
+}
+@keyframes asf-typing-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
 
 .choice-chips {
   display: flex;

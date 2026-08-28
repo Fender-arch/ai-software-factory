@@ -22,6 +22,7 @@ ENV_KEYS = (
     "STT_MODEL",
     "LLM_PROVIDER",
     "LLM_MODEL",
+    "DISCOVERY_ENGINE",
     "OWNER_TELEGRAM_ID",
     "MINIAPP_URL",
     "CONSOLE_TOKEN",
@@ -91,6 +92,9 @@ def build_env_values(raw: dict[str, str] | None = None) -> dict[str, str]:
     stt_provider = src.get("STT_PROVIDER") or "groq"
     stt_model = src.get("STT_MODEL") or "whisper-large-v3-turbo"
     llm_provider = src.get("LLM_PROVIDER") or "stub"
+    discovery_engine = (src.get("DISCOVERY_ENGINE") or "auto").lower()
+    if discovery_engine not in {"auto", "llm", "fsm"}:
+        discovery_engine = "auto"
     console_token = src.get("CONSOLE_TOKEN") or ""
     if is_placeholder(console_token):
         raise ValueError("CONSOLE_TOKEN is required in production (replace GitHub secret SET_ME)")
@@ -107,6 +111,7 @@ def build_env_values(raw: dict[str, str] | None = None) -> dict[str, str]:
         "STT_MODEL": stt_model,
         "LLM_PROVIDER": llm_provider,
         "LLM_MODEL": src.get("LLM_MODEL") or "",
+        "DISCOVERY_ENGINE": discovery_engine,
         "OWNER_TELEGRAM_ID": src.get("OWNER_TELEGRAM_ID") or "",
         "MINIAPP_URL": miniapp_url,
         "CONSOLE_TOKEN": console_token,

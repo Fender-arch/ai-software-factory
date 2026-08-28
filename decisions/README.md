@@ -11,3 +11,4 @@ Short ADRs. Status: `Proposed` | `Accepted` | `Deprecated`.
 | DEC-005 | Voice/Whisper in MVP | Accepted |
 | DEC-006 | Telegram Mini App as customer UI | Accepted |
 | DEC-007 | Owner TZ graph console | Accepted |
+| DEC-008 | LLM-driven Discovery interview | Accepted |

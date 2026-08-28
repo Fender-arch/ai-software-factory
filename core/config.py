@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     owner_telegram_id: str = ""
     llm_provider: str = "stub"
     llm_model: str = ""
+    discovery_engine: str = "auto"
     miniapp_url: str = ""
     console_token: str = ""
     upload_dir: str = "data/uploads"

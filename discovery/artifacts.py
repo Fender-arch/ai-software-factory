@@ -1,7 +1,16 @@
 from __future__ import annotations
 
+import json
+import logging
+from pathlib import Path
+from typing import Any, Callable
+
 from core.models import Entity, Project
 from discovery.tz_outline import OutlinePlan, remaining_topics, resolve_active_topics
+
+logger = logging.getLogger(__name__)
+
+_POLISH_PROMPT_PATH = Path(__file__).resolve().parents[1] / "prompts" / "tz-polish.md"
 
 _FR_TOPICS = (
     "must_features",
@@ -275,3 +284,51 @@ def _first_payload(entities: list[Entity], key: str, value: str) -> str | None:
     if entities:
         return str((entities[0].payload or {}).get("description") or entities[0].name)
     return None
+
+
+def _load_polish_prompt() -> str:
+    try:
+        return _POLISH_PROMPT_PATH.read_text(encoding="utf-8")
+    except OSError:
+        return (
+            "Rewrite the draft TZ as one coherent Russian Markdown document. "
+            "Keep every fact, FR-/SC- id and [NEEDS CLARIFICATION] marker. "
+            'JSON only: {"polished_markdown": "..."}'
+        )
+
+
+def polish_draft_tz(
+    markdown: str,
+    llm_json: Callable[[str, str], dict[str, Any] | None] | None = None,
+) -> str | None:
+    """Optional LLM narrative pass over the rendered draft TZ.
+
+    Returns the polished markdown, or None when the polish is unavailable or
+    fails the guards (caller keeps the raw draft).
+    """
+    if not markdown or len(markdown) < 400:
+        return None
+    if llm_json is None:
+        from integrations.llm import complete_json
+
+        llm_json = complete_json
+    try:
+        raw = llm_json(
+            _load_polish_prompt(),
+            json.dumps({"draft_markdown": markdown}, ensure_ascii=False),
+        )
+    except Exception:
+        logger.exception("TZ polish call failed; keeping raw draft")
+        return None
+    if not isinstance(raw, dict):
+        return None
+    polished = str(raw.get("polished_markdown") or "").strip()
+    if not polished:
+        return None
+    ratio = len(polished) / max(len(markdown), 1)
+    if not 0.4 <= ratio <= 2.5:
+        return None
+    for marker in ("FR-", "SC-", "[NEEDS CLARIFICATION]"):
+        if markdown.count(marker) and polished.count(marker) < markdown.count(marker):
+            return None
+    return polished

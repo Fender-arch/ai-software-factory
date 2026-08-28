@@ -37,6 +37,7 @@ def test_build_env_values_sets_production_and_quoted_db_url():
     assert values["MINIAPP_URL"] == "https://mini.example.com/miniapp/"
     assert "s3cret" in values["DATABASE_URL"]
     assert values["ASF_HOST_PORT"] == "18000"
+    assert values["DISCOVERY_ENGINE"] == "auto"
 
 
 def test_invalid_host_port_falls_back_to_18000():

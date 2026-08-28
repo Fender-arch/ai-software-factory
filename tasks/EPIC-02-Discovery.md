@@ -26,7 +26,19 @@ Adaptive Discovery interview in Telegram (text + voice transcripts) producing st
 
 ## Notes
 
-Deterministic Discovery (Level 0/1) owns stage/topic advances and KG writes. Outline adaptation is heuristic + optional Groq JSON (`LLM_PROVIDER=groq`); `/coordinator/discovery` still does not let the LLM drive FSM transitions.
+Since DEC-008 the LLM interviewer drives customer-facing turns when
+`DISCOVERY_ENGINE=llm` (default `auto`); the deterministic core keeps KG
+writes, the coverage gate, the quality floor, and pause/ready intents, and any
+LLM failure falls back to the FSM path. Outline adaptation is heuristic +
+optional Groq JSON (`LLM_PROVIDER=groq`).
+
+## v0.11 — LLM-driven interview (DEC-008)
+
+- [ ] `prompts/discovery-interview.md` — interviewer prompt (checklist in, JSON turn out)
+- [ ] `discovery/llm_interviewer.py` — context builder, JSON validation, KG writes via existing helpers
+- [ ] `DISCOVERY_ENGINE` setting + dispatch in `run_discovery_turn` with FSM fallback
+- [ ] Per-turn LLM choice chips with code-side sanitization
+- [ ] Tests: scripted fake LLM interview, guard rails, fallback path
 
 v0.3: TZ outline (`discovery/tz_outline.py`) — one topic per turn, pause/resume, choice chips including “discuss with developer”, no early finalize.
 

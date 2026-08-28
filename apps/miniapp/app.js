@@ -714,6 +714,23 @@
     showSendHint("");
   }
 
+  function showTypingBubble() {
+    hideTypingBubble();
+    const thread = $("thread");
+    if (!thread) return;
+    const tip = document.createElement("div");
+    tip.className = "bubble assistant typing";
+    tip.id = "typing-bubble";
+    tip.textContent = "Ассистент печатает…";
+    thread.appendChild(tip);
+    scrollThreadToLatest();
+  }
+
+  function hideTypingBubble() {
+    const tip = document.getElementById("typing-bubble");
+    if (tip) tip.remove();
+  }
+
   async function sendDiscoveryText(text) {
     if (!requireUser() || !state.projectId) return false;
     const payload = String(text || "").trim();
@@ -724,6 +741,7 @@
     if (state.sending) return false;
     state.sending = true;
     showSendHint("Отправка…");
+    showTypingBubble();
     try {
       const qs = `?customer_telegram_id=${encodeURIComponent(userId)}`;
       await api(`/projects/${state.projectId}/messages${qs}`, {
@@ -736,6 +754,7 @@
       await openWorkspace(state.projectId, state.listMode === "create" ? "create" : "change");
       return true;
     } catch (err) {
+      hideTypingBubble();
       showSendHint(err.message || String(err));
       alert(err.message || String(err));
       return false;
@@ -848,6 +867,7 @@
       const caption = ($("composer-text").value || "").trim();
       const qs = new URLSearchParams({ customer_telegram_id: userId });
       if (caption) qs.set("caption", caption);
+      showTypingBubble();
       await api(`/projects/${state.projectId}/messages/file?${qs}`, {
         method: "POST",
         body: fd,
@@ -855,6 +875,7 @@
       $("composer-text").value = "";
       await openWorkspace(state.projectId, state.listMode === "create" ? "create" : "change");
     } catch (err) {
+      hideTypingBubble();
       alert(err.message || String(err));
     }
   });

@@ -48,8 +48,9 @@ pytest
 | `OPENAI_API_KEY` | OpenAI Whisper if `STT_PROVIDER=whisper` (+ future LLM) |
 | `STT_PROVIDER` | `stub` \| `groq` \| `whisper` |
 | `STT_MODEL` | e.g. `whisper-large-v3-turbo` (Groq) or `whisper-1` (OpenAI) |
-| `LLM_PROVIDER` | `stub` \| `groq` (JSON outline + next-question chips; customer turns stay deterministic) |
+| `LLM_PROVIDER` | `stub` \| `groq` (JSON outline, LLM interview turns, TZ polish) |
 | `LLM_MODEL` | Groq chat model (default `llama-3.3-70b-versatile`; ignored for stub) |
+| `DISCOVERY_ENGINE` | `auto` \| `llm` \| `fsm` — DEC-008. `auto` = LLM-driven turns when `LLM_PROVIDER` is not `stub`; `fsm` forces the deterministic path |
 | `OWNER_TELEGRAM_ID` | HITL owner chat |
 | `MINIAPP_URL` | HTTPS URL of Mini App (e.g. `https://host/miniapp/`) for Menu Button / WebApp |
 | `CONSOLE_TOKEN` | Owner TZ console (`X-Console-Token`). Empty allowed only if `ASF_ENV=local` and `ASF_DEBUG=true` |

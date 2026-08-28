@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 import uuid
 from dataclasses import dataclass, field
@@ -56,6 +57,8 @@ from discovery.tz_outline import (
 from knowledge.history import record_entity_event
 from knowledge.repository import KnowledgeRepository
 from knowledge.traceability import link_derived_from
+
+logger = logging.getLogger(__name__)
 
 _PRODUCT_ALIASES: dict[str, str] = {
     "website": "website",
@@ -471,6 +474,32 @@ def run_discovery_turn(
             current_topic=prompt.topic_id,
             current_stage=prompt.stage,
         )
+
+    # DEC-008: LLM interviewer drives the turn. Deterministic intents
+    # (pause/resume above; escalate-rest/ready below) stay with the FSM.
+    from discovery.llm_interviewer import llm_engine_enabled, run_llm_turn
+
+    if llm_engine_enabled() and (
+        not text
+        or not (
+            _ESCALATE_REST_RE.search(text)
+            or _READY_RE.search(text)
+            or text.lower() in {"готово", "ready"}
+        )
+    ):
+        try:
+            llm_result = run_llm_turn(
+                db,
+                project,
+                text,
+                source_message_id=source_message_id,
+                llm_json=_llm_json,
+            )
+        except Exception:
+            logger.exception("LLM discovery turn failed; falling back to FSM")
+            llm_result = None
+        if llm_result is not None:
+            return llm_result
 
     if not text:
         prompt = prompt_for(stage, tid=topic_id)
@@ -1355,6 +1384,21 @@ def _looks_like_risk(text: str) -> bool:
     )
 
 
+def _maybe_polish_tz(markdown: str) -> str:
+    """Optional LLM narrative pass over the draft TZ (DEC-008)."""
+    from discovery.artifacts import polish_draft_tz
+    from discovery.llm_interviewer import llm_engine_enabled
+
+    if not llm_engine_enabled():
+        return markdown
+    try:
+        polished = polish_draft_tz(markdown, llm_json=_llm_json)
+    except Exception:
+        logger.exception("TZ polish failed; keeping raw draft")
+        return markdown
+    return polished or markdown
+
+
 def _refresh_latest_draft_tz(
     kg: KnowledgeRepository,
     project: Project,
@@ -1390,6 +1434,7 @@ def _refresh_latest_draft_tz(
         clarifications=list(state.get("clarifications") or []),
         plan=plan or plan_from_state(state),
     )
+    markdown = _maybe_polish_tz(markdown)
     payload = dict(artifact.payload or {})
     payload["content"] = markdown
     kg.update_entity(artifact, payload=payload)
@@ -1422,6 +1467,7 @@ def _emit_draft_tz(
         clarifications=list(state.get("clarifications") or []),
         plan=plan or plan_from_state(state),
     )
+    markdown = _maybe_polish_tz(markdown)
     artifact = kg.create_entity(
         project_id=project.id,
         type_="Artifact",

@@ -34,7 +34,7 @@ description: >-
    - Telegram/STT: `integrations/*`
 3. **Providers stay swappable** — STT/LLM behind interfaces; default stub in tests.
 4. **Schema change** → Alembic revision + update `schemas/` if contract changed.
-5. **Structured AI I/O** → align with `prompts/` + `schemas/`; no free agent chat loops.
+5. **Structured AI I/O** → align with `prompts/` + `schemas/`; Discovery turns are LLM-driven per DEC-008, but KG writes, coverage, and quality gates stay in code.
 6. **HITL** — draft TZ and hard forks stop for owner; do not auto-approve.
 7. **Verify** — `pytest`; manual smoke from `docs/13-Dev-Setup.md` when touching I/O.
 
@@ -48,7 +48,7 @@ description: >-
 
 | Mode | Package focus | Prompt |
 |------|---------------|--------|
-| discovery | `discovery/`, messages | `prompts/discovery.md` |
+| discovery | `discovery/`, messages | `prompts/discovery-interview.md` |
 | reviewer | gaps / contradictions | `prompts/reviewer.md` |
 | architect | sufficient simple design | `prompts/architect.md` |
 | planner | tasks export | `prompts/planner.md` |
