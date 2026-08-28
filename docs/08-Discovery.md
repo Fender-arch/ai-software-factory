@@ -81,7 +81,7 @@ Since DEC-008 the **LLM interviewer drives the customer-facing turn** when
 
 After clarify, a short **closing wrap-up** (still `REVIEW`) asks: anything else to add; a specific budget figure if the customer wants one; and whether they already have a brief (file or paste from ChatGPT / another LLM). Attached text/markdown/docx is extracted into the TZ. «готово» skips leftover wrap-up and emits the draft.
 
-When the draft is sent, the customer can **download the same TZ** (Markdown, Word, PDF) in the Mini App.
+When the draft is sent, the customer can **download the same TZ** (Markdown, Word, PDF) in the Mini App. Inside Telegram the file is delivered to the bot chat (WebView does not allow a reliable `<a download>`).
 
 ## TZ outline (start-of-build minimum)
 
@@ -199,6 +199,6 @@ Derived from Knowledge Graph:
 
 Owner receives a Telegram DM as soon as a **new** draft TZ is persisted (bot, Mini App, or API ingest): project name, id, **heuristic delivery estimate** (hours × `ASF_ESTIMATE_HOURLY_RATE`, default 3000 RUB/hour), a short Russian rationale (product type, must/should/could, open questions, risks; cap 80h for a simple MVP), the customer’s stated budget envelope from Discovery topic `budget` (flag if the estimate is above/below that range — the chip is **not** the quote), and `/review <id>`. Labelled as an owner HITL aid, not a customer price. The numeric estimate is deterministic (no LLM). Open questions and risks increase hours; they are not guessed away. The payload is stored on the draft TZ Artifact (`payload.estimate`) and shown again on `/review`. Development planning starts only after approval. Implementation feedback that contradicts the approved TZ raises `HumanDecisionRequired`.
 
-While the draft is with the owner (`WAITING_OWNER`), the customer may still send additions. Those messages are always recorded as requirements and merged into the draft TZ; they do not skip the owner gate or start planning. The Mini App offers a download of the same TZ (Markdown / Word / PDF) that went to the owner.
+While the draft is with the owner (`WAITING_OWNER`), the customer may still send additions. Those messages are always recorded as requirements and merged into the draft TZ; they do not skip the owner gate or start planning. The Mini App offers a download of the same TZ (Markdown / Word / PDF) that went to the owner; inside Telegram the copy is sent as a bot document.
 
 If applicable TZ sections are still missing (for example the outline gained content topics after a draft was sent), Discovery **resumes those questions**. Opening the Mini App workspace or sending a message asks the next missing section; the project returns to `WAITING_CUSTOMER` until the gaps are captured or escalated, then the draft is refreshed for the owner.

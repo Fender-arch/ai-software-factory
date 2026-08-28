@@ -25,7 +25,7 @@ def test_miniapp_static_served(client):
     assert "String(ws.project_id) !== pid" in js.text
     assert "renderProgress" in js.text
     assert "discovery_progress" in js.text
-    assert "20260828-ask" in res.text
+    assert "20260829-tz" in res.text
     assert "ws-progress" in res.text
     assert "foundry-field" in res.text
     assert "tz-download" in res.text
@@ -50,6 +50,9 @@ def test_miniapp_js_uses_telegram_fullscreen_and_groq_voice(client):
     assert "requestFullscreen" in js.text
     assert "disableVerticalSwipes" in js.text
     assert "inTelegramWebView" in js.text
+    assert "tz-send" in js.text
+    assert "downloadFile" in js.text
+    assert "openLink" in js.text
     assert "if (inTelegramWebView()) return false" in js.text
     assert "pickRecorderMime" in js.text
     assert "visualViewport" in js.text

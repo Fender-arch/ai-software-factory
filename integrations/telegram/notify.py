@@ -49,3 +49,33 @@ def notify_owner_draft_ready(
         estimate=estimate,
     )
     return send_owner_telegram(text)
+
+
+def send_customer_telegram_document(
+    chat_id: str,
+    *,
+    data: bytes,
+    filename: str,
+    caption: str | None = None,
+) -> bool:
+    """Send a file to the customer's Telegram chat. False if skipped or failed."""
+    settings = get_settings()
+    token = (settings.telegram_bot_token or "").strip()
+    dest = (chat_id or "").strip()
+    if not token or not dest or not data:
+        return False
+    payload: dict[str, str] = {"chat_id": dest}
+    if caption:
+        payload["caption"] = caption[:1024]
+    try:
+        with httpx.Client(timeout=30.0) as client:
+            response = client.post(
+                f"https://api.telegram.org/bot{token}/sendDocument",
+                data=payload,
+                files={"document": (filename, data)},
+            )
+            response.raise_for_status()
+        return True
+    except Exception:  # noqa: BLE001 — customer download must not crash Mini App
+        logger.exception("Failed to send customer Telegram document")
+        return False

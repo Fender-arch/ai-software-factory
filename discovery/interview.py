@@ -44,6 +44,7 @@ from discovery.questions import DiscoveryPrompt, build_prompt, first_topic
 from discovery.tz_outline import (
     DISCUSS_WITH_DEVELOPER_ID,
     Choice,
+    READY_CHOICE,
     OutlinePlan,
     SHAPE_TO_PRODUCT_TYPE,
     SHAPE_TO_TASK_SHAPE,
@@ -110,10 +111,38 @@ _TASK_SHAPE_ALIASES: dict[str, tuple[str, ...]] = {
     "process_automation": ("автоматизац", "ai automation"),
 }
 
-_READY_RE = re.compile(
-    r"(?i)^\s*(ready|готов[оа]?|ok for review|lgtm)\s*[.!]?\s*$"
-    r"|готово\s*[—\-].*черновик|отправить черновик тз"
+_READY_EXACT = frozenset(
+    {"ready", "готов", "готова", "готово", "lgtm", "ok for review"}
 )
+_READY_LEAD_RE = re.compile(
+    r"^(?:да[,:\s]+|ок[,:\s]+|хорошо[,:\s]+)?(?:вс[её]\s+)?(ready|готов[оа]?)\b",
+    re.I,
+)
+
+
+def is_ready_intent(text: str) -> bool:
+    """True when the customer confirms the draft TZ should go to the owner.
+
+    Matches the word «готово» / ready with quotes, ellipsis, or the exclusive
+    review chip — not «Нет готовой постановки».
+    """
+    raw = (text or "").strip().replace("\u00a0", " ")
+    if not raw:
+        return False
+    lowered = raw.lower()
+    if "отправить черновик" in lowered or "отправить черновик тз" in lowered:
+        return True
+    compact = re.sub(r"^[«»\"'„“”]+|[«»\"'„“”]+$", "", lowered).strip()
+    compact = re.sub(r"[\s.!?…]+$", "", compact).strip()
+    if compact in _READY_EXACT:
+        return True
+    match = _READY_LEAD_RE.match(compact)
+    if not match:
+        return False
+    rest = compact[match.end() :].strip(" \t.,!?;:…")
+    if not rest:
+        return True
+    return rest[:1] in {"—", "–", "-", ":"}
 _GAP_RE = re.compile(r"\b(missing|gap|unclear|contradict|wrong|не хватает|неясно)\b", re.I)
 _PAUSE_RE = re.compile(
     r"(?i)^\s*(пауза|приостановить|на паузу|pause|hold)(\s|[—\-.,!]|$)"
@@ -323,7 +352,7 @@ def run_discovery_turn(
         )
 
     review_actions = [
-        Choice("ready", "Готово — отправить черновик ТЗ владельцу", exclusive=True),
+        READY_CHOICE,
         Choice("escalate_remaining", "Остальное обсудить с разработчиком", exclusive=True),
         Choice("pause", "Пауза — продолжим позже", exclusive=True),
     ]
@@ -415,7 +444,7 @@ def run_discovery_turn(
         if (
             not text
             or _PAUSE_RE.search(text)
-            or _READY_RE.search(text)
+            or is_ready_intent(text)
             or _RESUME_RE.search(text)
         ):
             return persist_and_result(
@@ -485,11 +514,7 @@ def run_discovery_turn(
 
     if llm_engine_enabled() and (
         not text
-        or not (
-            _ESCALATE_REST_RE.search(text)
-            or _READY_RE.search(text)
-            or text.lower() in {"готово", "ready"}
-        )
+        or not (_ESCALATE_REST_RE.search(text) or is_ready_intent(text))
     ):
         try:
             llm_result = run_llm_turn(
@@ -578,7 +603,7 @@ def run_discovery_turn(
     if current_topic is None or current_topic.id not in {t.id for t in leftover_now}:
         current_topic = leftover_now[0] if leftover_now else None
 
-    if _READY_RE.search(text) or text.lower() in {"готово", "ready"}:
+    if is_ready_intent(text):
         leftover = leftover_now
         if leftover:
             prompt = prompt_for(

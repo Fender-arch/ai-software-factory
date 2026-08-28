@@ -54,8 +54,10 @@ from core.services import (
     list_projects_for_customer,
     run_project_discovery,
     run_project_planner,
+    send_customer_tz_file,
     submit_hitl_decision,
     submit_project_feedback,
+    TzSendError,
 )
 from knowledge.repository import KnowledgeRepository
 
@@ -456,6 +458,31 @@ def api_customer_tz_export(
             )
         },
     )
+
+
+@app.post("/projects/{project_id}/tz-send")
+def api_customer_tz_send(
+    project_id: uuid.UUID,
+    format: Literal["md", "pdf", "docx"] = Query(default="md"),
+    customer_telegram_id: str | None = None,
+    db: Session = Depends(get_db),
+) -> dict:
+    """Deliver the draft TZ as a Telegram document (Mini App download in WebView)."""
+    try:
+        return send_customer_tz_file(
+            db,
+            project_id,
+            format,
+            customer_telegram_id=customer_telegram_id,
+        )
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except TzSendError as exc:
+        detail = str(exc)
+        status = 409 if "not ready" in detail else 502
+        raise HTTPException(status_code=status, detail=detail) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @app.get("/projects/{project_id}/hitl/review")

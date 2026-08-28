@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.4 |
-| Updated | 2026-08-17 |
+| Version | 0.5 |
+| Updated | 2026-08-29 |
 | Owner | ASF Core |
 
 ## Purpose
@@ -41,7 +41,7 @@ The sheet is a directory: group cards list children; tapping a child focuses it 
 
 Section nodes use a vendored [Lucide](https://lucide.dev/) (ISC) pictogram set in `apps/console/icons/`. The node **is** the pictogram (no extra circle); a soft glow uses the stage colour. Product hub icon follows type (`website` / `telegram_bot` / `rest_service` / `ai_automation`). Mapping: `apps/console/icons/map.json`.
 
-The project sheet has **Export full TZ**: Markdown, Word (`docx`), PDF — generated live from the KG (`GET /console/api/projects/{id}/tz-export?format=md|docx|pdf`).
+The project sheet has **Export full TZ**: Markdown, Word (`docx`), PDF — generated live from the KG (`GET /console/api/projects/{id}/tz-export?format=md|docx|pdf`). Clicking the **project hub** (graph center) also shows the **delivery-cost estimate** in the right-hand sheet: hours, cost, rate, customer budget fit, must/should/could counts, open questions, risks, and rationale (`payload.estimate` / live `core/estimate.py` heuristic).
 
 The same sheet lists **project files** (customer Mini App attachments and console uploads) with the Discovery stage they were provided on. Analysts can add or delete files; `entity_history` records `created` / `deleted`. Bytes live on disk under `UPLOAD_DIR` (default `data/uploads`); KG `Artifact` rows with `payload.kind=uploaded_file` are the index. Download: `GET /console/api/projects/{id}/files/{file_id}/content`.
 

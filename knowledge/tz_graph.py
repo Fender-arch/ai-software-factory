@@ -6,6 +6,7 @@ import uuid
 from typing import Any
 
 from core.models import Entity, Project
+from core.estimate import estimate_console_panel, estimate_project
 from discovery.fsm import DiscoveryStage
 from discovery.tz_outline import plan_from_state, resolve_active_topics, topic_by_id
 from knowledge.repository import KnowledgeRepository
@@ -243,6 +244,7 @@ def build_tz_graph(kg: KnowledgeRepository, project: Project) -> dict[str, Any]:
             "name": project.name,
             "status": project.status.value,
             "product_type": project.product_type,
+            "estimate": estimate_console_panel(estimate_project(kg, project)),
         },
         "nodes": nodes,
         "edges": edges,

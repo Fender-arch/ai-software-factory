@@ -24,6 +24,8 @@ DISCUSS_WITH_DEVELOPER_ID = "discuss_with_developer"
 DISCUSS_WITH_DEVELOPER_LABEL = (
     "Обсудить с разработчиком, что нужно зафиксировать"
 )
+READY_CHOICE_ID = "ready"
+READY_CHOICE_LABEL = "Готово — отправить черновик ТЗ владельцу"
 
 SHAPE_TO_PRODUCT_TYPE: dict[str, str] = {
     "shape_website": "website",
@@ -62,6 +64,9 @@ class Choice:
     recommended: bool = False
     sufficient: bool = True
     """If False, the chip alone does not close a needs_substance topic."""
+
+
+READY_CHOICE = Choice(READY_CHOICE_ID, READY_CHOICE_LABEL, exclusive=True)
 
 
 @dataclass(frozen=True)

@@ -728,6 +728,46 @@
     return `<ul class="roster">${items}</ul>`;
   }
 
+  function estimateHtml(est) {
+    if (!est) {
+      return `<p class="hint">Оценка стоимости появится, когда в проекте будут требования.</p>`;
+    }
+    const rationale = (est.rationale || [])
+      .map((line) => `<li>${escapeHtml(line)}</li>`)
+      .join("");
+    const capNote = est.capped
+      ? ` <span class="hint">(потолок ${escapeHtml(est.formatted_hours || "")} ч, без потолка ${escapeHtml(
+          est.formatted_hours_uncapped || ""
+        )} ч)</span>`
+      : "";
+    return `
+      <h3>Оценка стоимости</h3>
+      <p class="hint">Подсказка для HITL владельца, не цена клиенту.</p>
+      <div class="estimate-hero">
+        <div class="estimate-cost">${escapeHtml(est.formatted_cost || "—")}</div>
+        <div class="estimate-hours">~${escapeHtml(est.formatted_hours || "—")} ч × ${escapeHtml(
+          est.formatted_rate || "—"
+        )}${capNote}</div>
+      </div>
+      <div class="meta">
+        <div>Тип в оценке: <b>${escapeHtml(est.product_type_label || est.product_type || "—")}</b></div>
+        <div>Ориентир заказчика: <b>${escapeHtml(est.customer_budget_label || "не указан")}</b></div>
+        <div>Сравнение с ориентиром: <b>${escapeHtml(est.budget_fit_label || "—")}</b></div>
+        <div>Метод: <b>${escapeHtml(est.method || "heuristic_v1")}</b></div>
+      </div>
+      ${countChips({}, [
+        `<span class="count-chip">must ${Number(est.must_count) || 0}</span>`,
+        `<span class="count-chip">should ${Number(est.should_count) || 0}</span>`,
+        `<span class="count-chip">could ${Number(est.could_count) || 0}</span>`,
+        `<span class="count-chip">пропущено ${Number(est.skipped_requirement_count) || 0}</span>`,
+        `<span class="count-chip">открытых вопросов ${Number(est.open_question_count) || 0}</span>`,
+        `<span class="count-chip">рисков ${Number(est.risk_count) || 0}</span>`,
+      ])}
+      <h3>Почему так</h3>
+      <ul class="estimate-rationale">${rationale || "<li>—</li>"}</ul>
+    `;
+  }
+
   function renderGroupPanel(node) {
     const leaves = requirementLeaves(node.id);
     const kids = childrenOf(node.id);
@@ -747,6 +787,7 @@
           <div>Тип продукта: <b>${escapeHtml(PRODUCT_RU[info.product_type] || info.product_type || "—")}</b></div>
           <div>Статус проекта: <b>${escapeHtml(info.status || "—")}</b></div>
         </div>
+        ${estimateHtml(info.estimate)}
         <h3>Выгрузить полное ТЗ</h3>
         <div class="export-row">
           <button type="button" class="btn" data-tz-export="md">Markdown</button>

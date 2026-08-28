@@ -7,6 +7,7 @@ from discovery.literacy import ITLiteracy
 from discovery.rephrase import apply_choice_overrides, format_outline_announcement, topic_title
 from discovery.tz_outline import (
     Choice,
+    READY_CHOICE,
     OutlinePlan,
     TzTopic,
     question_text,
@@ -107,7 +108,7 @@ def build_prompt(
             ]
         )
         review_choices = [
-            Choice("ready", "Готово — отправить черновик ТЗ владельцу", exclusive=True),
+            READY_CHOICE,
             Choice("escalate_remaining", "Остальное обсудить с разработчиком", exclusive=True),
             Choice("pause", "Пауза — продолжим позже", exclusive=True),
         ]

@@ -799,3 +799,46 @@ def _maybe_notify_owner_tz_ready(
             "Failed to notify owner that draft TZ is ready for project %s",
             project.id,
         )
+
+
+class TzSendError(ValueError):
+    """Customer TZ file could not be sent to Telegram."""
+
+
+def send_customer_tz_file(
+    db: Session,
+    project_id: str | uuid.UUID,
+    fmt: str,
+    *,
+    customer_telegram_id: str | None = None,
+) -> dict:
+    """Export the draft TZ and deliver it to the customer's Telegram chat."""
+    from core.tz_document import TzExportError, export_tz_file
+    from integrations.telegram.notify import send_customer_telegram_document
+
+    project = get_project(db, project_id)
+    if project is None:
+        raise ValueError("project not found")
+    assert_project_owner(project, customer_telegram_id)
+    if project.status not in {
+        ProjectStatus.WAITING_OWNER,
+        ProjectStatus.READY,
+        ProjectStatus.ARCHIVED,
+    }:
+        raise TzSendError("draft TZ is not ready yet")
+    if fmt not in {"md", "pdf", "docx"}:
+        raise TzSendError("unsupported format")
+    try:
+        payload, _media, filename = export_tz_file(db, project, fmt)
+    except TzExportError as exc:
+        raise TzSendError(str(exc)) from exc
+    chat_id = (project.customer_telegram_id or customer_telegram_id or "").strip()
+    ok = send_customer_telegram_document(
+        chat_id,
+        data=payload,
+        filename=filename,
+        caption=f"Черновик ТЗ «{project.name}»",
+    )
+    if not ok:
+        raise TzSendError("не удалось отправить файл в Telegram")
+    return {"sent": True, "filename": filename}

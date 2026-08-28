@@ -246,3 +246,50 @@ def test_draft_tz_persists_estimate_and_notifies_owner(client, monkeypatch):
     assert len(sent) == before
 
     get_settings.cache_clear()
+
+
+def test_tz_send_posts_document_to_customer_chat(client, monkeypatch):
+    delivered: list[tuple] = []
+
+    def fake_doc(chat_id, *, data, filename, caption=None):
+        delivered.append((chat_id, filename, caption, len(data or b"")))
+        return True
+
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "test-token")
+    get_settings.cache_clear()
+    monkeypatch.setattr(
+        "integrations.telegram.notify.send_customer_telegram_document",
+        fake_doc,
+    )
+
+    created = client.post(
+        "/projects",
+        json={
+            "name": "Send TZ",
+            "product_type": "website",
+            "customer_telegram_id": "88001",
+        },
+    )
+    project_id = created.json()["id"]
+    too_soon = client.post(
+        f"/projects/{project_id}/tz-send",
+        params={"format": "md", "customer_telegram_id": "88001"},
+    )
+    assert too_soon.status_code == 409
+
+    last = _drive_discovery_to_owner(client, project_id)
+    assert last.json()["project_status"] == "WAITING_OWNER"
+
+    sent = client.post(
+        f"/projects/{project_id}/tz-send",
+        params={"format": "md", "customer_telegram_id": "88001"},
+    )
+    assert sent.status_code == 200
+    body = sent.json()
+    assert body["sent"] is True
+    assert body["filename"]
+    assert delivered
+    assert delivered[-1][0] == "88001"
+    assert delivered[-1][3] > 0
+
+    get_settings.cache_clear()

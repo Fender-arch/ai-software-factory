@@ -32,6 +32,7 @@ from discovery.rephrase import apply_choice_overrides, topic_title
 from discovery.tz_outline import (
     DISCUSS_WITH_DEVELOPER_ID,
     Choice,
+    READY_CHOICE,
     OutlinePlan,
     choice_as_dict,
     plan_from_state,
@@ -162,6 +163,15 @@ def _sanitize_chips(raw: object) -> list[Choice]:
         if len(chips) >= MAX_LLM_CHIPS:
             break
     return chips
+
+
+def _with_ready_chip(choices: list[Choice]) -> list[Choice]:
+    """Offer the exclusive «готово» action once TZ coverage is complete."""
+    out = [READY_CHOICE]
+    for choice in choices:
+        if choice.id != READY_CHOICE.id:
+            out.append(choice)
+    return out
 
 
 def _parse_turn(raw: dict[str, Any] | None, plan: OutlinePlan) -> _LlmTurn | None:
@@ -454,6 +464,7 @@ def run_llm_turn(
 
     paused = False
     artifact_id: uuid.UUID | None = None
+    notify_owner = False
     reply = turn.reply
     action = turn.next_action
 
@@ -471,6 +482,7 @@ def run_llm_turn(
             else:
                 artifact = _emit_draft_tz(kg, project, literacy=literacy, plan=plan)
                 owner_draft_emitted = True
+                notify_owner = True
                 note = _READY_NOTE_FIRST
             artifact_id = artifact.id if artifact else None
             stage = DiscoveryStage.READY_FOR_OWNER
@@ -484,7 +496,7 @@ def run_llm_turn(
                     + "; ".join(floor_missing)
                     + "."
                 )
-            choices = with_discuss(turn.chips)
+            choices = _with_ready_chip(with_discuss(turn.chips))
     else:
         if action in {"ready_for_owner", "review"} and leftover:
             names = "; ".join(topic_title(t, plan) for t in leftover[:8])
@@ -495,7 +507,9 @@ def run_llm_turn(
         if leftover:
             stage = leftover[0].stage
         choices = with_discuss(turn.chips)
-        if not turn.chips and leftover:
+        if not leftover:
+            choices = _with_ready_chip(choices)
+        elif not turn.chips:
             choices = with_discuss(apply_choice_overrides(leftover[0], plan))
 
     if stage == DiscoveryStage.READY_FOR_OWNER:
@@ -552,4 +566,5 @@ def run_llm_turn(
         paused=paused,
         allow_multiple=False,
         tz_available=tz_available,
+        notify_owner=notify_owner,
     )

@@ -224,6 +224,32 @@ def format_money(amount: int, currency: str) -> str:
     return f"{grouped} {currency}"
 
 
+BUDGET_FIT_RU = {
+    "none": "ориентир заказчика не указан",
+    "within": "оценка внутри ориентира заказчика",
+    "above": "оценка выше ориентира заказчика",
+    "below": "оценка ниже ориентира заказчика",
+}
+
+
+def estimate_console_panel(estimate: DeliveryEstimate) -> dict[str, Any]:
+    """Owner-console view of a delivery estimate (all heuristic fields)."""
+    data = estimate.as_dict()
+    data["formatted_cost"] = format_money(estimate.cost, estimate.currency)
+    data["formatted_hours"] = format_hours(estimate.hours)
+    data["formatted_hours_uncapped"] = format_hours(estimate.hours_uncapped)
+    data["formatted_rate"] = (
+        f"{format_hours(estimate.hourly_rate)} {estimate.currency}/ч"
+    )
+    data["product_type_label"] = PRODUCT_TYPE_RU.get(
+        estimate.product_type or "", estimate.product_type or "не указан"
+    )
+    data["budget_fit_label"] = BUDGET_FIT_RU.get(
+        estimate.budget_fit, estimate.budget_fit
+    )
+    return data
+
+
 def _budget_requirement_texts(requirements: Sequence[Any]) -> list[str]:
     texts: list[str] = []
     for ent in requirements:

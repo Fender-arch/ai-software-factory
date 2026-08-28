@@ -47,6 +47,10 @@ def test_console_static_served(client):
     assert "требован" in res.text.lower()
     assert "новое" in res.text
     assert "foundry-field" in res.text
+    js = client.get("/console/app.js")
+    assert js.status_code == 200
+    assert "estimateHtml" in js.text
+    assert "Оценка стоимости" in js.text
 
 
 def test_console_lists_projects_without_token_in_local_debug(client):
@@ -96,6 +100,21 @@ def test_tz_graph_stage_topic_requirement(client):
     assert card["id"] == req["id"]
     assert card["author"]["id"] == uid
     assert any(h["action"] == "created" for h in card["history"])
+
+
+def test_tz_graph_includes_delivery_estimate(client):
+    pid, _uid = _seed_project(client)
+    graph = client.get(f"/console/api/projects/{pid}/tz-graph").json()
+    estimate = graph["project"]["estimate"]
+    assert estimate
+    assert estimate["cost"] > 0
+    assert estimate["hours"] > 0
+    assert estimate["formatted_cost"]
+    assert estimate["formatted_hours"]
+    assert estimate["formatted_rate"]
+    assert estimate["rationale"]
+    assert "must_count" in estimate
+    assert estimate["budget_fit_label"]
 
 
 def test_status_history_and_rejected_requires_reason(client):

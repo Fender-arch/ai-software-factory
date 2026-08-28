@@ -254,3 +254,43 @@ def test_pause_intent_stays_deterministic(llm_client, monkeypatch):
     body = res.json()
     assert body["paused"] is True
     assert calls == [], "pause intent must not reach the LLM"
+
+
+def test_llm_quoted_ready_emits_draft_after_coverage(llm_client, monkeypatch):
+    def review_instead_of_auto_close(system, user):
+        if not _is_interview_prompt(system):
+            return {}
+        ctx = json.loads(user)
+        remaining = [t for t in ctx["topics"] if t["status"] == "remaining"]
+        if remaining:
+            return _fake_interviewer(system, user)
+        return {
+            "reply_to_customer": "Разделы закрыты. Есть что добавить перед отправкой?",
+            "captured": [],
+            "chips": [{"id": "nothing_else", "label": "Ничего не добавляю"}],
+            "next_action": "review",
+        }
+
+    monkeypatch.setattr("discovery.interview._llm_json", review_instead_of_auto_close)
+    project_id = _create_project(llm_client)
+    last = None
+    for i in range(80):
+        last = _send(
+            llm_client,
+            project_id,
+            f"Хочу сайт для студии, детальный ответ номер {i} на ваш вопрос.",
+        )
+        body = last.json()
+        if body["project_status"] == "WAITING_OWNER":
+            break
+        choices = body.get("discovery_choices") or []
+        if any(c.get("id") == "ready" for c in choices):
+            last = _send(llm_client, project_id, "«готово»")
+            break
+    else:
+        raise AssertionError("LLM interview never offered the ready chip")
+
+    body = last.json()
+    assert body["project_status"] == "WAITING_OWNER"
+    assert body.get("tz_available") is True
+    assert body["discovery_stage"] == "READY_FOR_OWNER"

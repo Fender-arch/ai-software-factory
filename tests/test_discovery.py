@@ -1,6 +1,7 @@
 from discovery.fsm import DiscoveryStage, advance_stage, project_status_for_stage, regress_stage
 from discovery.literacy import ITLiteracy, infer_literacy
 from discovery.questions import question_for
+from discovery.interview import is_ready_intent
 from core.models import ProjectStatus
 import io
 
@@ -256,6 +257,19 @@ def test_discovery_pause_keeps_interview_open(client):
     resumed = client.post(f"/projects/{pid}/messages", json={"text": "продолжить"})
     assert resumed.json()["paused"] is False
     assert "Раздел ТЗ" in (resumed.json()["discovery_reply"] or "")
+
+
+def test_is_ready_intent_matches_quoted_and_chip_wording():
+    assert is_ready_intent("готово")
+    assert is_ready_intent("Готово")
+    assert is_ready_intent("«готово»")
+    assert is_ready_intent("Готово...")
+    assert is_ready_intent("всё готово")
+    assert is_ready_intent("ready")
+    assert is_ready_intent("Готово — отправить черновик ТЗ владельцу")
+    assert is_ready_intent("Готово – отправить черновик ТЗ владельцу")
+    assert not is_ready_intent("Нет готовой постановки")
+    assert not is_ready_intent("Сайт для кафе")
 
 
 def test_discovery_ready_too_early_is_refused(client):
@@ -693,6 +707,35 @@ def test_closing_wrapup_adds_notes_budget_and_download(client):
     assert exported.status_code == 200
     assert "тёмная тема" in exported.text
     assert "120 тысяч" in exported.text
+
+
+def test_ready_on_last_closing_skips_brief_and_emits_draft(client):
+    created = client.post(
+        "/projects",
+        json={
+            "name": "ReadySkip",
+            "product_type": "website",
+            "customer_telegram_id": "55011",
+        },
+    )
+    pid = created.json()["id"]
+    _reach_closing(client, pid)
+    additions = client.post(f"/projects/{pid}/messages", json={"text": "1"})
+    assert additions.json().get("topic_id") == "closing:closing_budget"
+    budget = client.post(f"/projects/{pid}/messages", json={"text": "1"})
+    assert budget.json().get("topic_id") == "closing:closing_brief"
+
+    ready = client.post(f"/projects/{pid}/messages", json={"text": "«готово»"})
+    body = ready.json()
+    assert body["project_status"] == "WAITING_OWNER"
+    assert body.get("tz_available") is True
+    assert "скач" in (body["discovery_reply"] or "").lower()
+
+    exported = client.get(
+        f"/projects/{pid}/tz-export",
+        params={"format": "md", "customer_telegram_id": "55011"},
+    )
+    assert exported.status_code == 200
 
 
 def test_closing_brief_file_lands_in_tz(client):

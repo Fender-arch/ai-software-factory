@@ -381,6 +381,35 @@ input[type="file"]::file-selector-button {
   gap: 6px;
 }
 
+.estimate-hero {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(232, 195, 106, 0.08);
+}
+.estimate-cost {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.02em;
+}
+.estimate-hours {
+  margin-top: 4px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.estimate-rationale {
+  margin: 0 0 14px;
+  padding-left: 1.15rem;
+  color: var(--text);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  display: grid;
+  gap: 6px;
+}
+.estimate-rationale li { color: var(--muted); }
+
 .status-pill {
   display: inline-flex;
   align-items: center;
