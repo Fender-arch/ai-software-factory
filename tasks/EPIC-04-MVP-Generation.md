@@ -24,6 +24,7 @@ Owner-approved TZ → Planner tasks → export for Cursor → simple product MVP
 - [x] Owner Telegram DM (RU) with cost, hours, rationale, `/review`
 - [x] `/review` shows the estimate; Mini App / API ingest also notifies
 - [x] Rate/currency via `ASF_ESTIMATE_HOURLY_RATE` / `ASF_ESTIMATE_CURRENCY` (default 3000 RUB)
+- [x] Customer Discovery budget envelope included in the owner rationale (chip is not the quote)
 
 ## Notes
 
