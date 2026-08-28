@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 
 from sqlalchemy.orm import Session
 
+from core.estimate import attach_estimate_to_draft
 from core.models import Entity, Message, MessageKind, Project, ProjectStatus
 from discovery.artifacts import render_draft_tz
 from discovery.closing import (
@@ -158,6 +159,7 @@ class DiscoveryTurnResult:
     paused: bool = False
     allow_multiple: bool = False
     tz_available: bool = False
+    notify_owner: bool = False
 
 
 def run_discovery_turn(
@@ -240,6 +242,7 @@ def run_discovery_turn(
         extra_req: list[uuid.UUID] | None = None,
         artifact: uuid.UUID | None = None,
         allow_multiple: bool = False,
+        notify_owner: bool = False,
     ) -> DiscoveryTurnResult:
         st = current_stage or stage
         is_paused = paused if paused_now is None else paused_now
@@ -297,6 +300,7 @@ def run_discovery_turn(
             paused=is_paused,
             allow_multiple=allow_multiple,
             tz_available=tz_available,
+            notify_owner=bool(notify_owner),
         )
 
     def prompt_for(
@@ -539,6 +543,7 @@ def run_discovery_turn(
         closing_queue = []
         closing_current = None
         closing_initialized = True
+        notify_owner = False
         if owner_draft_emitted:
             artifact = _refresh_latest_draft_tz(kg, project, literacy=literacy, plan=plan)
             reply = (
@@ -548,6 +553,7 @@ def run_discovery_turn(
         else:
             artifact = _emit_draft_tz(kg, project, literacy=literacy, plan=plan)
             owner_draft_emitted = True
+            notify_owner = True
             reply = (
                 "Оставшиеся разделы ТЗ зафиксировал как вопросы разработчику "
                 "и отправил черновик владельцу на ревью.\n\n"
@@ -559,6 +565,7 @@ def run_discovery_turn(
             current_topic=None,
             paused_now=False,
             artifact=artifact.id if artifact else None,
+            notify_owner=notify_owner,
         )
 
     current_topic = topic_by_id(topic_id, plan.extra_topics)
@@ -637,6 +644,7 @@ def run_discovery_turn(
             current_topic=None,
             paused_now=False,
             artifact=artifact.id,
+            notify_owner=True,
         )
 
     if stage == DiscoveryStage.REVIEW:
@@ -1438,6 +1446,7 @@ def _refresh_latest_draft_tz(
     payload = dict(artifact.payload or {})
     payload["content"] = markdown
     kg.update_entity(artifact, payload=payload)
+    attach_estimate_to_draft(kg, project, artifact)
     return artifact
 
 
@@ -1488,6 +1497,7 @@ def _emit_draft_tz(
             type_="related_to",
             payload={"role": "included_in_draft_tz"},
         )
+    attach_estimate_to_draft(kg, project, artifact)
     return artifact
 
 

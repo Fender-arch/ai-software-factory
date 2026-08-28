@@ -197,7 +197,7 @@ Derived from Knowledge Graph:
 
 ## HITL
 
-Owner receives draft TZ + gap list (bot path in MVP). Development planning starts only after approval. Implementation feedback that contradicts the approved TZ raises `HumanDecisionRequired`.
+Owner receives a Telegram DM as soon as a **new** draft TZ is persisted (bot, Mini App, or API ingest): project name, id, **heuristic delivery estimate** (hours × `ASF_ESTIMATE_HOURLY_RATE`, default 3000 RUB/hour), a short Russian rationale (product type, must/should/could, open questions, risks; cap 80h for a simple MVP), and `/review <id>`. The numeric estimate is deterministic (no LLM). Open questions and risks increase hours; they are not guessed away. The payload is stored on the draft TZ Artifact (`payload.estimate`) and shown again on `/review`. Development planning starts only after approval. Implementation feedback that contradicts the approved TZ raises `HumanDecisionRequired`.
 
 While the draft is with the owner (`WAITING_OWNER`), the customer may still send additions. Those messages are always recorded as requirements and merged into the draft TZ; they do not skip the owner gate or start planning. The Mini App offers a download of the same TZ (Markdown / Word / PDF) that went to the owner.
 

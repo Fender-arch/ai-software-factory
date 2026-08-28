@@ -24,6 +24,7 @@ from aiogram.types import (
 
 from core.config import get_settings
 from core.db import SessionLocal
+from core.estimate import format_estimate_review_block
 from core.export import ExportError
 from core.hitl import HitlAction, HitlError
 from core.planner import PlannerError
@@ -139,10 +140,13 @@ async def cmd_review(message: Message, command: CommandObject) -> None:
 
     gaps = "\n".join(f"• {q}" for q in summary.get("open_questions") or []) or "• none"
     preview = summary.get("draft_preview") or "_no draft TZ_"
+    estimate_block = format_estimate_review_block(summary.get("estimate"))
+    estimate_section = f"{estimate_block}\n\n" if estimate_block else ""
     text = (
         f"HITL review — {summary['name']}\n"
         f"Status: `{summary['status']}` · type: `{summary.get('product_type')}`\n"
         f"Artifact: `{summary.get('artifact_id')}` ({summary.get('artifact_status')})\n\n"
+        f"{estimate_section}"
         f"Open questions:\n{gaps}\n\n"
         f"Draft preview:\n{preview}\n\n"
         f"/approve {summary['project_id']}\n"
@@ -279,7 +283,6 @@ async def on_text(message: Message) -> None:
         reply += (
             f"\n\nOwner: /review `{project_id}` then /approve or /changes."
         )
-        await _notify_owner_if_configured(message.bot, project_id)
     await message.answer(reply, parse_mode="Markdown")
 
 
@@ -308,28 +311,7 @@ async def on_voice(message: Message, bot: Bot) -> None:
     )
     if result.discovery and result.discovery.project_status.value == "WAITING_OWNER":
         reply += f"\n\nOwner: /review `{project_id}`"
-        await _notify_owner_if_configured(bot, project_id)
     await message.answer(f"Heard:\n{transcript}\n\n{reply}", parse_mode="Markdown")
-
-
-async def _notify_owner_if_configured(bot: Bot, project_id: str) -> None:
-    owner = (get_settings().owner_telegram_id or "").strip()
-    if not owner:
-        return
-    try:
-        with _session() as db:
-            summary = get_owner_review(db, project_id)
-        await bot.send_message(
-            chat_id=int(owner),
-            text=(
-                f"HITL: draft TZ ready for `{summary['name']}`\n"
-                f"ID: `{project_id}`\n"
-                f"/review {project_id}"
-            ),
-            parse_mode="Markdown",
-        )
-    except Exception:  # noqa: BLE001 — bot notify must not break customer path
-        logger.exception("Failed to notify owner for project %s", project_id)
 
 
 async def run_bot() -> None:

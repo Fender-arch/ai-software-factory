@@ -5,8 +5,8 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.3 |
-| Updated | 2026-08-17 |
+| Version | 0.4 |
+| Updated | 2026-08-28 |
 | Owner | ASF Core |
 
 ## Принцип
@@ -62,6 +62,8 @@ Knowledge Graph — это **единственный источник исти�
 `Project` · `Message` · `Requirement` · `OpenQuestion` · `Decision` · `Task` · `Artifact` · `Risk` (опционально) · `Feedback` (замечания к реализации)
 
 `Artifact` payload `kind`: `draft_tz` (сгенерированный markdown) или `uploaded_file` (вложение заказчика/консоли; байты на диске в `UPLOAD_DIR`, не в JSONB).
+
+У `draft_tz` также хранится `payload.estimate`: детерминированная эвристика стоимости поставки (`hours`, `cost`, `currency`, `hourly_rate`, `rationale`, счётчики требований/рисков). Отдельная таблица не нужна.
 
 Операционные таблицы `projects` / `messages` / `tasks` могут зеркалить горячие пути; сущности графа хранят семантические связи.
 

@@ -65,6 +65,8 @@ def test_render_env_file_contains_keys():
     text = render_env_file(build_env_values(_base_raw()))
     assert "ASF_ENV=production" in text
     assert "MINIAPP_URL=https://mini.example.com/miniapp/" in text
+    assert "ASF_ESTIMATE_HOURLY_RATE=3000" in text
+    assert "ASF_ESTIMATE_CURRENCY=RUB" in text
 
 
 def test_nginx_vhost_is_not_default_server():

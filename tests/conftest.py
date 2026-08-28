@@ -15,6 +15,8 @@ os.environ["OWNER_TELEGRAM_ID"] = ""
 os.environ["CONSOLE_TOKEN"] = ""
 os.environ["ASF_ENV"] = "local"
 os.environ["ASF_DEBUG"] = "true"
+os.environ["ASF_ESTIMATE_HOURLY_RATE"] = "3000"
+os.environ["ASF_ESTIMATE_CURRENCY"] = "RUB"
 
 from apps.api.main import app
 from core.config import get_settings

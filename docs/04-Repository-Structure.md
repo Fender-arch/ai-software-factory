@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.4 |
-| Updated | 2026-08-26 |
+| Version | 0.5 |
+| Updated | 2026-08-28 |
 | Owner | ASF Core |
 
 ```
@@ -32,11 +32,11 @@ ai-software-factory/
 │   ├── api/              # FastAPI entrypoint
 │   ├── miniapp/          # Telegram Mini App frontend (customer UI)
 │   └── console/          # Owner TZ graph console (DEC-007)
-├── core/                 # config, db, models, coordinator
+├── core/                 # config, db, models, coordinator, estimate
 ├── knowledge/            # entity/relation repositories
 ├── discovery/            # Discovery FSM, interview, draft TZ
 ├── integrations/
-│   ├── telegram/         # Bot polling, Menu/WebApp hooks, owner HITL
+│   ├── telegram/         # Bot polling, Menu/WebApp hooks, owner HITL + notify
 │   └── stt/
 ├── shared/
 ├── alembic/

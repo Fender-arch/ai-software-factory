@@ -9,6 +9,7 @@ from enum import Enum
 from sqlalchemy.orm import Session
 
 from core.config import get_settings
+from core.estimate import estimate_from_artifact
 from core.models import Entity, Project, ProjectStatus
 from discovery.fsm import DiscoveryStage
 from discovery.quality import evaluate_spec_quality
@@ -290,6 +291,7 @@ def owner_review_summary(db: Session, project: Project) -> dict:
         open_questions=open_qs,
         risks=kg.list_entities(project.id, type_="Risk"),
     ).as_dict()
+    estimate = estimate_from_artifact(draft)
     return {
         "project_id": str(project.id),
         "name": project.name,
@@ -306,4 +308,5 @@ def owner_review_summary(db: Session, project: Project) -> dict:
         "gaps": quality.get("gaps") or [],
         "contradictions": quality.get("contradictions") or [],
         "owner_recommendations": quality.get("owner_recommendations") or [],
+        "estimate": estimate.as_dict() if estimate else None,
     }

@@ -5,7 +5,7 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.8 |
+| Version | 0.9 |
 | Updated | 2026-08-28 |
 | Owner | ASF Core |
 
@@ -53,6 +53,8 @@ pytest
 | `LLM_PROVIDER` | `stub` \| `groq` (адаптация каркаса ТЗ и вариантов ответа JSON; ходы заказчика остаются детерминированными) |
 | `LLM_MODEL` | Модель Groq chat (по умолчанию `llama-3.3-70b-versatile`; для stub не нужна) |
 | `OWNER_TELEGRAM_ID` | Чат владельца для HITL |
+| `ASF_ESTIMATE_HOURLY_RATE` | Ставка часа для оценки стоимости ТЗ (по умолчанию `3000`) |
+| `ASF_ESTIMATE_CURRENCY` | Валюта этой оценки (по умолчанию `RUB`) |
 | `MINIAPP_URL` | HTTPS URL Mini App (например `https://host/miniapp/`) для Menu Button / WebApp |
 | `CONSOLE_TOKEN` | Консоль ТЗ владельца (`X-Console-Token`). Пустой токен только при `ASF_ENV=local` и `ASF_DEBUG=true` |
 | `UPLOAD_DIR` | Вложения проекта (по умолчанию `data/uploads`) |

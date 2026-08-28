@@ -411,11 +411,13 @@ def api_get_draft_tz(project_id: uuid.UUID, db: Session = Depends(get_db)) -> di
     if not artifacts:
         raise HTTPException(status_code=404, detail="draft TZ not found")
     latest = artifacts[-1]
+    payload = latest.payload or {}
     return {
         "id": str(latest.id),
         "name": latest.name,
         "status": latest.status,
-        "content": (latest.payload or {}).get("content", ""),
+        "content": payload.get("content", ""),
+        "estimate": payload.get("estimate"),
     }
 
 

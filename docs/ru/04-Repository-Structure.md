@@ -5,8 +5,8 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.4 |
-| Updated | 2026-08-26 |
+| Version | 0.5 |
+| Updated | 2026-08-28 |
 | Owner | ASF Core |
 
 ```
@@ -34,11 +34,11 @@ ai-software-factory/
 │   ├── api/              # Точка входа FastAPI
 │   ├── miniapp/          # Фронтенд Telegram Mini App (UI заказчика)
 │   └── console/          # Консоль графа ТЗ владельца (DEC-007)
-├── core/                 # config, db, models, coordinator
+├── core/                 # config, db, models, coordinator, estimate
 ├── knowledge/            # репозитории entity/relation
 ├── discovery/            # Discovery FSM, интервью, черновик ТЗ
 ├── integrations/
-│   ├── telegram/         # Polling бота, Menu/WebApp, owner HITL
+│   ├── telegram/         # Polling бота, Menu/WebApp, owner HITL + notify
 │   └── stt/
 ├── shared/
 ├── alembic/

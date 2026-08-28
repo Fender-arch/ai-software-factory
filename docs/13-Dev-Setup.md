@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.8 |
+| Version | 0.9 |
 | Updated | 2026-08-28 |
 | Owner | ASF Core |
 
@@ -52,6 +52,8 @@ pytest
 | `LLM_MODEL` | Groq chat model (default `llama-3.3-70b-versatile`; ignored for stub) |
 | `DISCOVERY_ENGINE` | `auto` \| `llm` \| `fsm` — DEC-008. `auto` = LLM-driven turns when `LLM_PROVIDER` is not `stub`; `fsm` forces the deterministic path |
 | `OWNER_TELEGRAM_ID` | HITL owner chat |
+| `ASF_ESTIMATE_HOURLY_RATE` | Hourly rate for owner TZ cost estimate (default `3000`) |
+| `ASF_ESTIMATE_CURRENCY` | Currency code for that estimate (default `RUB`) |
 | `MINIAPP_URL` | HTTPS URL of Mini App (e.g. `https://host/miniapp/`) for Menu Button / WebApp |
 | `CONSOLE_TOKEN` | Owner TZ console (`X-Console-Token`). Empty allowed only if `ASF_ENV=local` and `ASF_DEBUG=true` |
 | `UPLOAD_DIR` | Project file attachments (default `data/uploads`) |

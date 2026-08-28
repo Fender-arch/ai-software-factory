@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.3 |
-| Updated | 2026-08-17 |
+| Version | 0.4 |
+| Updated | 2026-08-28 |
 | Owner | ASF Core |
 
 ## Principle
@@ -60,6 +60,8 @@ Append-only audit (not an event bus). Used by the owner TZ console.
 `Project` · `Message` · `Requirement` · `OpenQuestion` · `Decision` · `Task` · `Artifact` · `Risk` (optional) · `Feedback` (implementation notes)
 
 `Artifact` payload `kind`: `draft_tz` (generated markdown) or `uploaded_file` (customer/console attachment; bytes on disk under `UPLOAD_DIR`, not in JSONB).
+
+A `draft_tz` Artifact also stores `payload.estimate`: deterministic delivery-cost heuristic (`hours`, `cost`, `currency`, `hourly_rate`, `rationale`, requirement/risk counts). No extra table.
 
 Operational tables `projects` / `messages` / `tasks` may mirror hot paths; graph entities keep semantic links.
 

@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     console_token: str = ""
     upload_dir: str = "data/uploads"
     max_upload_bytes: int = 20 * 1024 * 1024
+    # Owner delivery-cost heuristic when a draft TZ is ready (Telegram DM).
+    # Env: ASF_ESTIMATE_HOURLY_RATE, ASF_ESTIMATE_CURRENCY
+    asf_estimate_hourly_rate: float = 3000
+    asf_estimate_currency: str = "RUB"
 
 
 @lru_cache

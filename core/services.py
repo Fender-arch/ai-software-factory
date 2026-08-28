@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import uuid
 from dataclasses import dataclass
 from typing import Literal
@@ -24,6 +25,8 @@ from knowledge.context import ContextBuilder
 from knowledge.coverage import evaluate_coverage, mode_exit_checklist
 from core.project_files import extract_attachment_text, store_uploaded_file
 from knowledge.repository import KnowledgeRepository
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -235,6 +238,7 @@ def get_project_workspace(
         _store_assistant_reply(db, project, turn)
         db.commit()
         db.refresh(project)
+        _maybe_notify_owner_tz_ready(db, project, turn)
         project_entities = kg.list_entities(project.id, type_="Project")
         state = dict(project_entities[0].payload) if project_entities else {}
     stage = parse_stage(state.get("discovery_stage"))
@@ -342,6 +346,7 @@ def ingest_text_message(
     db.refresh(message)
     if assistant_message is not None:
         db.refresh(assistant_message)
+    _maybe_notify_owner_tz_ready(db, project, discovery)
     return IngestResult(
         message=message, discovery=discovery, assistant_message=assistant_message
     )
@@ -402,6 +407,7 @@ async def ingest_voice_message(
     db.refresh(message)
     if assistant_message is not None:
         db.refresh(assistant_message)
+    _maybe_notify_owner_tz_ready(db, project, discovery)
     return IngestResult(
         message=message, discovery=discovery, assistant_message=assistant_message
     )
@@ -500,6 +506,7 @@ async def ingest_file_message(
     db.refresh(message)
     if assistant_message is not None:
         db.refresh(assistant_message)
+    _maybe_notify_owner_tz_ready(db, project, discovery)
     return IngestResult(
         message=message, discovery=discovery, assistant_message=assistant_message
     )
@@ -588,6 +595,7 @@ async def run_project_discovery(
     db.commit()
     if assistant is not None:
         db.refresh(assistant)
+    _maybe_notify_owner_tz_ready(db, project, turn)
 
     artifact_id = turn.artifact_id if turn else (artifacts[-1].id if artifacts else None)
     coverage_report = evaluate_coverage(
@@ -760,3 +768,34 @@ def _store_assistant_reply(
         },
     )
     return assistant
+
+
+def _maybe_notify_owner_tz_ready(
+    db: Session,
+    project: Project,
+    discovery: DiscoveryTurnResult | None,
+) -> None:
+    """Notify the studio owner when a new draft TZ is first persisted."""
+    if discovery is None or not discovery.notify_owner:
+        return
+    try:
+        from core.estimate import DeliveryEstimate
+        from core.hitl import get_draft_tz
+        from integrations.telegram.notify import notify_owner_draft_ready
+        from knowledge.repository import KnowledgeRepository as Kg
+
+        kg = Kg(db)
+        draft = get_draft_tz(kg, project.id)
+        estimate = DeliveryEstimate.from_dict(
+            (draft.payload or {}).get("estimate") if draft else None
+        )
+        if estimate is None:
+            from core.estimate import estimate_project
+
+            estimate = estimate_project(kg, project)
+        notify_owner_draft_ready(project, estimate)
+    except Exception:  # noqa: BLE001 — owner DM must not break the customer path
+        logger.exception(
+            "Failed to notify owner that draft TZ is ready for project %s",
+            project.id,
+        )
