@@ -723,72 +723,154 @@
     ceDiscuss.addEventListener("click", () => decideClientEstimate("discuss"));
   }
 
-  async function downloadTz(fmt) {
+  function filenameFromDisposition(cd, fallback) {
+    const header = cd || "";
+    const star = header.match(/filename\*=UTF-8''([^;]+)/i);
+    const plain = header.match(/filename="?([^";]+)"?/i);
+    try {
+      return decodeURIComponent((star && star[1]) || (plain && plain[1]) || fallback);
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  function triggerBlobDownload(blob, name) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    a.rel = "noopener";
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
+  function withTimeout(promise, ms, fallback) {
+    return new Promise((resolve) => {
+      let settled = false;
+      const timer = window.setTimeout(() => {
+        if (!settled) {
+          settled = true;
+          resolve(fallback);
+        }
+      }, ms);
+      Promise.resolve(promise).then(
+        (value) => {
+          if (!settled) {
+            settled = true;
+            window.clearTimeout(timer);
+            resolve(value);
+          }
+        },
+        () => {
+          if (!settled) {
+            settled = true;
+            window.clearTimeout(timer);
+            resolve(fallback);
+          }
+        }
+      );
+    });
+  }
+
+  function tryTelegramDownloadFile(abs, name) {
+    if (!tg || typeof tg.downloadFile !== "function") return Promise.resolve(false);
+    return new Promise((resolve) => {
+      try {
+        tg.downloadFile({ url: abs, file_name: name }, (done) => resolve(Boolean(done)));
+      } catch (_) {
+        resolve(false);
+      }
+    });
+  }
+
+  function dismissExportHint() {
+    window.setTimeout(() => showSendHint(""), 1400);
+  }
+
+  function finishTzExportUi() {
+    renderTzDownload(false);
+    dismissExportHint();
+  }
+
+  async function downloadExport(kind, fmt) {
     if (!state.projectId || !requireUser()) return;
     const qs = new URLSearchParams({
       format: fmt,
       customer_telegram_id: userId,
     });
-    const exportPath = `/projects/${state.projectId}/tz-export?${qs}`;
-    const sendPath = `/projects/${state.projectId}/tz-send?${qs}`;
+    const base = kind === "estimate" ? "estimate" : "tz";
+    const exportPath = `/projects/${state.projectId}/${base}-export?${qs}`;
+    const sendPath = `/projects/${state.projectId}/${base}-send?${qs}`;
+    const fallbackName = kind === "estimate" ? `smeta.${fmt}` : `tz.${fmt}`;
     showSendHint("Готовим файл…");
-
-    if (inTelegramWebView()) {
-      try {
-        const sent = await api(sendPath, { method: "POST" });
-        const name = (sent && sent.filename) || `tz.${fmt}`;
-        showSendHint(`Файл «${name}» отправлен в чат с ботом ASF.`);
-        return;
-      } catch (_) {
-        /* bot send unavailable — try in-app / external download */
-      }
-      const abs = `${window.location.origin}${exportPath}`;
-      if (tg && typeof tg.downloadFile === "function") {
-        const ok = await new Promise((resolve) => {
-          try {
-            tg.downloadFile({ url: abs, file_name: `tz.${fmt}` }, (done) => resolve(Boolean(done)));
-          } catch (_) {
-            resolve(false);
-          }
-        });
-        if (ok) {
-          showSendHint("Файл сохранён.");
-          return;
-        }
-      }
-      if (tg && typeof tg.openLink === "function") {
-        tg.openLink(abs);
-        showSendHint("Откройте ссылку и сохраните файл.");
-        return;
-      }
-    }
 
     const res = await fetch(exportPath);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || res.statusText || "Не удалось скачать ТЗ");
+      showSendHint("");
+      throw new Error(err.detail || res.statusText || "Не удалось скачать файл");
     }
     const blob = await res.blob();
-    const cd = res.headers.get("Content-Disposition") || "";
-    const star = cd.match(/filename\*=UTF-8''([^;]+)/i);
-    const plain = cd.match(/filename="?([^";]+)"?/i);
-    const name = decodeURIComponent((star && star[1]) || (plain && plain[1]) || `tz.${fmt}`);
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = name;
-    a.rel = "noopener";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(a.href);
-    showSendHint("");
+    const name = filenameFromDisposition(res.headers.get("Content-Disposition"), fallbackName);
+    triggerBlobDownload(blob, name);
+
+    if (inTelegramWebView()) {
+      try {
+        const sent = await api(sendPath, { method: "POST" });
+        const sentName = (sent && sent.filename) || name;
+        showSendHint(`Файл «${sentName}» отправлен в чат с ботом ASF.`);
+        if (kind === "tz") finishTzExportUi();
+        else dismissExportHint();
+        return;
+      } catch (_) {
+        /* bot send optional — file already fetched */
+      }
+      const abs = `${window.location.origin}${exportPath}`;
+      const saved = await withTimeout(tryTelegramDownloadFile(abs, name), 4000, false);
+      if (saved) {
+        showSendHint("Файл сохранён.");
+        if (kind === "tz") finishTzExportUi();
+        else dismissExportHint();
+        return;
+      }
+      if (tg && typeof tg.openLink === "function") {
+        try {
+          tg.openLink(abs, { try_instant_view: false });
+        } catch (_) {
+          try {
+            tg.openLink(abs);
+          } catch (__) {
+            /* ignore */
+          }
+        }
+      }
+    }
+    showSendHint(kind === "estimate" ? "Смета скачана." : "Файл скачан.");
+    if (kind === "tz") finishTzExportUi();
+    else dismissExportHint();
   }
 
   document.querySelectorAll("[data-tz-fmt]").forEach((btn) => {
     btn.addEventListener("click", async () => {
       try {
-        await downloadTz(btn.getAttribute("data-tz-fmt") || "md");
+        await downloadExport("tz", btn.getAttribute("data-tz-fmt") || "md");
       } catch (err) {
+        showSendHint("");
+        xp("error");
+        alert(err.message || String(err));
+      }
+    });
+  });
+
+  document.querySelectorAll("[data-ce-fmt]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      try {
+        await downloadExport("estimate", btn.getAttribute("data-ce-fmt") || "md");
+      } catch (err) {
+        showSendHint("");
         xp("error");
         alert(err.message || String(err));
       }

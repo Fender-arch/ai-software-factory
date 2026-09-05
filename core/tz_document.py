@@ -189,9 +189,13 @@ def compose_tz_markdown(db: Session, project: Project) -> str:
     return "\n".join(lines)
 
 
-def _safe_stem(name: str) -> str:
+def safe_export_stem(name: str) -> str:
     slug = re.sub(r"[^\w\-]+", "-", (name or "tz").strip(), flags=re.UNICODE)
     return (slug.strip("-") or "tz")[:72]
+
+
+def _safe_stem(name: str) -> str:
+    return safe_export_stem(name)
 
 
 def _cyrillic_font() -> Path:
@@ -273,22 +277,49 @@ def markdown_to_pdf(markdown: str) -> bytes:
     return bytes(pdf.output())
 
 
-def export_tz_file(
-    db: Session, project: Project, fmt: TzExportFormat
+def export_markdown_file(
+    markdown: str, stem: str, fmt: TzExportFormat
 ) -> tuple[bytes, str, str]:
-    markdown = compose_tz_markdown(db, project)
-    stem = _safe_stem(project.name)
+    """Turn Markdown into md / pdf / docx bytes (TZ, смета, other artifacts)."""
+    safe = safe_export_stem(stem)
     if fmt == "md":
-        return markdown.encode("utf-8"), "text/markdown; charset=utf-8", f"{stem}.md"
+        return markdown.encode("utf-8"), "text/markdown; charset=utf-8", f"{safe}.md"
     if fmt == "docx":
         return (
             markdown_to_docx(markdown),
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            f"{stem}.docx",
+            f"{safe}.docx",
         )
     if fmt == "pdf":
-        return markdown_to_pdf(markdown), "application/pdf", f"{stem}.pdf"
+        return markdown_to_pdf(markdown), "application/pdf", f"{safe}.pdf"
     raise TzExportError(f"unsupported format: {fmt}")
+
+
+def export_tz_file(
+    db: Session, project: Project, fmt: TzExportFormat
+) -> tuple[bytes, str, str]:
+    markdown = compose_tz_markdown(db, project)
+    return export_markdown_file(markdown, project.name, fmt)
+
+
+def export_client_estimate_file(
+    db: Session, project: Project, fmt: TzExportFormat
+) -> tuple[bytes, str, str]:
+    from core.client_estimate import (
+        client_estimate_from_artifact,
+        client_estimate_report_from_artifact,
+        compose_client_estimate_markdown,
+    )
+    from core.hitl import get_draft_tz
+
+    kg = KnowledgeRepository(db)
+    draft = get_draft_tz(kg, project.id)
+    estimate = client_estimate_from_artifact(draft)
+    report = client_estimate_report_from_artifact(draft)
+    if estimate is None:
+        raise TzExportError("client estimate is not ready yet")
+    markdown = compose_client_estimate_markdown(project, estimate, report)
+    return export_markdown_file(markdown, f"{project.name}-smeta", fmt)
 
 
 def export_tz_for_project(

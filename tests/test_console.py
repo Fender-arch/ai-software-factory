@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import json
+import uuid
 from pathlib import Path
 
 import pytest
@@ -11,8 +12,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from apps.api.main import app
 from core.config import get_settings
-from core.db import Base
+from core.db import Base, get_db
 from core.models import Project, ProjectStatus
 import core.models  # noqa: F401
 from core.requirement_console import (
@@ -20,6 +22,7 @@ from core.requirement_console import (
     add_requirement_relation,
     set_requirement_status,
 )
+from knowledge.history import list_entity_history
 from knowledge.repository import KnowledgeRepository
 from knowledge.tz_graph import build_tz_graph
 from knowledge.types import normalize_requirement_status
@@ -53,10 +56,22 @@ def test_console_static_served(client):
     assert "clientEstimateHtml" in js.text
     assert "Оценка стоимости" in js.text
     assert "Смета клиенту" in js.text
+    assert "data-estimate-export" in js.text
+    assert "exportEstimate" in js.text
+    css = client.get("/console/styles.css")
+    assert css.status_code == 200
+    assert "min(760px" in css.text
+    assert "min(380px" not in css.text
     assert "Authorization" in js.text
     assert "Токен неверный" in js.text
     assert "Создать MVP" in js.text
     assert "Intervention Queue" in js.text
+    assert "PROJECT_STATUS_RU" in js.text
+    assert "ждём заказчика" in js.text
+    assert "saveProjectStatus" in js.text
+    assert "isRiskyProjectStatus" in js.text
+    assert "project-status-save" in js.text
+    assert "WAITING_CLIENT_ESTIMATE" in js.text
 
 
 def test_console_lists_projects_without_token_in_local_debug(client):
@@ -87,6 +102,21 @@ def test_console_requires_token_when_configured(client, monkeypatch):
         )
         assert wrong.status_code == 401
         assert wrong.json()["detail"] == "invalid console token"
+        created = client.post(
+            "/projects", json={"name": "Tok", "customer_telegram_id": "1"}
+        )
+        pid = created.json()["id"]
+        denied_patch = client.patch(
+            f"/console/api/projects/{pid}", json={"status": "READY"}
+        )
+        assert denied_patch.status_code == 401
+        ok_patch = client.patch(
+            f"/console/api/projects/{pid}",
+            json={"status": "READY"},
+            headers={"Authorization": "Bearer s3cret"},
+        )
+        assert ok_patch.status_code == 200
+        assert ok_patch.json()["status"] == "READY"
     finally:
         monkeypatch.delenv("CONSOLE_TOKEN", raising=False)
         get_settings.cache_clear()
@@ -375,6 +405,56 @@ def test_console_icon_map_served(client):
     assert b"asf-icon-bg" not in svg.content
 
 
+def test_console_patch_project_status_override_and_validation(client):
+    pid, _uid = _seed_project(client, name="Статус override")
+    missing = client.patch(
+        "/console/api/projects/00000000-0000-0000-0000-000000000000",
+        json={"status": "READY"},
+    )
+    assert missing.status_code == 404
+
+    bad = client.patch(f"/console/api/projects/{pid}", json={"status": "NOPE"})
+    assert bad.status_code == 400
+    assert "unsupported" in (bad.json().get("detail") or "").lower()
+
+    ready = client.patch(f"/console/api/projects/{pid}", json={"status": "READY"})
+    assert ready.status_code == 200
+    assert ready.json()["status"] == "READY"
+
+    graph = client.get(f"/console/api/projects/{pid}/tz-graph").json()
+    assert graph["project"]["status"] == "READY"
+
+    listed = client.get("/console/api/projects").json()
+    row = next(p for p in listed if p["id"] == pid)
+    assert row["status"] == "READY"
+
+    back = client.patch(
+        f"/console/api/projects/{pid}",
+        json={"status": "WAITING_CUSTOMER", "reason": "владелец откатил"},
+    )
+    assert back.status_code == 200
+    assert back.json()["status"] == "WAITING_CUSTOMER"
+
+    gen = app.dependency_overrides[get_db]()
+    db = next(gen)
+    try:
+        project = db.get(Project, uuid.UUID(pid))
+        assert project is not None
+        assert project.status == ProjectStatus.WAITING_CUSTOMER
+        kg = KnowledgeRepository(db)
+        ents = kg.list_entities(project.id, type_="Project")
+        assert ents
+        assert (ents[0].payload or {}).get("status") == "WAITING_CUSTOMER"
+        hist = list_entity_history(db, ents[0].id, project_id=project.id)
+        changes = [h for h in hist if h.action == "status_change"]
+        assert changes
+        assert changes[-1].from_status == "READY"
+        assert changes[-1].to_status == "WAITING_CUSTOMER"
+        assert changes[-1].reason == "владелец откатил"
+    finally:
+        db.close()
+
+
 def test_console_tz_export_md_docx_pdf(client):
     pid, _uid = _seed_project(client)
     md = client.get(f"/console/api/projects/{pid}/tz-export?format=md")
@@ -389,6 +469,35 @@ def test_console_tz_export_md_docx_pdf(client):
     assert docx.content[:2] == b"PK"
 
     pdf = client.get(f"/console/api/projects/{pid}/tz-export?format=pdf")
+    assert pdf.status_code == 200
+    assert pdf.content.startswith(b"%PDF")
+
+
+def test_console_estimate_export_md_docx_pdf(client):
+    from tests.test_discovery import _drive_discovery_to_owner
+
+    pid, _uid = _seed_project(client, name="Смета консоль")
+    too_soon = client.get(f"/console/api/projects/{pid}/estimate-export?format=md")
+    assert too_soon.status_code == 409
+
+    last = _drive_discovery_to_owner(client, pid)
+    assert last.json()["project_status"] == "WAITING_OWNER"
+    hitl = client.post(f"/projects/{pid}/hitl", json={"action": "approve"})
+    assert hitl.status_code == 200
+
+    md = client.get(f"/console/api/projects/{pid}/estimate-export?format=md")
+    assert md.status_code == 200
+    text = md.content.decode("utf-8")
+    assert "Смета" in text
+    assert "Смета консоль" in text
+    assert "attachment" in md.headers.get("content-disposition", "")
+    assert "smeta.md" in md.headers.get("content-disposition", "")
+
+    docx = client.get(f"/console/api/projects/{pid}/estimate-export?format=docx")
+    assert docx.status_code == 200
+    assert docx.content[:2] == b"PK"
+
+    pdf = client.get(f"/console/api/projects/{pid}/estimate-export?format=pdf")
     assert pdf.status_code == 200
     assert pdf.content.startswith(b"%PDF")
 

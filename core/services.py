@@ -989,7 +989,29 @@ def _maybe_notify_owner_tz_ready(
 
 
 class TzSendError(ValueError):
-    """Customer TZ file could not be sent to Telegram."""
+    """Customer TZ / estimate file could not be sent to Telegram."""
+
+
+def _deliver_customer_document(
+    project: Project,
+    *,
+    customer_telegram_id: str | None,
+    payload: bytes,
+    filename: str,
+    caption: str,
+) -> dict:
+    from integrations.telegram.notify import send_customer_telegram_document
+
+    chat_id = (project.customer_telegram_id or customer_telegram_id or "").strip()
+    ok = send_customer_telegram_document(
+        chat_id,
+        data=payload,
+        filename=filename,
+        caption=caption,
+    )
+    if not ok:
+        raise TzSendError("не удалось отправить файл в Telegram")
+    return {"sent": True, "filename": filename}
 
 
 def send_customer_tz_file(
@@ -1001,7 +1023,6 @@ def send_customer_tz_file(
 ) -> dict:
     """Export the draft TZ and deliver it to the customer's Telegram chat."""
     from core.tz_document import TzExportError, export_tz_file
-    from integrations.telegram.notify import send_customer_telegram_document
 
     project = get_project(db, project_id)
     if project is None:
@@ -1015,13 +1036,39 @@ def send_customer_tz_file(
         payload, _media, filename = export_tz_file(db, project, fmt)
     except TzExportError as exc:
         raise TzSendError(str(exc)) from exc
-    chat_id = (project.customer_telegram_id or customer_telegram_id or "").strip()
-    ok = send_customer_telegram_document(
-        chat_id,
-        data=payload,
+    return _deliver_customer_document(
+        project,
+        customer_telegram_id=customer_telegram_id,
+        payload=payload,
         filename=filename,
         caption=f"Черновик ТЗ «{project.name}»",
     )
-    if not ok:
-        raise TzSendError("не удалось отправить файл в Telegram")
-    return {"sent": True, "filename": filename}
+
+
+def send_customer_estimate_file(
+    db: Session,
+    project_id: str | uuid.UUID,
+    fmt: str,
+    *,
+    customer_telegram_id: str | None = None,
+) -> dict:
+    """Export the client market estimate and deliver it to Telegram (DEC-012)."""
+    from core.tz_document import TzExportError, export_client_estimate_file
+
+    project = get_project(db, project_id)
+    if project is None:
+        raise ValueError("project not found")
+    assert_project_owner(project, customer_telegram_id)
+    if fmt not in {"md", "pdf", "docx"}:
+        raise TzSendError("unsupported format")
+    try:
+        payload, _media, filename = export_client_estimate_file(db, project, fmt)
+    except TzExportError as exc:
+        raise TzSendError(str(exc)) from exc
+    return _deliver_customer_document(
+        project,
+        customer_telegram_id=customer_telegram_id,
+        payload=payload,
+        filename=filename,
+        caption=f"Смета «{project.name}» (ориентир рынка, не оферта)",
+    )

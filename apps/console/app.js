@@ -54,6 +54,26 @@
     ai_automation: "AI-автоматизация",
     mobile_native: "нативное приложение",
   };
+  const PROJECT_STATUS_RU = {
+    NEW: "новый",
+    INTERVIEW: "интервью",
+    ANALYZING: "анализ",
+    WAITING_CUSTOMER: "ждём заказчика",
+    WAITING_OWNER: "ждём владельца",
+    WAITING_CLIENT_ESTIMATE: "ждём смету клиента",
+    READY: "готов",
+    ARCHIVED: "в архиве",
+  };
+  const PROJECT_STATUS_ORDER = [
+    "NEW",
+    "INTERVIEW",
+    "ANALYZING",
+    "WAITING_CUSTOMER",
+    "WAITING_OWNER",
+    "WAITING_CLIENT_ESTIMATE",
+    "READY",
+    "ARCHIVED",
+  ];
 
   const JOB_STATUS_RU = {
     queued: "в очереди",
@@ -657,7 +677,7 @@
     for (const p of projects) {
       const opt = document.createElement("option");
       opt.value = p.id;
-      opt.textContent = `${p.name} (${p.status})`;
+      opt.textContent = `${p.name} (${PROJECT_STATUS_RU[p.status] || p.status})`;
       sel.appendChild(opt);
     }
     if (current && [...sel.options].some((o) => o.value === current)) {
@@ -724,6 +744,9 @@
     body.querySelectorAll("[data-tz-export]").forEach((btn) => {
       btn.onclick = () => exportTz(btn.getAttribute("data-tz-export"));
     });
+    body.querySelectorAll("[data-estimate-export]").forEach((btn) => {
+      btn.onclick = () => exportEstimate(btn.getAttribute("data-estimate-export"));
+    });
     body.querySelectorAll("[data-file-dl]").forEach((btn) => {
       btn.onclick = () => downloadProjectFile(btn.getAttribute("data-file-dl"));
     });
@@ -732,6 +755,8 @@
     });
     const fileAdd = $("file-add");
     if (fileAdd) fileAdd.onclick = () => addProjectFile();
+    const projectStatusSave = $("project-status-save");
+    if (projectStatusSave) projectStatusSave.onclick = () => saveProjectStatus();
     const statusSave = $("status-save");
     if (statusSave) statusSave.onclick = () => saveStatus(state.selectedId);
     const relAdd = $("rel-add");
@@ -977,6 +1002,12 @@
       </div>
       <h3>Отчёт клиенту</h3>
       <pre class="client-estimate-report">${escapeHtml(report.body || "—")}</pre>
+      <h3>Выгрузить смету</h3>
+      <div class="export-row">
+        <button type="button" class="btn" data-estimate-export="md">Markdown</button>
+        <button type="button" class="btn" data-estimate-export="docx">Word</button>
+        <button type="button" class="btn primary" data-estimate-export="pdf">PDF</button>
+      </div>
       <h3>Источники ставок</h3>
       <ul class="estimate-rationale">${sources || "<li>—</li>"}</ul>
     `;
@@ -999,7 +1030,13 @@
         ])}
         <div class="meta">
           <div>Тип продукта: <b>${escapeHtml(PRODUCT_RU[info.product_type] || info.product_type || "—")}</b></div>
-          <div>Статус проекта: <b>${escapeHtml(info.status || "—")}</b></div>
+          <div>Статус проекта: <b>${escapeHtml(PROJECT_STATUS_RU[info.status] || info.status || "—")}</b></div>
+        </div>
+        <h3>Сменить статус</h3>
+        <p class="hint">Ручной override владельца. Discovery и фабрика смотрят на это поле; откат с «готов» возможен, но лучше понимать последствия.</p>
+        <div class="form-row">
+          <select id="project-status-select">${projectStatusOptions(info.status)}</select>
+          <button type="button" class="btn primary" id="project-status-save">Сохранить статус</button>
         </div>
         ${estimateHtml(info.estimate)}
         ${clientEstimateHtml(info.client_estimate)}
@@ -1449,6 +1486,51 @@
     }
   }
 
+  function projectStatusOptions(current) {
+    return PROJECT_STATUS_ORDER.map((key) => {
+      const label = PROJECT_STATUS_RU[key] || key;
+      const selected = key === current ? " selected" : "";
+      return `<option value="${key}"${selected}>${label}</option>`;
+    }).join("");
+  }
+
+  function isRiskyProjectStatus(from, to) {
+    if (!from || !to || from === to) return false;
+    if (from === "ARCHIVED") return true;
+    if (from === "READY" && to !== "ARCHIVED") return true;
+    const fi = PROJECT_STATUS_ORDER.indexOf(from);
+    const ti = PROJECT_STATUS_ORDER.indexOf(to);
+    return fi >= 0 && ti >= 0 && ti < fi;
+  }
+
+  async function saveProjectStatus() {
+    const pid = $("project-select").value;
+    const sel = $("project-status-select");
+    if (!pid || !sel) return;
+    const next = sel.value;
+    const current = (state.graph && state.graph.project && state.graph.project.status) || "";
+    if (isRiskyProjectStatus(current, next)) {
+      const fromRu = PROJECT_STATUS_RU[current] || current;
+      const toRu = PROJECT_STATUS_RU[next] || next;
+      const ok = window.confirm(
+        `Сменить статус с «${fromRu}» на «${toRu}»? Это откатит проект назад и может затронуть Discovery / фабрику MVP.`
+      );
+      if (!ok) return;
+    }
+    showError("");
+    try {
+      await api(`/console/api/projects/${pid}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: next }),
+      });
+      await loadProjects();
+      await loadGraph(pid, { keepView: true });
+      if (state.selectedId) await inspectNode(state.selectedId);
+    } catch (err) {
+      showError(err.message || String(err));
+    }
+  }
+
   async function saveStatus(id) {
     const pid = $("project-select").value;
     const status = $("status-select").value;
@@ -1494,46 +1576,66 @@
     }
   }
 
+  async function exportConsoleFile(path, fmt, fallbackName) {
+    showError("");
+    const res = await fetch(path, { headers: headers() });
+    if (res.status === 401) {
+      let detail = "";
+      try {
+        const body = await res.json();
+        detail = body.detail || "";
+      } catch (_) {
+        /* ignore */
+      }
+      throw new Error(showAuthFailure(detail));
+    }
+    if (!res.ok) {
+      let detail = res.statusText;
+      try {
+        const body = await res.json();
+        detail = body.detail || JSON.stringify(body);
+      } catch (_) {
+        /* ignore */
+      }
+      throw new Error(detail);
+    }
+    const blob = await res.blob();
+    const cd = res.headers.get("Content-Disposition") || "";
+    const star = cd.match(/filename\*=UTF-8''([^;]+)/i);
+    const plain = cd.match(/filename="?([^";]+)"?/i);
+    const name = decodeURIComponent((star && star[1]) || (plain && plain[1]) || fallbackName);
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+  }
+
   async function exportTz(fmt) {
     const pid = $("project-select").value;
     if (!pid || !fmt) return;
-    showError("");
     try {
-      const res = await fetch(`/console/api/projects/${pid}/tz-export?format=${encodeURIComponent(fmt)}`, {
-        headers: headers(),
-      });
-      if (res.status === 401) {
-        let detail = "";
-        try {
-          const body = await res.json();
-          detail = body.detail || "";
-        } catch (_) {
-          /* ignore */
-        }
-        throw new Error(showAuthFailure(detail));
-      }
-      if (!res.ok) {
-        let detail = res.statusText;
-        try {
-          const body = await res.json();
-          detail = body.detail || JSON.stringify(body);
-        } catch (_) {
-          /* ignore */
-        }
-        throw new Error(detail);
-      }
-      const blob = await res.blob();
-      const cd = res.headers.get("Content-Disposition") || "";
-      const star = cd.match(/filename\*=UTF-8''([^;]+)/i);
-      const plain = cd.match(/filename="?([^";]+)"?/i);
-      const name = decodeURIComponent((star && star[1]) || (plain && plain[1]) || `tz.${fmt}`);
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = name;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+      await exportConsoleFile(
+        `/console/api/projects/${pid}/tz-export?format=${encodeURIComponent(fmt)}`,
+        fmt,
+        `tz.${fmt}`
+      );
+    } catch (err) {
+      showError(err.message || String(err));
+    }
+  }
+
+  async function exportEstimate(fmt) {
+    const pid = $("project-select").value;
+    if (!pid || !fmt) return;
+    try {
+      await exportConsoleFile(
+        `/console/api/projects/${pid}/estimate-export?format=${encodeURIComponent(fmt)}`,
+        fmt,
+        `smeta.${fmt}`
+      );
     } catch (err) {
       showError(err.message || String(err));
     }

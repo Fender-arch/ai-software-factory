@@ -9,6 +9,7 @@ from core.client_estimate import (
     REPORT_LLM_METHOD,
     REPORT_TEMPLATE_METHOD,
     collect_work_items,
+    compose_client_estimate_markdown,
     estimate_client_delivery,
     render_template_report,
     write_client_estimate_report,
@@ -278,3 +279,106 @@ def test_discuss_returns_waiting_customer_then_can_confirm(client):
     )
     assert later.status_code == 200
     assert later.json()["project_status"] == "READY"
+
+
+def test_compose_client_estimate_markdown_reuses_tz_export_pipeline():
+    from core.tz_document import export_markdown_file
+
+    est = estimate_client_delivery(
+        product_type="website",
+        requirements=[_req("must", name="Форма заявки")],
+        fetch_market=False,
+    )
+    report = render_template_report(est)
+    project = SimpleNamespace(name="Пекарня", product_type="website")
+    markdown = compose_client_estimate_markdown(project, est, report)
+    assert "# Смета — Пекарня" in markdown
+    assert DISCLAIMER_RU in markdown
+    assert "Форма заявки" in markdown
+    assert "Почему столько стоит" in markdown
+
+    md, media, name = export_markdown_file(markdown, "pekarnia-smeta", "md")
+    assert name.endswith(".md")
+    assert "text/markdown" in media
+    assert "Смета — Пекарня" in md.decode("utf-8")
+
+    pdf, pdf_media, pdf_name = export_markdown_file(markdown, "pekarnia-smeta", "pdf")
+    assert pdf_name.endswith(".pdf")
+    assert pdf_media == "application/pdf"
+    assert pdf.startswith(b"%PDF")
+
+    docx, docx_media, docx_name = export_markdown_file(markdown, "pekarnia-smeta", "docx")
+    assert docx_name.endswith(".docx")
+    assert docx[:2] == b"PK"
+    assert "wordprocessingml" in docx_media
+
+
+def test_customer_estimate_export_and_send(client, monkeypatch):
+    delivered: list[tuple] = []
+
+    def fake_doc(chat_id, *, data, filename, caption=None):
+        delivered.append((chat_id, filename, caption, len(data or b"")))
+        return True
+
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "test-token")
+    from core.config import get_settings
+
+    get_settings.cache_clear()
+    monkeypatch.setattr(
+        "integrations.telegram.notify.send_customer_telegram_document",
+        fake_doc,
+    )
+
+    created = client.post(
+        "/projects",
+        json={
+            "name": "Смета файл",
+            "product_type": "website",
+            "customer_telegram_id": "88004",
+        },
+    )
+    project_id = created.json()["id"]
+    too_soon = client.get(
+        f"/projects/{project_id}/estimate-export",
+        params={"format": "md", "customer_telegram_id": "88004"},
+    )
+    assert too_soon.status_code == 409
+
+    last = _drive_discovery_to_owner(client, project_id)
+    assert last.json()["project_status"] == "WAITING_OWNER"
+    hitl = client.post(f"/projects/{project_id}/hitl", json={"action": "approve"})
+    assert hitl.status_code == 200
+
+    forbidden = client.get(
+        f"/projects/{project_id}/estimate-export",
+        params={"format": "md", "customer_telegram_id": "999"},
+    )
+    assert forbidden.status_code == 403
+
+    md = client.get(
+        f"/projects/{project_id}/estimate-export",
+        params={"format": "md", "customer_telegram_id": "88004"},
+    )
+    assert md.status_code == 200
+    text = md.content.decode("utf-8")
+    assert "Смета — Смета файл" in text
+    assert DISCLAIMER_RU in text
+    assert "attachment" in md.headers.get("content-disposition", "")
+
+    pdf = client.get(
+        f"/projects/{project_id}/estimate-export",
+        params={"format": "pdf", "customer_telegram_id": "88004"},
+    )
+    assert pdf.status_code == 200
+    assert pdf.content.startswith(b"%PDF")
+
+    sent = client.post(
+        f"/projects/{project_id}/estimate-send",
+        params={"format": "md", "customer_telegram_id": "88004"},
+    )
+    assert sent.status_code == 200
+    assert sent.json()["sent"] is True
+    assert delivered
+    assert delivered[-1][0] == "88004"
+    assert "Смета" in (delivered[-1][2] or "")
+    get_settings.cache_clear()

@@ -615,6 +615,14 @@ h1 { font-size: 1.05rem; margin: 4px 0 8px; }
   margin-top: 10px;
 }
 .client-estimate-actions .btn { flex: 1 1 140px; }
+.client-estimate-download-title {
+  margin: 10px 0 6px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.client-estimate .tz-download-row .btn {
+  flex: 1 1 90px;
+}
 .bubble {
   max-width: 92%;
   padding: 8px 10px;
