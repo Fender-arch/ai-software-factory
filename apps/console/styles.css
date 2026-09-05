@@ -3,15 +3,17 @@
   --panel: rgba(16, 14, 22, 0.88);
   --text: #f4efe6;
   --muted: #a89888;
-  --accent: #e8c36a;
-  --accent-2: #5ce1e6;
+  --accent: #00d2ff;
+  --accent-pressed: #12b8e0;
+  --accent-text: #061318;
+  --accent-2: #9d50bb;
   --ember: #ff6b2c;
-  --line: rgba(255, 214, 160, 0.12);
+  --line: rgba(0, 210, 255, 0.14);
   --radius: 18px;
   --control: 10px;
-  --ring: #5ce1e6;
+  --ring: #00d2ff;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
-  --new: #5ce1e6;
+  --new: #3d8bfd;
   --processed: #3ecf8e;
   --needs_clarification: #e8c36a;
   --conflict: #e05a4f;
@@ -33,9 +35,8 @@
 html, body {
   margin: 0;
   background:
-    radial-gradient(circle at 18% -10%, rgba(255, 107, 44, 0.16), transparent 36%),
-    radial-gradient(circle at 8% 12%, rgba(0, 210, 255, 0.12), transparent 34%),
-    radial-gradient(circle at 92% 110%, rgba(157, 80, 187, 0.14), transparent 42%),
+    radial-gradient(circle at 14% 0%, rgba(0, 210, 255, 0.1), transparent 38%),
+    radial-gradient(circle at 92% 108%, rgba(157, 80, 187, 0.15), transparent 44%),
     var(--bg);
   color: var(--text);
   height: 100%;
@@ -55,7 +56,7 @@ html, body {
 }
 
 ::selection {
-  background: rgba(228, 194, 122, 0.32);
+  background: rgba(0, 210, 255, 0.28);
   color: var(--text);
 }
 
@@ -72,7 +73,7 @@ html, body {
   padding: 8px 12px;
   border-radius: 8px;
   background: var(--accent);
-  color: #1a1408;
+  color: var(--accent-text);
   font-weight: 600;
   text-decoration: none;
 }
@@ -141,8 +142,8 @@ select:hover, input:hover, textarea:hover {
   border-color: rgba(255, 255, 255, 0.16);
 }
 select:focus-visible, input:focus-visible, textarea:focus-visible {
-  border-color: var(--accent-2);
-  outline: 2px solid rgba(126, 179, 255, 0.35);
+  border-color: var(--ring);
+  outline: 2px solid rgba(0, 210, 255, 0.35);
   outline-offset: 0;
 }
 textarea { resize: vertical; min-height: 72px; }
@@ -175,16 +176,16 @@ input[type="file"]::file-selector-button {
   transition: background 0.18s var(--ease), border-color 0.18s var(--ease),
     color 0.18s var(--ease), transform 0.12s var(--ease), filter 0.18s var(--ease);
 }
-.btn:hover { border-color: rgba(228, 194, 122, 0.45); background: #171e28; }
+.btn:hover { border-color: rgba(0, 210, 255, 0.45); background: #171e28; }
 .btn:active { transform: scale(0.98); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 .btn.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #1a1408;
+  background: var(--brand-grad);
+  border-color: transparent;
+  color: var(--accent-text);
   font-weight: 600;
 }
-.btn.primary:hover { filter: brightness(1.06); border-color: var(--accent); }
+.btn.primary:hover { filter: brightness(1.06); border-color: transparent; }
 .btn.danger { border-color: var(--conflict); color: #ffb4ac; }
 .btn.danger:hover { background: rgba(224, 90, 79, 0.12); }
 .btn.ghost { background: transparent; }

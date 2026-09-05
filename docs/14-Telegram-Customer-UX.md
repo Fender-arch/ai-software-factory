@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.15 |
-| Updated | 2026-09-05 |
+| Version | 0.16 |
+| Updated | 2026-09-06 |
 | Owner | ASF Core |
 
 ADR: [DEC-006](../decisions/DEC-006-Telegram-Mini-App.md), [DEC-011](../decisions/DEC-011-Experience-Layer-Mascot.md)
@@ -21,7 +21,7 @@ All customer interaction with ASF happens in a **fullscreen Telegram Mini App** 
 | Mini App (fullscreen) | Home actions, project list, project workspace (Discovery / change / implementation feedback) |
 | Owner HITL (bot) | `/review`, `/approve`, `/changes`, `/reject`, `/plan`, `/export` (MVP) |
 
-On phone, the Mini App calls `Telegram.WebApp.expand()` and `requestFullscreen()` (Bot API 8.0) so the UI uses the full screen, with `safeAreaInset` / `contentSafeAreaInset` padding. Layout is compact: one viewport for home actions; workspace is a flex column (thread scrolls, composer is **20–25%** of the workspace with File / Voice / Send inside that box). A compact **Experience Layer** mascot sits in the workspace chrome (not in the composer): Rive when `mascot.riv` is present, otherwise a gold/cyan SVG companion. Answer options open in a **popup** from «Варианты ответа», not as chips in the chat. New projects start with a **welcome popup** («Поехали»); TZ questions appear after that. `expand()` alone only grows the bottom sheet — that is why older builds overflowed.
+On phone, the Mini App calls `Telegram.WebApp.expand()` and `requestFullscreen()` (Bot API 8.0) so the UI uses the full screen, with `safeAreaInset` / `contentSafeAreaInset` padding. Layout is compact: one viewport for home actions; workspace is a flex column (thread scrolls, composer is **20–25%** of the workspace with File / Voice / Send inside that box). A compact **Experience Layer** mascot sits in the workspace chrome (not in the composer): Rive when `mascot.riv` is present, otherwise a cyan/purple CSS companion (the Uni 4 IT unicorn). Answer options open in a **popup** from «Варианты ответа», not as chips in the chat. New projects start with a **welcome popup** («Поехали»); TZ questions appear after that. `expand()` alone only grows the bottom sheet — that is why older builds overflowed.
 
 ## Why not a separate Telegram chat per project
 

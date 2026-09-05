@@ -703,6 +703,8 @@
     if (hold && modal && body && welcome) {
       body.textContent = welcome.text || "";
       modal.classList.remove("hidden");
+      const go = $("welcome-go");
+      if (go) go.focus({ preventScroll: true });
       renderThread([]);
       return;
     }
@@ -1147,11 +1149,18 @@
     const modal = $("choices-modal");
     if (!modal || !state.choiceItems.length) return;
     modal.classList.remove("hidden");
+    const first = modal.querySelector(".choice-chip");
+    const target = first || $("choices-apply") || $("choices-cancel");
+    if (target) target.focus({ preventScroll: true });
   }
 
   function closeChoicesModal() {
     const modal = $("choices-modal");
     if (modal) modal.classList.add("hidden");
+    const trigger = $("btn-choices");
+    if (trigger && !trigger.classList.contains("hidden")) {
+      trigger.focus({ preventScroll: true });
+    }
   }
 
   function paintSelectedChips() {
@@ -1367,6 +1376,17 @@
       if (ev.target === choicesModal) closeChoicesModal();
     });
   }
+
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key !== "Escape") return;
+    const choices = $("choices-modal");
+    if (choices && !choices.classList.contains("hidden")) {
+      closeChoicesModal();
+      return;
+    }
+    const welcome = $("welcome-modal");
+    if (welcome && !welcome.classList.contains("hidden")) closeWelcomeModal();
+  });
 
   $("composer").addEventListener("submit", async (ev) => {
     ev.preventDefault();

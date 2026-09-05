@@ -29,12 +29,27 @@ Vibe-coding defaults to the same landing: Inter, indigo/purple gradient, `gray-8
 - Distinct **brand tokens** (background, ink, accent, danger, radius, motion) named in `DESIGN.md`
 - One unexpected pairing (type, color temperature, or layout rhythm) that a stranger could describe
 - Real content hierarchy: type scale and spacing do the work, not more boxes
-- Motion with intent (one signature interaction). Mini App: see `.cursor/rules/miniapp-ux.mdc` (Experience Layer mascot is DEC-011; keep gold/cyan, honor calm / reduced motion)
+- Motion with intent (one signature interaction). Mini App: see `.cursor/rules/miniapp-ux.mdc` (Experience Layer mascot is DEC-011; keep cyan/purple, honor calm / reduced motion)
 
 ## ASF itself
 
-`apps/miniapp` already has a warm dark + gold/cyan voice — extend that, do not “normalize” it to SaaS gray. `apps/console` is an internal tool; keep it dense and graph-first, not a marketing template.
+`apps/miniapp` already has a warm dark + cyan/purple voice — extend that, do not “normalize” it to SaaS gray. `apps/console` is an internal tool; keep it dense and graph-first, not a marketing template.
 
 ## Customer MVPs
 
 Stamp `templates/DESIGN.md` via `mvp-customer-pack`. Implement the look from that file, not from the model’s default aesthetic.
+
+## Component anti-pattern checklist
+
+For component-level correctness (states, a11y, touch targets), use `.cursor/skills/ui-design-brain` (`components.md`). Distilled from the free rules of [studioalexwolf/cursor-design-rules](https://github.com/studioalexwolf/cursor-design-rules):
+
+- **One primary CTA per screen** (filled). Others outlined / ghost. Vary hierarchy by *style*, not by extra colors.
+- **One accent color for actions**; semantic red/green only for system states (error/success).
+- **Circular buttons** are fixed `width === height`, `border-radius: 50%` — never hug/auto-sized.
+- **Consistent padding** across same-type cards; **≤ 2 border-radius values + pill** site-wide.
+- **Type:** body ≥ 16 px (14 px absolute floor), weight ≥ 400 below 18 px, contrast ≥ 4.5:1.
+- **Labels verb + noun** ("Создать проект", not "OK"/"Отправить"); one h1 per page; 3+ text sizes for hierarchy.
+- **Touch targets ≥ 44 px** (mini app incl. icon buttons); loading feedback < 100 ms, skeleton after ~400 ms.
+- **Modals: ≥ 2 ways to close** (X + overlay/Escape); no modal-in-modal; focus trapped + returned.
+- **Dark mode elevation:** surface lighter than background, elevated lighter still — don't flatten.
+- **Never blame the user** in copy; describe the fix instead of the error.
