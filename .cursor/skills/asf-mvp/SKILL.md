@@ -39,7 +39,7 @@ description: >-
 
 ## MVP allow / deny
 
-**Allow:** Telegram text+voice, Whisper STT, Coordinator modes, entity/relation KG, draft TZ artifacts, owner review, task breakdown/export, product templates (`website`, `telegram_bot`, `rest_service`, `ai_automation`, `mobile_native`), owner TZ graph console (DEC-007).
+**Allow:** Telegram text+voice, Whisper STT, Coordinator modes, entity/relation KG, draft TZ artifacts, owner review, task breakdown/export, MVP Factory + Intervention Queue (DEC-013), product templates (`website`, `telegram_bot`, `rest_service`, `ai_automation`, `mobile_native`), owner TZ graph console (DEC-007).
 
 **Deny without new ADR:** Redis, Neo4j, event sourcing, multi-agent OS processes, customer web review portal, sales/finance agents, second template repo, vendoring Spec Kit or giant external agent packs.
 

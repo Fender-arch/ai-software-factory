@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.5 |
+| Version | 0.6 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -34,7 +34,7 @@ Definition of done for the *platform* MVP: Telegram Mini App → quality TZ → 
 | HITL | Spec review in owner bot path; `HumanDecisionRequired` on forks |
 | Owner TZ console | Internal graph of requirements (`/console/`); [DEC-007](../decisions/DEC-007-Owner-TZ-Console.md), [15-Owner-TZ-Console.md](15-Owner-TZ-Console.md) |
 | Product types | `website`, `telegram_bot`, `rest_service`, `ai_automation`, `mobile_native` ([DEC-010](../decisions/DEC-010-Mobile-Native.md)) |
-| Delivery | Task export + Cursor rules; human/Cursor execution |
+| Delivery | Task export + Cursor rules; **MVP Factory** BuildJob + Intervention Queue ([DEC-013](../decisions/DEC-013-MVP-Factory-Interventions.md)); human/Cursor execution |
 | Stack | FastAPI, PostgreSQL, Alembic, Docker Compose, Mini App frontend, owner console |
 | Transitional | Command-bot customer paths (`/new`, `/use`, …) until Mini App ships |
 

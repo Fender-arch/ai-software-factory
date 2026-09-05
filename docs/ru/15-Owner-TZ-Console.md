@@ -5,7 +5,7 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.7 |
+| Version | 0.8 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -45,6 +45,8 @@ Requirement --conflicts_with--> Requirement
 Узлы разделов — пиктограммы [Lucide](https://lucide.dev/) (ISC) в `apps/console/icons/`. Сам узел **и есть** пиктограмма (без дополнительного кружка); мягкое свечение — цвет этапа. Иконка центра зависит от типа продукта. Карта: `apps/console/icons/map.json`.
 
 В карточке проекта — **выгрузка полного ТЗ**: Markdown, Word (`docx`), PDF. Файл собирается из KG: `GET /console/api/projects/{id}/tz-export?format=md|docx|pdf`. Клик по **центру графа** (сам проект) показывает в правом окне **оценку стоимости поставки**: часы, сумма, ставка, сравнение с ориентиром заказчика, счётчики must/should/could, открытые вопросы, риски и обоснование (эвристика `core/estimate.py`).
+
+Там же **MVP Factory** (DEC-013): кнопка **Создать MVP** после approve владельца (`READY`), ответы Intervention Queue (текст / секрет; секреты не показываются обратно), статус сборки и **Отправить клиенту на review**. API: `GET/POST /console/api/projects/{id}/mvp`, `POST .../mvp/send-to-client`, `GET .../interventions`, `POST /console/api/interventions/{id}/resolve`.
 
 Там же — **файлы проекта** (вложения Mini App заказчика и загрузки из консоли) с этапом Discovery, на котором файл был передан. Аналитик может добавить или удалить файл; `entity_history` пишет `created` / `deleted`. Байты на диске в `UPLOAD_DIR` (по умолчанию `data/uploads`); индекс — сущности KG `Artifact` с `payload.kind=uploaded_file`. Скачивание: `GET /console/api/projects/{id}/files/{file_id}/content`.
 

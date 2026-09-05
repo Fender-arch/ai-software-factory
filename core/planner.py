@@ -283,6 +283,7 @@ def run_planner(
     project: Project,
     *,
     force: bool = False,
+    mvp_only: bool = False,
 ) -> PlannerResult:
     """Create DB tasks + KG Task entities after owner approval."""
     if project.status != ProjectStatus.READY:
@@ -314,6 +315,10 @@ def run_planner(
         for e in kg.list_entities(project.id, type_="Requirement")
         if e.status not in {"superseded", "archived"}
     ]
+    if mvp_only:
+        from core.mvp_slice import select_mvp_requirements
+
+        requirements = select_mvp_requirements(requirements)
     if not requirements:
         raise PlannerError("no requirements to plan from")
 

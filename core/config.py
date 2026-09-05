@@ -30,6 +30,12 @@ class Settings(BaseSettings):
     # Env: ASF_ESTIMATE_HOURLY_RATE, ASF_ESTIMATE_CURRENCY
     asf_estimate_hourly_rate: float = 3000
     asf_estimate_currency: str = "RUB"
+    # DEC-013: Intervention Queue + Cursor executor (optional).
+    asf_intervention_key: str = ""
+    asf_intervention_ttl_hours: int = 72
+    cursor_api_key: str = ""
+    cursor_cloud_api_url: str = "https://api.cursor.com"
+    cursor_agent_repo: str = ""
 
 
 @lru_cache

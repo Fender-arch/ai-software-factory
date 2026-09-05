@@ -33,7 +33,16 @@ from core.requirement_console import (
     update_requirement,
 )
 from core.tz_document import TzExportError, export_tz_file
-from core.services import get_project
+from core.factory import FactoryError
+from core.hitl import HitlError
+from core.services import (
+    create_project_mvp_job,
+    get_project,
+    get_project_mvp,
+    list_project_interventions,
+    resolve_project_intervention,
+    send_project_mvp_to_client,
+)
 from knowledge.repository import KnowledgeRepository
 from knowledge.tz_graph import build_tz_graph
 
@@ -87,6 +96,14 @@ class RequirementCreate(BaseModel):
 class RequirementRelationCreate(BaseModel):
     type: Literal["depends_on", "conflicts_with"]
     peer_id: uuid.UUID
+
+
+class MvpCreateRequest(BaseModel):
+    force: bool = False
+
+
+class InterventionResolveRequest(BaseModel):
+    answer: str = Field(min_length=1)
 
 
 def _project_or_404(project_id: uuid.UUID, db: Session):
@@ -343,3 +360,84 @@ def console_delete_relation(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     db.commit()
     return card
+
+
+@router.get("/projects/{project_id}/mvp")
+def console_get_mvp(
+    project_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_console_auth),
+) -> dict:
+    _project_or_404(project_id, db)
+    try:
+        return get_project_mvp(db, project_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/projects/{project_id}/mvp")
+def console_create_mvp(
+    project_id: uuid.UUID,
+    body: MvpCreateRequest | None = None,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_console_auth),
+) -> dict:
+    _project_or_404(project_id, db)
+    force = body.force if body else False
+    try:
+        return create_project_mvp_job(db, project_id, force=force)
+    except FactoryError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except HitlError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/projects/{project_id}/mvp/send-to-client")
+def console_send_mvp(
+    project_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_console_auth),
+) -> dict:
+    _project_or_404(project_id, db)
+    try:
+        return send_project_mvp_to_client(db, project_id)
+    except FactoryError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except HitlError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.get("/projects/{project_id}/interventions")
+def console_list_interventions(
+    project_id: uuid.UUID,
+    status: str | None = Query(default="open"),
+    db: Session = Depends(get_db),
+    _: None = Depends(require_console_auth),
+) -> dict:
+    _project_or_404(project_id, db)
+    try:
+        items = list_project_interventions(db, project_id, status=status or None)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {"interventions": items}
+
+
+@router.post("/interventions/{intervention_id}/resolve")
+def console_resolve_intervention(
+    intervention_id: uuid.UUID,
+    body: InterventionResolveRequest,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_console_auth),
+) -> dict:
+    try:
+        return resolve_project_intervention(db, intervention_id, body.answer)
+    except FactoryError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except HitlError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc

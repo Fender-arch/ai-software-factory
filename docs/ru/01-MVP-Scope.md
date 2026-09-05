@@ -5,7 +5,7 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.5 |
+| Version | 0.6 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -36,7 +36,7 @@ Definition of done для *платформенного* MVP: Telegram Mini App 
 | HITL | Ревью спецификации в боте владельца; `HumanDecisionRequired` на развилках |
 | Консоль ТЗ владельца | Внутренний граф требований (`/console/`); [DEC-007](../../decisions/DEC-007-Owner-TZ-Console.md), [15-Owner-TZ-Console.md](15-Owner-TZ-Console.md) |
 | Типы продуктов | `website`, `telegram_bot`, `rest_service`, `ai_automation`, `mobile_native` ([DEC-010](../../decisions/DEC-010-Mobile-Native.md)) |
-| Поставка | Экспорт задач + правила Cursor; исполнение человеком/Cursor |
+| Поставка | Экспорт задач + правила Cursor; **MVP Factory** BuildJob + Intervention Queue ([DEC-013](../../decisions/DEC-013-MVP-Factory-Interventions.md)); исполнение человеком/Cursor |
 | Стек | FastAPI, PostgreSQL, Alembic, Docker Compose, фронтенд Mini App, консоль владельца |
 | Переходный режим | Командный бот (`/new`, `/use`, …) до поставки Mini App |
 

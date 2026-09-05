@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.4 |
+| Version | 0.5 |
 | Updated | 2026-08-28 |
 | Owner | ASF Core |
 
@@ -59,11 +59,13 @@ Append-only audit (not an event bus). Used by the owner TZ console.
 
 `Project` · `Message` · `Requirement` · `OpenQuestion` · `Decision` · `Task` · `Artifact` · `Risk` (optional) · `Feedback` (implementation notes)
 
-`Artifact` payload `kind`: `draft_tz` (generated markdown) or `uploaded_file` (customer/console attachment; bytes on disk under `UPLOAD_DIR`, not in JSONB).
+`Artifact` payload `kind`: `draft_tz` (generated markdown), `uploaded_file` (customer/console attachment; bytes on disk under `UPLOAD_DIR`, not in JSONB), or `cursor_brief` (Spec Kit files + task export for a BuildJob).
 
 A `draft_tz` Artifact also stores `payload.estimate`: deterministic delivery-cost heuristic (`hours`, `cost`, `currency`, `hourly_rate`, `rationale`, requirement/risk counts). No extra table.
 
-Operational tables `projects` / `messages` / `tasks` may mirror hot paths; graph entities keep semantic links.
+Requirement `payload.in_mvp` marks the approved MVP slice for the factory (DEC-013). Fallback: `scope_in` / `scope=in`, then `priority=must`. **Secrets never go in entity payload.**
+
+Operational tables `projects` / `messages` / `tasks` / `build_jobs` / `interventions` may mirror hot paths; graph entities keep semantic links. Intervention answers that are secrets live sealed on `interventions.answer_ciphertext` only.
 
 ## Relation types (MVP)
 

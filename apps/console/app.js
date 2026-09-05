@@ -52,6 +52,18 @@
     telegram_bot: "Telegram-бот",
     rest_service: "REST-сервис",
     ai_automation: "AI-автоматизация",
+    mobile_native: "нативное приложение",
+  };
+
+  const JOB_STATUS_RU = {
+    queued: "в очереди",
+    preparing: "готовим brief",
+    waiting_intervention: "ждём ваши ответы",
+    running: "собирается",
+    ready_for_client: "готово к review клиента",
+    sent_to_client: "отправлено клиенту",
+    failed: "ошибка",
+    cancelled: "отменено",
   };
 
   const $ = (id) => document.getElementById(id);
@@ -65,6 +77,14 @@
     anim: null,
     iconMap: { topics: {}, stages: {}, products: {}, fallback: "circle-dot" },
     files: { files: [], history: [], stages: [], current_stage: "" },
+    factory: {
+      job: null,
+      interventions: [],
+      can_create: false,
+      can_send: false,
+      gate: "",
+      message: "",
+    },
   };
 
   function iconFile(name) {
@@ -720,6 +740,13 @@
     if (textSave) textSave.onclick = () => saveRequirementText(state.selectedId);
     const reqAdd = $("req-add");
     if (reqAdd) reqAdd.onclick = () => addRequirement();
+    const mvpCreate = $("mvp-create");
+    if (mvpCreate) mvpCreate.onclick = () => createMvp();
+    const mvpSend = $("mvp-send");
+    if (mvpSend) mvpSend.onclick = () => sendMvpToClient();
+    body.querySelectorAll("[data-iv-resolve]").forEach((btn) => {
+      btn.onclick = () => resolveIntervention(btn.getAttribute("data-iv-resolve"));
+    });
   }
 
   function countChips(breakdown, extra = []) {
@@ -789,6 +816,128 @@
     `;
   }
 
+  function factoryHtml(factory) {
+    const snap = factory || {};
+    const job = snap.job;
+    const items = snap.interventions || [];
+    const status = job ? JOB_STATUS_RU[job.status] || job.status : "ещё не создан";
+    const openItems = items.filter((i) => i.status === "open");
+    const ivHtml = items.length
+      ? items
+          .map((iv) => {
+            const secret = iv.answer_type === "secret";
+            const resolved = iv.status === "resolved";
+            const input = resolved
+              ? `<p class="hint">${
+                  secret
+                    ? "Секрет принят (не показывается)."
+                    : escapeHtml(iv.answer_preview || "ответ записан")
+                }</p>`
+              : `<label class="field">
+                  ${secret ? "Секрет" : "Ответ"}
+                  <input id="iv-${escapeHtml(iv.id)}" type="${
+                    secret ? "password" : "text"
+                  }" autocomplete="off" />
+                </label>
+                <button type="button" class="btn" data-iv-resolve="${escapeHtml(
+                  iv.id
+                )}">Ответить</button>`;
+            return `<li class="factory-iv">
+              <div class="factory-iv-title">${escapeHtml(iv.kind_label || iv.kind)}</div>
+              <p class="hint">${escapeHtml(iv.question || "")}</p>
+              <div class="meta">Тип: <b>${secret ? "секрет" : "текст"}</b> · статус: <b>${escapeHtml(
+                iv.status
+              )}</b></div>
+              ${input}
+            </li>`;
+          })
+          .join("")
+      : "<p class=\"hint\">Очередь вмешательств пуста.</p>";
+    const createBtn = snap.can_create
+      ? `<button type="button" class="btn primary" id="mvp-create">Создать MVP</button>`
+      : `<p class="hint">Сначала утвердите ТЗ (HITL approve). Если появится клиентская смета — после её confirm.</p>`;
+    const sendBtn = snap.can_send
+      ? `<button type="button" class="btn primary" id="mvp-send">Отправить клиенту на review</button>`
+      : "";
+    const link = job && job.deep_link
+      ? `<div class="meta">Brief / export: <b>${escapeHtml(job.deep_link)}</b></div>`
+      : "";
+    return `
+      <h3>MVP Factory</h3>
+      <p class="hint">Сборка из approved MVP-среза. Секреты только в Intervention Queue, не в графе.</p>
+      <div class="factory-hero">
+        <div class="factory-status">${escapeHtml(status)}</div>
+        <div class="meta">
+          <div>Исполнитель: <b>${escapeHtml((job && job.executor) || "—")}</b></div>
+          <div>Открытых вопросов: <b>${openItems.length}</b></div>
+        </div>
+        ${link}
+        ${snap.message ? `<p class="hint">${escapeHtml(snap.message)}</p>` : ""}
+      </div>
+      <div class="export-row">
+        ${createBtn}
+        ${sendBtn}
+      </div>
+      <h3>Intervention Queue</h3>
+      <ul class="factory-queue">${ivHtml}</ul>
+    `;
+  }
+
+  async function loadFactory() {
+    const pid = state.graph && state.graph.project && state.graph.project.id;
+    if (!pid) return;
+    state.factory = await api(`/console/api/projects/${pid}/mvp`);
+  }
+
+  async function createMvp() {
+    const pid = state.graph && state.graph.project && state.graph.project.id;
+    if (!pid) return;
+    try {
+      state.factory = await api(`/console/api/projects/${pid}/mvp`, {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+      const node = nodeMap().get(state.selectedId) || nodeMap().get(`project:${pid}`);
+      if (node) renderGroupPanel(node);
+    } catch (err) {
+      showError(err.message);
+    }
+  }
+
+  async function sendMvpToClient() {
+    const pid = state.graph && state.graph.project && state.graph.project.id;
+    if (!pid) return;
+    try {
+      state.factory = await api(`/console/api/projects/${pid}/mvp/send-to-client`, {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+      const node = nodeMap().get(state.selectedId);
+      if (node) renderGroupPanel(node);
+    } catch (err) {
+      showError(err.message);
+    }
+  }
+
+  async function resolveIntervention(id) {
+    const input = $(`iv-${id}`);
+    const answer = input ? input.value : "";
+    if (!answer.trim()) {
+      showError("Введите ответ");
+      return;
+    }
+    try {
+      state.factory = await api(`/console/api/interventions/${id}/resolve`, {
+        method: "POST",
+        body: JSON.stringify({ answer }),
+      });
+      const node = nodeMap().get(state.selectedId);
+      if (node) renderGroupPanel(node);
+    } catch (err) {
+      showError(err.message);
+    }
+  }
+
   function renderGroupPanel(node) {
     const leaves = requirementLeaves(node.id);
     const kids = childrenOf(node.id);
@@ -809,6 +958,7 @@
           <div>Статус проекта: <b>${escapeHtml(info.status || "—")}</b></div>
         </div>
         ${estimateHtml(info.estimate)}
+        ${factoryHtml(state.factory)}
         <h3>Выгрузить полное ТЗ</h3>
         <div class="export-row">
           <button type="button" class="btn" data-tz-export="md">Markdown</button>
@@ -870,6 +1020,7 @@
     if (node.kind === "project") {
       try {
         await loadProjectFiles();
+        await loadFactory();
       } catch (err) {
         showError(err.message);
       }

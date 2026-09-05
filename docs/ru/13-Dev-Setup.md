@@ -5,7 +5,7 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.9 |
+| Version | 0.10 |
 | Updated | 2026-08-28 |
 | Owner | ASF Core |
 
@@ -57,6 +57,11 @@ pytest
 | `ASF_ESTIMATE_CURRENCY` | Валюта этой оценки (по умолчанию `RUB`) |
 | `MINIAPP_URL` | HTTPS URL Mini App (например `https://host/miniapp/`) для Menu Button / WebApp |
 | `CONSOLE_TOKEN` | Консоль ТЗ владельца (`X-Console-Token`). Пустой токен только при `ASF_ENV=local` и `ASF_DEBUG=true` |
+| `ASF_INTERVENTION_KEY` | Шифрует секреты Intervention Queue (DEC-013). Пустое → локальный производный ключ |
+| `ASF_INTERVENTION_TTL_HOURS` | TTL открытого вмешательства (по умолчанию `72`) |
+| `CURSOR_API_KEY` | Опциональный Cursor Cloud Agent. Пустое → stub + deep-link экспорта |
+| `CURSOR_CLOUD_API_URL` | База Cursor API (по умолчанию `https://api.cursor.com`) |
+| `CURSOR_AGENT_REPO` | Опциональный URL репозитория для Cloud Agent |
 | `UPLOAD_DIR` | Вложения проекта (по умолчанию `data/uploads`) |
 | `MAX_UPLOAD_BYTES` | Максимальный размер вложения (по умолчанию 20 МиБ) |
 

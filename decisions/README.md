@@ -15,3 +15,4 @@ Short ADRs. Status: `Proposed` | `Accepted` | `Deprecated`.
 | DEC-009 | Agent toolkit reuse (patterns, not wholesale vendors) | Accepted |
 | DEC-010 | Product type `mobile_native` in scope | Accepted |
 | DEC-011 | Experience Layer: Rive mascot in Mini App | Accepted |
+| DEC-013 | MVP Factory and Intervention Queue | Accepted |

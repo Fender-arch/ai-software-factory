@@ -5,7 +5,7 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.5 |
+| Version | 0.6 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -21,7 +21,7 @@ ADR: [DEC-009](../../decisions/DEC-009-Agent-Toolkit-Reuse.md). Экономия
 | `docs/00–16` | Vision, scope, architecture, Discovery, KG, Mini App UX, консоль ТЗ владельца, деплой VPS |
 | `docs/13-Dev-Setup.md` | Запуск / тесты / env |
 | `docs/16-VPS-Deploy.md` | VPS рядом с существующим сайтом |
-| `decisions/` | Зафиксированные ADR (в т.ч. DEC-009 toolkit, DEC-010 `mobile_native`, DEC-011 Experience Layer) |
+| `decisions/` | Зафиксированные ADR (в т.ч. DEC-009 toolkit, DEC-010 `mobile_native`, DEC-011 Experience Layer, DEC-013 factory) |
 | `tasks/EPIC-*` | Слайсы поставки |
 | `prompts/` | Промпты режимов Coordinator (`discovery-interview.md` — интервьюер) |
 | `schemas/` | Контракты структурированного I/O |

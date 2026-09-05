@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.4 |
+| Version | 0.5 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -22,6 +22,8 @@
 | Owner TZ console | Internal owner/analyst graph of TZ requirements (`/console/`, DEC-007) |
 | Project workspace | Mini App thread/UI bound to one `project_id` (“project chat”) |
 | Implementation feedback | Customer notes after reviewing a delivered MVP |
+| BuildJob | Factory record of one MVP build (Cursor or stub) |
+| Intervention Queue | Owner questions the factory must not guess (tokens, DNS, store access); secrets stay sealed |
 | Foundation | Documentation baseline |
 | Future | Deferred ideas in `backlog/Future.md` |
 | ADR / DEC | Architecture Decision Record in `decisions/` |

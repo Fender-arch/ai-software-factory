@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.5 |
+| Version | 0.6 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -19,7 +19,7 @@ ADR: [DEC-009](../decisions/DEC-009-Agent-Toolkit-Reuse.md). Token-economy rules
 | `docs/00–16` | Vision, scope, architecture, Discovery, KG, Mini App UX, owner TZ console, VPS deploy |
 | `docs/13-Dev-Setup.md` | Run / test / env |
 | `docs/16-VPS-Deploy.md` | VPS next to an existing website |
-| `decisions/` | Locked ADR choices (incl. DEC-009 toolkit, DEC-010 `mobile_native`, DEC-011 Experience Layer) |
+| `decisions/` | Locked ADR choices (incl. DEC-009 toolkit, DEC-010 `mobile_native`, DEC-011 Experience Layer, DEC-013 factory) |
 | `tasks/EPIC-*` | Delivery slices |
 | `prompts/` | Coordinator mode prompts (`discovery-interview.md` is the interviewer) |
 | `schemas/` | Structured I/O contracts |

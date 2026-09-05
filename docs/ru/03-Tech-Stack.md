@@ -5,7 +5,7 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.8 |
+| Version | 0.9 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -22,12 +22,12 @@
 | UI владельца | Внутренняя консоль графа ТЗ (`apps/console/`, vis-network); [DEC-007](../../decisions/DEC-007-Owner-TZ-Console.md) |
 | STT | Mini App в Telegram: **Groq Whisper** по записанному аудио; Web Speech только вне Telegram. Также `whisper` (OpenAI) / `stub` |
 | LLM | Подключаемый router; `stub` или **Groq** JSON (`LLM_PROVIDER=groq`) для адаптации каркаса ТЗ / подразделов и вариантов ответа на следующий вопрос |
-| Coding executor | Cursor (rules + экспорт задач); CLI позже |
+| Coding executor | Cursor Cloud Agent при `CURSOR_API_KEY`, иначе stub + Spec Kit/экспорт задач ([DEC-013](../../decisions/DEC-013-MVP-Factory-Interventions.md)) |
 | Контейнеры | Docker + Docker Compose (локально `docker-compose.yml`; VPS `docker-compose.prod.yml`) |
 | Тесты | Pytest |
 
 ## Переменные окружения
 
-См. `.env.example`: `DATABASE_URL`, `TELEGRAM_BOT_TOKEN`, `GROQ_API_KEY`, `OPENAI_API_KEY`, `STT_PROVIDER` (`stub`\|`groq`\|`whisper`), `STT_MODEL`, `LLM_PROVIDER` (`stub`\|`groq`), `LLM_MODEL`, `OWNER_TELEGRAM_ID`, `ASF_ESTIMATE_HOURLY_RATE`, `ASF_ESTIMATE_CURRENCY`, `MINIAPP_URL`, `CONSOLE_TOKEN`.
+См. `.env.example`: `DATABASE_URL`, `TELEGRAM_BOT_TOKEN`, `GROQ_API_KEY`, `OPENAI_API_KEY`, `STT_PROVIDER` (`stub`\|`groq`\|`whisper`), `STT_MODEL`, `LLM_PROVIDER` (`stub`\|`groq`), `LLM_MODEL`, `OWNER_TELEGRAM_ID`, `ASF_ESTIMATE_HOURLY_RATE`, `ASF_ESTIMATE_CURRENCY`, `MINIAPP_URL`, `CONSOLE_TOKEN`, `ASF_INTERVENTION_KEY`, `CURSOR_API_KEY`.
 
 Деплой на VPS (существующий сайт сохраняется): [16-VPS-Deploy.md](16-VPS-Deploy.md), секреты [`.github/SECRETS.md`](../../.github/SECRETS.md).

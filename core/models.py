@@ -78,6 +78,16 @@ class Project(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+    build_jobs: Mapped[list[BuildJob]] = relationship(
+        back_populates="project",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    interventions: Mapped[list[Intervention]] = relationship(
+        back_populates="project",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
 
 
 class Message(Base):
@@ -207,3 +217,104 @@ class Task(Base):
     )
 
     project: Mapped[Project] = relationship(back_populates="tasks")
+
+
+class BuildJobStatus(str, enum.Enum):
+    QUEUED = "queued"
+    PREPARING = "preparing"
+    WAITING_INTERVENTION = "waiting_intervention"
+    RUNNING = "running"
+    READY_FOR_CLIENT = "ready_for_client"
+    SENT_TO_CLIENT = "sent_to_client"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class InterventionStatus(str, enum.Enum):
+    OPEN = "open"
+    RESOLVED = "resolved"
+    EXPIRED = "expired"
+    CANCELLED = "cancelled"
+
+
+class InterventionAnswerType(str, enum.Enum):
+    TEXT = "text"
+    SECRET = "secret"
+
+
+class BuildJob(Base):
+    """Cursor (or stub) MVP build. Secrets never live on this row."""
+
+    __tablename__ = "build_jobs"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
+    )
+    status: Mapped[str] = mapped_column(
+        String(32), default=BuildJobStatus.QUEUED.value, nullable=False
+    )
+    executor: Mapped[str] = mapped_column(String(32), default="stub", nullable=False)
+    external_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    brief_artifact_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("entities.id", ondelete="SET NULL"), nullable=True
+    )
+    payload: Mapped[dict] = mapped_column(JsonType, default=dict, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+    project: Mapped[Project] = relationship(back_populates="build_jobs")
+    interventions: Mapped[list[Intervention]] = relationship(
+        back_populates="build_job",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class Intervention(Base):
+    """HITL question the factory must not guess (DEC-013)."""
+
+    __tablename__ = "interventions"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
+    )
+    build_job_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("build_jobs.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    kind: Mapped[str] = mapped_column(String(64), nullable=False)
+    question: Mapped[str] = mapped_column(Text, nullable=False)
+    answer_type: Mapped[str] = mapped_column(
+        String(16), default=InterventionAnswerType.TEXT.value, nullable=False
+    )
+    status: Mapped[str] = mapped_column(
+        String(32), default=InterventionStatus.OPEN.value, nullable=False
+    )
+    ttl_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    answer_ciphertext: Mapped[str | None] = mapped_column(Text, nullable=True)
+    resolved_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    payload: Mapped[dict] = mapped_column(JsonType, default=dict, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    project: Mapped[Project] = relationship(back_populates="interventions")
+    build_job: Mapped[BuildJob] = relationship(back_populates="interventions")
