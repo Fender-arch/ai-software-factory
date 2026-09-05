@@ -16,8 +16,9 @@ ADR: [DEC-007](../decisions/DEC-007-Owner-TZ-Console.md).
 ## Access
 
 - URL: `/console/` (static), APIs under `/console/api/`
-- Header: `X-Console-Token` matching `CONSOLE_TOKEN`
+- Header: `X-Console-Token` matching `CONSOLE_TOKEN` (the UI also sends `Authorization: Bearer …`)
 - Empty token is allowed only when `ASF_ENV=local` and `ASF_DEBUG=true`
+- Production: paste the **value** of GitHub secret `CONSOLE_TOKEN` from the **last successful VPS deploy**, then click **Сохранить**. Changing the GitHub secret does nothing until you redeploy.
 
 ## Graph view
 

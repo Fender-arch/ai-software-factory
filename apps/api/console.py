@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from urllib.parse import quote
 from typing import Literal
+import secrets
 import uuid
 
 from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile
@@ -39,8 +40,22 @@ from knowledge.tz_graph import build_tz_graph
 router = APIRouter(prefix="/console/api", tags=["console"])
 
 
+def _provided_console_token(
+    x_console_token: str | None,
+    authorization: str | None,
+) -> str:
+    provided = (x_console_token or "").strip()
+    if provided:
+        return provided
+    scheme, _, rest = (authorization or "").partition(" ")
+    if scheme.lower() == "bearer":
+        return rest.strip()
+    return ""
+
+
 def require_console_auth(
     x_console_token: str | None = Header(default=None, alias="X-Console-Token"),
+    authorization: str | None = Header(default=None),
 ) -> None:
     settings = get_settings()
     expected = (settings.console_token or "").strip()
@@ -48,7 +63,10 @@ def require_console_auth(
         if settings.asf_env == "local" and settings.asf_debug:
             return
         raise HTTPException(status_code=401, detail="console token required")
-    if (x_console_token or "").strip() != expected:
+    provided = _provided_console_token(x_console_token, authorization)
+    if not provided or not secrets.compare_digest(
+        provided.encode("utf-8"), expected.encode("utf-8")
+    ):
         raise HTTPException(status_code=401, detail="invalid console token")
 
 

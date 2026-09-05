@@ -41,7 +41,7 @@ Telegram Mini App (fullscreen) ── text | voice
 | AI Coordinator | Single worker with modes: Discovery, Reviewer, Architect, Planner, Developer, QA |
 | Knowledge Graph | Logical SoT: entities + relations in PostgreSQL |
 | STT | Voice → text (Whisper); then same path as text messages |
-| Telegram Mini App | Primary customer UI: home actions, project workspace |
+| Telegram Mini App | Primary customer UI: home actions, project workspace; client Experience Layer (DEC-011) |
 | Telegram bot | Entry, notifications; owner HITL commands in MVP |
 | Owner TZ console | Internal graph of requirements + status/links (DEC-007); not customer UI |
 | Artifact generator | Markdown derived from graph (TZ, decisions, backlog export) |
@@ -75,7 +75,7 @@ No free-form multi-agent dialogue loops.
 
 ## Events
 
-MVP uses **task/project statuses** in PostgreSQL. A richer event bus may appear later without changing the domain model. Conceptual events: `ProjectCreated`, `MessageReceived`, `DiscoveryReady`, `HumanDecisionRequired`, `TaskCompleted`.
+MVP uses **task/project statuses** in PostgreSQL. A richer **server** event bus may appear later without changing the domain model. Conceptual events: `ProjectCreated`, `MessageReceived`, `DiscoveryReady`, `HumanDecisionRequired`, `TaskCompleted`. The Mini App also has a **client-only** UX event bus for the mascot (DEC-011) — not Redis, not event sourcing.
 
 ## Package layout
 

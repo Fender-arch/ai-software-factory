@@ -14,3 +14,4 @@ Short ADRs. Status: `Proposed` | `Accepted` | `Deprecated`.
 | DEC-008 | LLM-driven Discovery interview | Accepted |
 | DEC-009 | Agent toolkit reuse (patterns, not wholesale vendors) | Accepted |
 | DEC-010 | Product type `mobile_native` in scope | Accepted |
+| DEC-011 | Experience Layer: Rive mascot in Mini App | Accepted |

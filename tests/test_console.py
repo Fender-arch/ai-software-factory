@@ -53,6 +53,8 @@ def test_console_static_served(client):
     assert "clientEstimateHtml" in js.text
     assert "Оценка стоимости" in js.text
     assert "Смета клиенту" in js.text
+    assert "Authorization" in js.text
+    assert "Токен неверный" in js.text
 
 
 def test_console_lists_projects_without_token_in_local_debug(client):
@@ -73,10 +75,16 @@ def test_console_requires_token_when_configured(client, monkeypatch):
             "/console/api/projects", headers={"X-Console-Token": "s3cret"}
         )
         assert allowed.status_code == 200
+        bearer = client.get(
+            "/console/api/projects", headers={"Authorization": "Bearer s3cret"}
+        )
+        assert bearer.status_code == 200
+        assert denied.json()["detail"] == "invalid console token"
         wrong = client.get(
             "/console/api/projects", headers={"X-Console-Token": "nope"}
         )
         assert wrong.status_code == 401
+        assert wrong.json()["detail"] == "invalid console token"
     finally:
         monkeypatch.delenv("CONSOLE_TOKEN", raising=False)
         get_settings.cache_clear()

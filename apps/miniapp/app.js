@@ -13,6 +13,12 @@
     }
   }
 
+  function xp(event, extra) {
+    if (window.ASFExperience && typeof window.ASFExperience.emit === "function") {
+      window.ASFExperience.emit(event, extra);
+    }
+  }
+
   function inTelegramWebView() {
     if (!tg) return false;
     if (tg.initData) return true;
@@ -277,6 +283,7 @@
   document.querySelectorAll("[data-back]").forEach((btn) => {
     btn.addEventListener("click", () => {
       abortWorkspaceLoad();
+      xp("idle");
       show("home");
     });
   });
@@ -284,6 +291,7 @@
   document.querySelector("[data-back-workspace]").addEventListener("click", () => {
     abortWorkspaceLoad();
     state.projectId = null;
+    xp("idle");
     if (state.listMode === "create") show("home");
     else loadProjects();
   });
@@ -307,6 +315,7 @@
       state.listMode = "create";
       await openWorkspace(pid, "create");
     } catch (err) {
+      xp("error");
       alert(err.message || String(err));
     } finally {
       btn.disabled = false;
@@ -360,6 +369,7 @@
         list.appendChild(li);
       });
     } catch (err) {
+      xp("error");
       empty.classList.remove("hidden");
       empty.textContent = err.message || String(err);
     }
@@ -379,11 +389,12 @@
       }
       await loadProjects();
     } catch (err) {
+      xp("error");
       alert(err.message || String(err));
     }
   }
 
-  async function openWorkspace(projectId, mode) {
+  async function openWorkspace(projectId, mode, afterEvent) {
     const pid = String(projectId || "");
     if (!pid) return;
     abortWorkspaceLoad();
@@ -394,6 +405,7 @@
     }
     resetWorkspaceDom("Загрузка…", "Открываю чат этого проекта…");
     show("workspace");
+    xp("thinking");
     const controller = new AbortController();
     state.wsAbort = controller;
     try {
@@ -430,9 +442,13 @@
       $("composer-text").placeholder = placeholder;
       renderTzDownload(Boolean(ws.tz_available));
       renderClientEstimate(ws.client_estimate, ws.status);
+      if (ws.tz_available) xp("draft_ready");
+      else if (afterEvent) xp(afterEvent);
+      else xp("idle");
       scrollThreadToLatest();
     } catch (err) {
       if (isAbortError(err) || requestId !== state.wsRequestId) return;
+      xp("error");
       alert(err.message || String(err));
       show("home");
     }
@@ -750,6 +766,7 @@
       try {
         await downloadTz(btn.getAttribute("data-tz-fmt") || "md");
       } catch (err) {
+        xp("error");
         alert(err.message || String(err));
       }
     });
@@ -875,6 +892,7 @@
     if (state.sending) return false;
     state.sending = true;
     showSendHint("Отправка…");
+    xp("thinking");
     showTypingBubble();
     try {
       const qs = `?customer_telegram_id=${encodeURIComponent(userId)}`;
@@ -885,10 +903,15 @@
       $("composer-text").value = "";
       state.selectedIds = new Set();
       showSendHint("");
-      await openWorkspace(state.projectId, state.listMode === "create" ? "create" : "change");
+      await openWorkspace(
+        state.projectId,
+        state.listMode === "create" ? "create" : "change",
+        "got_answer"
+      );
       return true;
     } catch (err) {
       hideTypingBubble();
+      xp("error");
       showSendHint(err.message || String(err));
       alert(err.message || String(err));
       return false;
@@ -903,6 +926,7 @@
       haptic("light");
       markWelcomeDismissed(state.projectId);
       closeWelcomeModal();
+      xp("idle");
       renderThread(state.wsMessages || []);
       scrollThreadToLatest();
     });
@@ -948,12 +972,13 @@
           showSendHint("Введите замечание и нажмите «Отправить».");
           return;
         }
+        xp("thinking");
         const res = await api(`/projects/${state.projectId}/feedback`, {
           method: "POST",
           body: JSON.stringify({ text: typed, customer_telegram_id: userId }),
         });
         $("composer-text").value = "";
-        await openWorkspace(state.projectId, "feedback");
+        await openWorkspace(state.projectId, "feedback", "got_answer");
         const thread = $("thread");
         const tip = document.createElement("div");
         tip.className = "bubble assistant latest";
@@ -968,6 +993,7 @@
         await sendDiscoveryText(payload);
       }
     } catch (err) {
+      xp("error");
       alert(err.message || String(err));
     }
   });
@@ -1001,15 +1027,21 @@
       const caption = ($("composer-text").value || "").trim();
       const qs = new URLSearchParams({ customer_telegram_id: userId });
       if (caption) qs.set("caption", caption);
+      xp("thinking");
       showTypingBubble();
       await api(`/projects/${state.projectId}/messages/file?${qs}`, {
         method: "POST",
         body: fd,
       });
       $("composer-text").value = "";
-      await openWorkspace(state.projectId, state.listMode === "create" ? "create" : "change");
+      await openWorkspace(
+        state.projectId,
+        state.listMode === "create" ? "create" : "change",
+        "got_file"
+      );
     } catch (err) {
       hideTypingBubble();
+      xp("error");
       alert(err.message || String(err));
     }
   });
@@ -1028,6 +1060,7 @@
 
   function setVoiceUi(active, statusText) {
     state.recording = active;
+    if (active) xp("listening");
     voiceBtn.classList.toggle("recording", active);
     voiceBtn.setAttribute("aria-pressed", active ? "true" : "false");
     const label = voiceBtn.querySelector(".btn-label");
@@ -1129,6 +1162,7 @@
           appendToComposer(row[0].transcript);
           voiceStatus.classList.remove("hidden");
           voiceStatus.textContent = "Текст вставлен — можно договорить или править";
+          xp("got_voice");
         }
       }
     };
@@ -1137,6 +1171,7 @@
       if (code === "aborted") return;
       if (code === "no-speech") return;
       if (code === "not-allowed") {
+        xp("error");
         alert("Нет доступа к микрофону. Разрешите микрофон для Telegram/браузера.");
         return;
       }
@@ -1169,6 +1204,7 @@
         false,
         hasText ? "Готово — поправьте текст при необходимости и нажмите Отправить" : ""
       );
+      if (!state.speechGotResult) xp("idle");
       if (hasText) {
         setTimeout(() => {
           if (!state.recording) {
@@ -1222,6 +1258,7 @@
         state.mediaRecorder = null;
         state.voiceMode = null;
         setVoiceUi(false, "");
+        xp("error");
         alert("Ошибка записи. Попробуйте ещё раз или введите текст.");
       };
       state.mediaRecorder.onstop = () => {
@@ -1237,6 +1274,7 @@
     } catch (err) {
       state.voiceMode = null;
       setVoiceUi(false, "");
+      xp("error");
       const msg = String(err && err.message ? err.message : err);
       alert(
         "Не удалось получить доступ к микрофону. В Android: Настройки → приложения → Telegram → разрешения → Микрофон. Затем закройте Mini App и откройте снова. " +
@@ -1255,6 +1293,7 @@
       state.chunks = [];
       if (!blob.size || elapsed < 400) {
         setVoiceUi(false, "");
+        xp("idle");
         alert("Слишком короткая запись. Нажмите микрофон, говорите, затем нажмите ещё раз.");
         return;
       }
@@ -1262,15 +1301,18 @@
       const fd = new FormData();
       fd.append("file", blob, `voice.${ext}`);
       setVoiceUi(false, "Распознавание (Groq)…");
+      xp("thinking");
       const res = await api("/stt/transcribe", { method: "POST", body: fd });
       const text = (res.text || "").trim();
       if (!text) {
         setVoiceUi(false, "");
+        xp("error");
         alert("Не удалось распознать речь. Попробуйте ещё раз или введите текст.");
         return;
       }
       appendToComposer(text);
       setVoiceUi(false, "Текст вставлен — можно править и отправить");
+      xp("got_voice");
       setTimeout(() => {
         if (!state.recording) {
           voiceStatus.classList.add("hidden");
@@ -1279,6 +1321,7 @@
       }, 2500);
     } catch (err) {
       setVoiceUi(false, "");
+      xp("error");
       alert(err.message || String(err));
     }
   }

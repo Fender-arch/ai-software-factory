@@ -22,7 +22,7 @@ ADR: [DEC-009](../../decisions/DEC-009-Agent-Toolkit-Reuse.md). Экономия
 | `core/estimate.py` + `core/client_estimate.py` | Две оценки: эвристика владельца и рыночная смета клиенту (DEC-012) |
 | `docs/13-Dev-Setup.md` | Запуск / тесты / env |
 | `docs/16-VPS-Deploy.md` | VPS рядом с существующим сайтом |
-| `decisions/` | Зафиксированные ADR (в т.ч. DEC-009 toolkit, DEC-010 `mobile_native`, DEC-012 клиентская смета) |
+| `decisions/` | Зафиксированные ADR (в т.ч. DEC-009 toolkit, DEC-010 `mobile_native`, DEC-011 Experience Layer, DEC-012 клиентская смета) |
 | `tasks/EPIC-*` | Слайсы поставки |
 | `prompts/` | Промпты режимов Coordinator (`discovery-interview.md` — интервьюер) |
 | `schemas/` | Контракты структурированного I/O |
@@ -53,7 +53,7 @@ ADR: [DEC-009](../../decisions/DEC-009-Agent-Toolkit-Reuse.md). Экономия
 | `docs-ru-sync.mdc` | Правки английских `docs/*.md` → `docs/ru/` |
 | `design-anti-slop.mdc` | CSS/JS/HTML Mini App / консоли |
 | `security-basics.mdc` | `apps/api`, `core`, `integrations` |
-| `miniapp-ux.mdc` | UX Mini App; маскот/Rive — Future |
+| `miniapp-ux.mdc` | UX Mini App; маскот Experience Layer — DEC-011 |
 
 ## Project skills (по требованию)
 
@@ -121,7 +121,7 @@ ADR: [DEC-009](../../decisions/DEC-009-Agent-Toolkit-Reuse.md). Экономия
 | Always-on mega rules | DEC-009 / экономия токенов |
 | Оптовый вендор чужих skill-репозиториев | Дрейф + лицензия |
 | git subtree spec-kit | Только проекция и заготовки |
-| Рантайм маскота Rive | Future (`miniapp-ux.mdc`) |
+| Оптовые Rive-киты / lip-sync TTS-маскот | Слайс рантайма — DEC-011; lip-sync остаётся Future |
 | Runbooks Redis / GraphDB | Future |
 
 ## Минимальный чеклист сессии

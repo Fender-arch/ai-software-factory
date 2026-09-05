@@ -564,8 +564,23 @@
   function headers() {
     const h = { Accept: "application/json" };
     const t = token();
-    if (t) h["X-Console-Token"] = t;
+    if (t) {
+      h["X-Console-Token"] = t;
+      h["Authorization"] = "Bearer " + t;
+    }
     return h;
+  }
+
+  function showAuthFailure(detail) {
+    const el = $("auth-banner");
+    el.classList.remove("hidden");
+    if (detail === "invalid console token") {
+      el.textContent =
+        "Токен неверный. Вставьте CONSOLE_TOKEN с последнего деплоя и нажмите «Сохранить».";
+      return "Неверный токен консоли";
+    }
+    el.textContent = "Нужен CONSOLE_TOKEN. Вставьте его в шапку и сохраните.";
+    return "Нужен токен консоли";
   }
 
   function showError(msg) {
@@ -590,8 +605,14 @@
       },
     });
     if (res.status === 401) {
-      $("auth-banner").classList.remove("hidden");
-      throw new Error("Нужен токен консоли");
+      let detail = "";
+      try {
+        const body = await res.json();
+        detail = body.detail || "";
+      } catch (_) {
+        /* ignore */
+      }
+      throw new Error(showAuthFailure(detail));
     }
     $("auth-banner").classList.add("hidden");
     if (!res.ok) {
@@ -1331,8 +1352,14 @@
         headers: headers(),
       });
       if (res.status === 401) {
-        $("auth-banner").classList.remove("hidden");
-        throw new Error("Нужен токен консоли");
+        let detail = "";
+        try {
+          const body = await res.json();
+          detail = body.detail || "";
+        } catch (_) {
+          /* ignore */
+        }
+        throw new Error(showAuthFailure(detail));
       }
       if (!res.ok) {
         let detail = res.statusText;
@@ -1420,8 +1447,14 @@
         headers: headers(),
       });
       if (res.status === 401) {
-        $("auth-banner").classList.remove("hidden");
-        throw new Error("Нужен токен консоли");
+        let detail = "";
+        try {
+          const body = await res.json();
+          detail = body.detail || "";
+        } catch (_) {
+          /* ignore */
+        }
+        throw new Error(showAuthFailure(detail));
       }
       if (!res.ok) {
         let detail = res.statusText;
@@ -1494,6 +1527,9 @@
     if (ev.key === "Enter") runSearch(ev.target.value);
   });
 
+  $("console-token").addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") $("token-save").click();
+  });
   $("console-token").value = sessionStorage.getItem(TOKEN_KEY) || "";
 
   async function boot() {
