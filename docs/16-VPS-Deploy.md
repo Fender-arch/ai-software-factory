@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.6 |
+| Version | 0.7 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -11,14 +11,14 @@
 
 Run ASF on a VPS that **already serves a website**, without replacing that site.
 
-ASF never binds host ports **80**, **443**, or **5432**. The API listens on `127.0.0.1:18000` (override `ASF_HOST_PORT`). New nginx vhosts are added only for the ASF hostnames you provide.
+ASF never binds host ports **80**, **443**, or **5432**. The API listens on `127.0.0.1:18000` (override `ASF_HOST_PORT`). Postgres is published only on `127.0.0.1:15432` (`ASF_DB_HOST_PORT`) so host-networked `api`/`bot` can reach it. New nginx vhosts are added only for the ASF hostnames you provide.
 
 ## Layout
 
 | Piece | Role |
 |-------|------|
 | `docker-compose.yml` | Local development (reload, published 8000/5432) |
-| `docker-compose.prod.yml` | VPS: `db` + `api` + `bot`, named project `asf` |
+| `docker-compose.prod.yml` | VPS: `db` (bridge) + `api`/`bot` (`network_mode: host`) so they inherit the host VPN/tunnel |
 | `deploy/` | Render `.env`, nginx snippets, remote start |
 | `.github/workflows/deploy-vps.yml` | SSH/SCP deploy from GitHub Actions |
 | `.github/SECRETS.md` | Secret names to fill |
@@ -98,14 +98,15 @@ Expect egress HTTP from `api.telegram.org` and `bot_ok: true` with the Mini App 
 
 ## Telegram Bot API egress (sendDocument)
 
-`sendDocument` / `getMe` leave the **API container** on Docker network `asf_internal` (bridge) via the host NAT. Incoming Mini App HTTPS is unrelated.
+`sendDocument` / `getMe` leave the **API process**. On VPS that process uses `network_mode: host` so it shares the host VPN/tunnel (Docker bridge NAT does not). nginx already proxies to `127.0.0.1:18000`. Incoming Mini App HTTPS is unrelated.
 
 Typical failure (prod `ConnectError`, empty `bot_username`):
 
 | Check | Meaning |
 |-------|---------|
-| Host `curl -4 https://api.telegram.org` works, container does not | Docker IPv6/AAAA or container DNS. App prefers IPv4 (`ASF_TELEGRAM_IP=auto`/`4`). Optional local override `docker-compose.telegram-egress.yml` (`extra_hosts`, not committed). |
-| Host `curl https://example.org` works, Telegram does not | **Provider-level Telegram block** (seen on FirstVDS: DNS + IPv4 route OK, `curl -4 https://api.telegram.org` times out, ufw OUTPUT is allow). Do **not** open a FirstVDS ticket if the VPS already has a foreign hop for Groq/OpenAI: reuse that URL as `HTTPS_PROXY` (below). IPv4 extra_hosts cannot fix a filtered path. |
+| Host `curl -4 https://api.telegram.org` works, container on bridge does not | Container is still on `asf_internal`. Recreate `api`/`bot` with host network (current `docker-compose.prod.yml`). |
+| Host default route times out, a `tun`/`wg` iface works | Split-tunnel VPN. Host network is still required; confirm the VPN default/table covers Telegram. |
+| Host `curl https://example.org` works, Telegram does not, no VPN iface | **Provider-level Telegram block**. Do **not** invent `HTTPS_PROXY`. If a local HTTP/SOCKS port is actually listening, only then point `HTTPS_PROXY` at `http://127.0.0.1:<port>`. |
 | Neither host HTTPS works | Outgoing 443 denied (`ufw` / iptables / panel). Allow OUTPUT 443/tcp. |
 
 Runbook on the VPS (no secrets in the output):
@@ -120,42 +121,17 @@ curl -sS http://127.0.0.1:18000/health/telegram
 
 GitHub: **Actions → Telegram egress → Run workflow** (uses the same SSH secrets as Deploy VPS; does not print the bot token). Compose also sets container DNS to `8.8.8.8` / `1.1.1.1`. `ASF_TELEGRAM_IP=4` forces IPv4; `6` leaves dual-stack.
 
-## Same proxy as AI (FirstVDS / foreign channel)
+## Host VPN (FirstVDS / foreign channel) — not HTTPS_PROXY
 
-There is **no** dedicated `OPENAI_BASE_URL` / WireGuard sidecar in this repo. Groq LLM + Groq/OpenAI STT use vanilla httpx (`trust_env=True`), so they already follow `HTTPS_PROXY` / `HTTP_PROXY` / `ALL_PROXY` when those are in the **container** env. Telegram Bot API now resolves the **same** URL:
+Owner confirmation: the foreign channel is a **VPN/tunnel on the VPS host**, not a Docker `HTTPS_PROXY`. Bridge-networked containers do not inherit those routes. That is why `/health/telegram` after #19 showed `via_proxy=false` and `getMe` `ConnectError` even when Groq from the same API process could work (Groq is a different endpoint and is often not filtered).
 
-`TELEGRAM_PROXY` → `HTTPS_PROXY` → `HTTP_PROXY` → `ALL_PROXY` → `LLM_HTTP_PROXY`
+`docker-compose.prod.yml` therefore runs **`api` and `bot` with `network_mode: host`**. nginx is unchanged (`127.0.0.1:18000`). `db` stays on `asf_internal`; `DATABASE_URL` uses `127.0.0.1:15432`.
 
-**Do not create a second secret** unless Telegram must use a different hop than Groq.
+`via_proxy` stays `false` unless an HTTP(S) proxy URL is actually set. Success looks like a **non-empty `bot_username`**, not `via_proxy=true`.
 
-### Preferred: GitHub Actions secret (survives Deploy VPS)
+Do **not** create a GitHub `HTTPS_PROXY` secret for this VPS. Optional HTTP proxy env is only for a listener that diagnose reports on `127.0.0.1` / `172.17.0.1`.
 
-1. Repo → **Settings → Secrets and variables → Actions**
-2. Set **`HTTPS_PROXY`** to the HTTP(S) proxy URL the AI channel already uses (example shape only: `http://user:pass@203.0.113.10:3128` — never commit the real value).
-3. Leave `TELEGRAM_PROXY` empty.
-4. **Actions → Deploy VPS → Run workflow** (or push to `main`). `write_env.py` writes `/opt/asf/.env`; compose injects the vars into `api` and `bot`.
-5. On the VPS:
-
-```bash
-curl -sS http://127.0.0.1:18000/health/telegram
-# expect egress_ok=true, via_proxy=true, and a non-empty bot_username
-```
-
-### If the proxy exists only on the VPS (not in GitHub)
-
-Deploy VPS rewrites `/opt/asf/.env` from secrets. An empty GitHub `HTTPS_PROXY` no longer wipes a proxy that is already in that file. To attach the existing AI hop without a new GitHub secret:
-
-```bash
-# on the VPS — paste the same URL AI already uses; do not echo it into chat/logs
-# /opt/asf/.env  (add or edit, never commit)
-# HTTPS_PROXY=<existing-ai-proxy-url>
-# HTTP_PROXY=<existing-ai-proxy-url>
-cd /opt/asf
-docker compose -f docker-compose.prod.yml --env-file .env up -d --no-build --force-recreate api bot
-curl -sS http://127.0.0.1:18000/health/telegram
-```
-
-Host-level WireGuard / split-tunnel that is **not** an HTTP proxy is invisible to Docker unless you put an HTTP(S) proxy URL into `HTTPS_PROXY` as above. After a later **Deploy VPS**, either keep the line in `/opt/asf/.env` or copy it into the GitHub secret so the next rewrite stays aligned.
+LLM/STT (`integrations/llm/groq.py`) run **inside the `api` container** (now host-networked), not as a separate host daemon.
 
 ## Rollback ASF only
 

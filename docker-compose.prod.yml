@@ -1,5 +1,7 @@
 # Production stack for a VPS that already hosts a website.
-# Binds API only to 127.0.0.1:${ASF_HOST_PORT:-18000} — never 80/443/5432.
+# api + bot use the host network so they inherit the VPS VPN/tunnel
+# (Docker bridge NAT does not). nginx already talks to 127.0.0.1:18000.
+# Postgres is published only on 127.0.0.1:${ASF_DB_HOST_PORT:-15432} — never 5432.
 name: asf
 
 services:
@@ -10,6 +12,8 @@ services:
       POSTGRES_USER: asf
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: asf
+    ports:
+      - "127.0.0.1:${ASF_DB_HOST_PORT:-15432}:5432"
     volumes:
       - asf_pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -25,6 +29,7 @@ services:
       context: .
       dockerfile: docker/Dockerfile
     restart: unless-stopped
+    network_mode: host
     env_file:
       - .env
     environment:
@@ -37,13 +42,8 @@ services:
       ALL_PROXY: ${ALL_PROXY:-}
       TELEGRAM_PROXY: ${TELEGRAM_PROXY:-}
       LLM_HTTP_PROXY: ${LLM_HTTP_PROXY:-}
-      NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1,db}
+      NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1}
       ASF_TELEGRAM_IP: ${ASF_TELEGRAM_IP:-auto}
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
-    ports:
-      - "127.0.0.1:${ASF_HOST_PORT:-18000}:8000"
     volumes:
       - asf_uploads:/data/uploads
     depends_on:
@@ -51,26 +51,25 @@ services:
         condition: service_healthy
     command: >
       sh -c "alembic upgrade head &&
-             uvicorn apps.api.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='*'"
+             uvicorn apps.api.main:app --host 127.0.0.1 --port ${ASF_HOST_PORT:-18000} --proxy-headers --forwarded-allow-ips='*'"
     healthcheck:
       test:
         [
           "CMD",
           "python",
           "-c",
-          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:${ASF_HOST_PORT:-18000}/health')",
         ]
       interval: 15s
       timeout: 5s
       retries: 10
-    networks:
-      - asf_internal
 
   bot:
     build:
       context: .
       dockerfile: docker/Dockerfile
     restart: unless-stopped
+    network_mode: host
     env_file:
       - .env
     environment:
@@ -82,11 +81,8 @@ services:
       ALL_PROXY: ${ALL_PROXY:-}
       TELEGRAM_PROXY: ${TELEGRAM_PROXY:-}
       LLM_HTTP_PROXY: ${LLM_HTTP_PROXY:-}
-      NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1,db}
+      NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1}
       ASF_TELEGRAM_IP: ${ASF_TELEGRAM_IP:-auto}
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
     depends_on:
       api:
         condition: service_healthy
@@ -97,8 +93,6 @@ services:
              else
                python -m integrations.telegram.bot;
              fi'
-    networks:
-      - asf_internal
 
 volumes:
   asf_pgdata:
