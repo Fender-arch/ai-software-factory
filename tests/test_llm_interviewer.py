@@ -340,3 +340,40 @@ def test_customer_copy_strips_catalog_menu_lines():
     assert not reply_lists_topic_titles(
         soft, ["Цель и проблема", "Бюджет", "Контакты"]
     )
+
+
+def test_customer_copy_strips_prior_answer_echo():
+    from discovery.customer_copy import strip_prior_answer_echo
+
+    raw = (
+        "Вы описали: «бот записи в салон красоты с напоминаниями». "
+        "Какой тип решения ближе?\n"
+        "Понял."
+    )
+    cleaned = strip_prior_answer_echo(raw)
+    assert "вы описали" not in cleaned.lower()
+    assert "бот записи в салон" not in cleaned
+    assert "тип решения" in cleaned.lower()
+    assert "Понял." in cleaned
+
+
+def test_llm_next_question_does_not_echo_task_brief(llm_client, monkeypatch):
+    def echoing(system, user):
+        if "LLM interviewer" not in system:
+            return {}
+        return {
+            "reply_to_customer": (
+                "Вы описали: «сайт для студии». Когда нужна первая версия?"
+            ),
+            "captured": [],
+            "chips": [{"id": "soon", "label": "В ближайший месяц"}],
+            "next_action": "continue",
+        }
+
+    monkeypatch.setattr("discovery.interview._llm_json", echoing)
+    project_id = _create_project(llm_client)
+    res = _send(llm_client, project_id, "Хочу сайт для студии с портфолио.")
+    reply = res.json()["discovery_reply"]
+    assert "Вы описали" not in reply
+    assert "сайт для студии с портфолио" not in reply
+    assert "перв" in reply.lower() or "уточн" in reply.lower()

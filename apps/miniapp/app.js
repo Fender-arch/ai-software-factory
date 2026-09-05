@@ -104,6 +104,8 @@
     recordingStartedAt: 0,
     welcomePending: false,
     wsMessages: [],
+    micStream: null,
+    micConstraints: null,
   };
 
   const SpeechRecognition =
@@ -397,13 +399,19 @@
   async function openWorkspace(projectId, mode, afterEvent) {
     const pid = String(projectId || "");
     if (!pid) return;
+    const keepThread =
+      state.mode === "workspace" &&
+      String(state.projectId) === pid &&
+      Boolean(afterEvent);
     abortWorkspaceLoad();
     const requestId = state.wsRequestId;
     state.projectId = pid;
     if (mode === "create" || mode === "change" || mode === "feedback") {
       state.listMode = mode;
     }
-    resetWorkspaceDom("Загрузка…", "Открываю чат этого проекта…");
+    if (!keepThread) {
+      resetWorkspaceDom("Загрузка…", "Открываю чат этого проекта…");
+    }
     show("workspace");
     xp("thinking");
     const controller = new AbortController();
@@ -549,9 +557,18 @@
     renderThread(list);
   }
 
+  function sortThreadMessages(messages) {
+    return [...(messages || [])].sort((a, b) => {
+      const ta = Date.parse(a.created_at || "") || 0;
+      const tb = Date.parse(b.created_at || "") || 0;
+      if (ta !== tb) return ta - tb;
+      return String(a.id || "").localeCompare(String(b.id || ""));
+    });
+  }
+
   function visibleThreadMessages(messages) {
     const hold = Boolean(state.welcomePending);
-    return (messages || []).filter((m) => {
+    return sortThreadMessages(messages).filter((m) => {
       if (isWelcomeMessage(m)) return false;
       if (hold) return false;
       return true;
@@ -899,6 +916,16 @@
     state.sending = true;
     showSendHint("Отправка…");
     xp("thinking");
+    state.wsMessages = [
+      ...(state.wsMessages || []),
+      {
+        id: `local-${Date.now()}`,
+        role: "customer",
+        text: payload,
+        created_at: new Date().toISOString(),
+      },
+    ];
+    renderThread(state.wsMessages);
     showTypingBubble();
     try {
       const qs = `?customer_telegram_id=${encodeURIComponent(userId)}`;
@@ -1228,26 +1255,56 @@
     }
   }
 
-  async function startMediaDictation() {
+  function micStreamLive() {
+    const stream = state.micStream;
+    if (!stream || !stream.active) return false;
+    return stream.getAudioTracks().some((t) => t && t.readyState === "live");
+  }
+
+  function setMicTracksEnabled(on) {
+    const stream = state.micStream;
+    if (!stream) return;
+    stream.getAudioTracks().forEach((t) => {
+      try {
+        t.enabled = Boolean(on);
+      } catch (_) {
+        /* ignore */
+      }
+    });
+  }
+
+  async function ensureMicStream() {
+    if (micStreamLive()) {
+      setMicTracksEnabled(true);
+      return state.micStream;
+    }
     if (
       typeof MediaRecorder === "undefined" ||
       !navigator.mediaDevices ||
       !navigator.mediaDevices.getUserMedia
     ) {
-      alert(
-        "Голосовой ввод недоступен в этом клиенте Telegram. Разрешите микрофон для Telegram в настройках телефона или введите текст. Голосовые в чат бота тоже принимаются."
-      );
-      return;
+      const err = new Error("getUserMedia unavailable");
+      err.code = "no-media";
+      throw err;
     }
+    const preferred = state.micConstraints || {
+      audio: { echoCancellation: true, noiseSuppression: true },
+    };
+    let stream;
     try {
-      let stream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: true, noiseSuppression: true },
-        });
-      } catch (_) {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      }
+      stream = await navigator.mediaDevices.getUserMedia(preferred);
+      state.micConstraints = preferred;
+    } catch (_) {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      state.micConstraints = { audio: true };
+    }
+    state.micStream = stream;
+    return stream;
+  }
+
+  async function startMediaDictation() {
+    try {
+      const stream = await ensureMicStream();
       const picked = pickRecorderMime();
       state.chunks = [];
       state.recorderExt = picked.ext;
@@ -1260,7 +1317,7 @@
         if (ev.data && ev.data.size > 0) state.chunks.push(ev.data);
       };
       state.mediaRecorder.onerror = () => {
-        stream.getTracks().forEach((t) => t.stop());
+        setMicTracksEnabled(false);
         state.mediaRecorder = null;
         state.voiceMode = null;
         setVoiceUi(false, "");
@@ -1268,7 +1325,7 @@
         alert("Ошибка записи. Попробуйте ещё раз или введите текст.");
       };
       state.mediaRecorder.onstop = () => {
-        stream.getTracks().forEach((t) => t.stop());
+        setMicTracksEnabled(false);
         dictationViaServer();
       };
       try {
@@ -1281,6 +1338,12 @@
       state.voiceMode = null;
       setVoiceUi(false, "");
       xp("error");
+      if (err && err.code === "no-media") {
+        alert(
+          "Голосовой ввод недоступен в этом клиенте Telegram. Разрешите микрофон для Telegram в настройках телефона или введите текст. Голосовые в чат бота тоже принимаются."
+        );
+        return;
+      }
       const msg = String(err && err.message ? err.message : err);
       alert(
         "Не удалось получить доступ к микрофону. В Android: Настройки → приложения → Telegram → разрешения → Микрофон. Затем закройте Mini App и откройте снова. " +

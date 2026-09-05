@@ -77,7 +77,7 @@ def strip_catalog_menu(text: str) -> str:
 
 def coverage_continue_reply(existing: str) -> str:
     """Soft coverage-gate follow-up: no leftover title_ru list."""
-    cleaned = strip_catalog_menu(existing)
+    cleaned = sanitize_customer_reply(existing)
     if COVERAGE_CONTINUE_RU in cleaned:
         return cleaned
     if cleaned:
@@ -90,3 +90,31 @@ def reply_lists_topic_titles(reply: str, titles: list[str]) -> bool:
     blob = reply or ""
     hits = [title for title in titles if title and title in blob]
     return len(hits) >= 2
+
+
+# Recap clauses of already-accepted answers (keep the question after them).
+_ECHO_CLAUSE_RE = re.compile(
+    r"(?i)вы\s+описали\s*:\s*«[^»]+»\s*[.!]?\s*"
+    r"|как\s+вы\s+(?:сказали|описали)[^.?!\n]*[.?]?\s*"
+    r"|уже\s+зафиксировали\s*:[^.?!\n]*[.?]?\s*"
+    r"|понял(?:а|и)?\s+задачу\s+про\s*«[^»]+»\s*[.!]?\s*"
+    r"|по\s+задаче\s*«[^»]+»\s*[—–-]?\s*"
+)
+_QUOTED_FOR_RE = re.compile(r"(?i)для\s*«[^»]{10,}»\s*:?\s*")
+
+
+def strip_prior_answer_echo(text: str) -> str:
+    """Drop recap of already captured answers; keep the actual question."""
+    if not (text or "").strip():
+        return ""
+    cleaned = _ECHO_CLAUSE_RE.sub("", text)
+    cleaned = _QUOTED_FOR_RE.sub("", cleaned)
+    cleaned = re.sub(r"[ \t]+\n", "\n", cleaned)
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    cleaned = re.sub(r"^[.?!,\s]+", "", cleaned)
+    return cleaned.strip()
+
+
+def sanitize_customer_reply(text: str) -> str:
+    """Catalog menu + prior-answer echo stay out of the customer chat."""
+    return strip_prior_answer_echo(strip_catalog_menu(text))

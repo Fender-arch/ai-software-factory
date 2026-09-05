@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from discovery.customer_copy import READY_TOO_EARLY_RU, REVIEW_COVERED_RU
+from discovery.customer_copy import (
+    READY_TOO_EARLY_RU,
+    REVIEW_COVERED_RU,
+    sanitize_customer_reply,
+)
 from discovery.fsm import DiscoveryStage
 from discovery.literacy import ITLiteracy
 from discovery.rephrase import apply_choice_overrides, format_outline_announcement
@@ -101,7 +105,7 @@ def build_prompt(
             Choice("pause", "Пауза — продолжим позже", exclusive=True),
         ]
         return DiscoveryPrompt(
-            text="\n".join(lines),
+            text=sanitize_customer_reply("\n".join(lines)) or "\n".join(lines),
             choices=review_choices,
             topic_id=None,
             stage=stage,
@@ -136,7 +140,7 @@ def build_prompt(
     _ = captured_snapshots
     lines.append(question)
     return DiscoveryPrompt(
-        text="\n".join(lines),
+        text=sanitize_customer_reply("\n".join(lines)) or "\n".join(lines),
         choices=choices,
         topic_id=topic.id,
         stage=topic.stage,

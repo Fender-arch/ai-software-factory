@@ -7,6 +7,7 @@ from typing import Literal
 
 from sqlalchemy.orm import Session
 
+from core.clock import message_time
 from core.coordinator import AICoordinator, CoordinatorMode, LLMRouter
 from core.export import TaskExport, export_tasks
 from core.hitl import (
@@ -86,6 +87,7 @@ def create_project(
 
     welcome = welcome_for_create(name)
     first_q = prompt.text
+    stamp = None
     for text, kind_meta, extra_meta in (
         (welcome, "welcome", {}),
         (
@@ -107,12 +109,14 @@ def create_project(
     ):
         if not text:
             continue
+        stamp = message_time(stamp)
         db.add(
             Message(
                 project_id=project.id,
                 kind=MessageKind.SYSTEM,
                 role="assistant",
                 text=text,
+                created_at=stamp,
                 meta={
                     "discovery_stage": prompt.stage.value,
                     "it_literacy": literacy.value,
@@ -211,7 +215,7 @@ def list_project_messages(
         db.scalars(
             select(Message)
             .where(Message.project_id == project.id)
-            .order_by(Message.created_at.asc())
+            .order_by(Message.created_at.asc(), Message.id.asc())
         ).all()
     )
 
@@ -334,6 +338,7 @@ def ingest_text_message(
         kind=MessageKind.TEXT,
         role=role,
         text=text,
+        created_at=message_time(),
         meta={},
     )
     db.add(message)
@@ -361,7 +366,9 @@ def ingest_text_message(
         discovery = run_discovery_turn(
             db, project, text, source_message_id=message.id
         )
-        assistant_message = _store_assistant_reply(db, project, discovery)
+        assistant_message = _store_assistant_reply(
+            db, project, discovery, after=message.created_at
+        )
 
     db.commit()
     db.refresh(message)
@@ -398,6 +405,7 @@ async def ingest_voice_message(
         role=role,
         text=transcript,
         raw_file_id=telegram_file_id,
+        created_at=message_time(),
         meta={"stt_provider": stt.__class__.__name__, "filename": filename},
     )
     db.add(message)
@@ -422,7 +430,9 @@ async def ingest_voice_message(
         discovery = run_discovery_turn(
             db, project, transcript, source_message_id=message.id
         )
-        assistant_message = _store_assistant_reply(db, project, discovery)
+        assistant_message = _store_assistant_reply(
+            db, project, discovery, after=message.created_at
+        )
 
     db.commit()
     db.refresh(message)
@@ -478,6 +488,7 @@ async def ingest_file_message(
         kind=MessageKind.TEXT,
         role="customer",
         text=note[:12000],
+        created_at=message_time(),
         meta={
             "channel": "file_attach",
             "filename": name,
@@ -521,7 +532,9 @@ async def ingest_file_message(
         discovery = run_discovery_turn(
             db, project, customer_text, source_message_id=message.id
         )
-        assistant_message = _store_assistant_reply(db, project, discovery)
+        assistant_message = _store_assistant_reply(
+            db, project, discovery, after=message.created_at
+        )
 
     db.commit()
     db.refresh(message)
@@ -899,15 +912,23 @@ def export_project_tasks(
 
 
 def _store_assistant_reply(
-    db: Session, project: Project, turn: DiscoveryTurnResult
+    db: Session,
+    project: Project,
+    turn: DiscoveryTurnResult,
+    *,
+    after: object | None = None,
 ) -> Message | None:
     if not turn.reply_to_customer:
         return None
+    from datetime import datetime
+
+    stamp = message_time(after if isinstance(after, datetime) else None)
     assistant = Message(
         project_id=project.id,
         kind=MessageKind.SYSTEM,
         role="assistant",
         text=turn.reply_to_customer,
+        created_at=stamp,
         meta={
             "discovery_stage": turn.stage.value,
             "it_literacy": turn.literacy.value,

@@ -27,7 +27,7 @@ from core.models import (
     TZ_DOWNLOAD_STATUSES,
 )
 from discovery.adapt import ADAPT_AFTER_TOPIC_IDS
-from discovery.customer_copy import coverage_continue_reply, strip_catalog_menu
+from discovery.customer_copy import coverage_continue_reply, sanitize_customer_reply
 from discovery.fsm import DiscoveryStage, parse_stage, stage_after_project_created
 from discovery.literacy import ITLiteracy, infer_literacy
 from discovery.quality import (
@@ -475,7 +475,7 @@ def run_llm_turn(
     paused = False
     artifact_id: uuid.UUID | None = None
     notify_owner = False
-    reply = strip_catalog_menu(turn.reply) or turn.reply
+    reply = sanitize_customer_reply(turn.reply) or turn.reply
     action = turn.next_action
 
     if action == "pause":

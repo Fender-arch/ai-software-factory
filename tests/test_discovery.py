@@ -940,16 +940,17 @@ def test_described_task_rewrites_next_question_and_chips(client):
     assert first.status_code == 201
     reply = (first.json().get("discovery_reply") or "").lower()
     assert first.json().get("topic_id") == "product_shape"
-    assert "вы описали" in reply or "понял задачу" in reply or "по задаче" in reply
-    assert "салон" in reply or "запис" in reply
+    assert "вы описали" not in reply
+    assert "уже зафиксировали" not in reply
     assert "добавляю:" not in reply
     assert "не спрашиваю" not in reply
     assert "раздел тз" not in reply
+    assert "тип решения" in reply or "понял" in reply
     labels = " ".join(
         str(c.get("label") or "") for c in first.json().get("discovery_choices") or []
     ).lower()
     assert "бот" in labels
-    assert "записи" in labels or "слот" in labels or "как вы описали" in labels
+    assert "записи" in labels or "слот" in labels or "бот" in labels
     recommended = [
         c for c in first.json().get("discovery_choices") or [] if c.get("recommended")
     ]
@@ -963,7 +964,8 @@ def test_described_task_rewrites_next_question_and_chips(client):
     assert second.status_code == 201
     body = (second.json().get("discovery_reply") or "").lower()
     assert "как сейчас" in body or "запис" in body
-    assert "салон" in body or "бот" in body
+    assert "вы описали" not in body
+    assert "уже зафиксировали" not in body
 
 
 def test_previous_answers_ground_next_choice_chips():
@@ -1490,3 +1492,25 @@ def test_greenfield_skips_as_is_process():
     }
     assert "as_is_process" not in ids
     assert "must_features" in ids
+
+
+def test_message_time_stays_after_previous_stamp():
+    from datetime import datetime, timedelta, timezone
+
+    from core.clock import message_time
+
+    earlier = datetime(2026, 9, 5, 12, 0, 0, tzinfo=timezone.utc)
+    later = message_time(earlier)
+    assert later > earlier
+    assert later >= earlier + timedelta(milliseconds=1)
+
+
+def test_fsm_next_question_does_not_echo_captured_idea(client):
+    created = client.post("/projects", json={"name": "NoEcho", "product_type": "website"})
+    pid = created.json()["id"]
+    idea = "Нужен сайт-визитка для пекарни «Корица» с формой заявки на торт."
+    res = client.post(f"/projects/{pid}/messages", json={"text": idea})
+    reply = res.json().get("discovery_reply") or ""
+    assert "Вы описали" not in reply
+    assert "Корица" not in reply
+    assert "уже зафиксировали" not in reply.lower()

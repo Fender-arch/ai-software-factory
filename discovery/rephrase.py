@@ -75,72 +75,65 @@ _SURFACE_PATTERNS: tuple[tuple[str, str, str], ...] = (
 
 # topic_id → template; `{brief}` is replaced with the captured task phrase.
 _QUESTION_BY_TOPIC: dict[str, str] = {
-    "product_shape": (
-        "Вы описали: «{brief}». Какой тип решения ближе для первой версии?"
-    ),
-    "as_is_process": "Как сейчас делают «{brief}» — без этого продукта? Что в этом бесит?",
+    "product_shape": "Какой тип решения ближе для первой версии?",
+    "as_is_process": "Как это делают сейчас — без этого продукта? Что в этом бесит?",
     "success_mvp": (
-        "Если «{brief}» заработает в первой версии — что изменится и как "
-        "поймёте, что получилось?"
+        "Если первая версия заработает — что изменится и как поймёте, "
+        "что получилось?"
     ),
-    "out_of_scope": "Для «{brief}»: что точно не делаем в v1, даже если захочется потом?",
-    "must_features": "Для «{brief}»: что обязательно должно работать в первой версии?",
+    "out_of_scope": "Что точно не делаем в v1, даже если захочется потом?",
+    "must_features": "Что обязательно должно работать в первой версии?",
     "primary_scenario": (
-        "Один путь пользователя «{brief}» от начала до результата, который "
-        "обязан работать."
+        "Один путь пользователя от начала до результата, который обязан работать в v1."
     ),
-    "roles": "Кто пользуется «{brief}» в первой версии и что каждый должен суметь?",
-    "access": "Кто может пользоваться «{brief}»: все, кто нашёл ссылку, или только свои?",
-    "records": "Какие данные нужно помнить, чтобы «{brief}» работал в v1?",
-    "integrations": "Куда уходят данные из «{brief}»: Telegram, почта, таблица, CRM — или никуда?",
-    "acceptance": "Как проверите, что «{brief}» сделан: что нажмёте / увидите?",
-    "timeline": "Когда нужна рабочая первая версия «{brief}»?",
-    "risks": "Что больше всего беспокоит в «{brief}» до старта разработки?",
-    "pages_sections": (
-        "Для «{brief}»: какие страницы или экраны нужны в v1 и какая главная кнопка?"
-    ),
-    "public_identity": "Как подписать «{brief}» для посетителя: имя, роль, одна фраза?",
-    "visitor_cta": "Как человек свяжется из «{brief}»: форма, @ник, телефон — и куда приходит заявка?",
+    "roles": "Кто пользуется первой версией и что каждый должен суметь?",
+    "access": "Кто может пользоваться: все, кто нашёл ссылку, или только свои?",
+    "records": "Какие данные нужно помнить, чтобы первая версия работала?",
+    "integrations": "Куда уходят данные: Telegram, почта, таблица, CRM — или никуда?",
+    "acceptance": "Как проверите, что сделано: что нажмёте / увидите?",
+    "timeline": "Когда нужна рабочая первая версия?",
+    "risks": "Что больше всего беспокоит до старта разработки?",
+    "pages_sections": "Какие страницы или экраны нужны в v1 и какая главная кнопка?",
+    "public_identity": "Как подписать продукт для посетителя: имя, роль, одна фраза?",
+    "visitor_cta": "Как человек свяжется: форма, @ник, телефон — и куда приходит заявка?",
 }
 
 _QUESTION_BY_CAPABILITY: dict[str, dict[str, str]] = {
     "booking": {
-        "must_features": (
-            "Для записи в рамках «{brief}»: что обязательно в v1 кроме выбора слота?"
-        ),
+        "must_features": "Для записи: что обязательно в v1 кроме выбора слота?",
         "primary_scenario": (
-            "Один путь записи «{brief}»: от выбора услуги/слота до подтверждения."
+            "Один путь записи: от выбора услуги/слота до подтверждения."
         ),
         "success_mvp": (
-            "Если клиенты начнут записываться через «{brief}» — как поймёте, "
+            "Если клиенты начнут записываться сами — как поймёте, "
             "что первая версия удалась?"
         ),
-        "roles": "Кто в «{brief}»: клиент, мастер/администратор, владелец?",
+        "roles": "Кто в записи: клиент, мастер/администратор, владелец?",
         "records": "Что хранить о записи: услуга, слот, мастер, телефон клиента…?",
-        "as_is_process": "Как сейчас записывают клиентов (звонок, чат, журнал) без «{brief}»?",
+        "as_is_process": "Как сейчас записывают клиентов (звонок, чат, журнал)?",
     },
     "leads": {
-        "must_features": (
-            "Для «{brief}»: как в v1 принимают заявку и что показывают посетителю?"
-        ),
+        "must_features": "Как в v1 принимают заявку и что показывают посетителю?",
         "primary_scenario": (
-            "Путь заявки «{brief}»: человек оставляет контакт → вам приходит уведомление."
+            "Путь заявки: человек оставляет контакт → вам приходит уведомление."
         ),
-        "success_mvp": "Если «{brief}» начнёт приносить обращения — как измерите успех v1?",
+        "success_mvp": "Если появятся обращения с витрины — как измерите успех v1?",
     },
     "ai": {
-        "must_features": "Для «{brief}»: что ИИ обязан сделать в v1 и где нужен человек?",
-        "primary_scenario": "Триггер → действие ИИ → результат для «{brief}». Один путь v1.",
-        "trigger_io": "Что запускает «{brief}» и что должно получиться на выходе?",
+        "must_features": "Что ИИ обязан сделать в v1 и где нужен человек?",
+        "primary_scenario": "Триггер → действие ИИ → результат. Один путь v1.",
+        "trigger_io": "Что запускает процесс и что должно получиться на выходе?",
     },
     "admin_data": {
-        "must_features": "Для учёта «{brief}»: список, поиск, добавить, править — что в v1?",
-        "records": "Какие сущности и поля вести в «{brief}»?",
+        "must_features": "Для учёта: список, поиск, добавить, править — что в v1?",
+        "records": "Какие сущности и поля вести в учёте?",
     },
     "integration": {
-        "must_features": "Для связки «{brief}»: что откуда берём и куда отдаём в v1?",
-        "primary_scenario": "Событие в системе A → данные появляются в системе B. Как это для «{brief}»?",
-        "integrations": "Какие системы связываем в «{brief}» (имена, что уже есть доступы)?",
+        "must_features": "Для связки: что откуда берём и куда отдаём в v1?",
+        "primary_scenario": (
+            "Событие в системе A → данные появляются в системе B. Как это в v1?"
+        ),
+        "integrations": "Какие системы связываем (имена, что уже есть доступы)?",
     },
 }
 
@@ -178,7 +171,7 @@ _TITLE_BY_CAPABILITY: dict[str, dict[str, str]] = {
 _OPTION_BY_CAPABILITY: dict[str, dict[str, dict[str, str]]] = {
     "booking": {
         "product_shape": {
-            "shape_bot": "Telegram-бот записи (как вы описали)",
+            "shape_bot": "Telegram-бот записи",
             "shape_miniapp": "Mini App с выбором слота в Telegram",
             "shape_website": "Сайт с онлайн-записью",
         },
@@ -221,10 +214,10 @@ _OPTION_BY_CAPABILITY: dict[str, dict[str, dict[str, str]]] = {
     },
     "leads": {
         "product_shape": {
-            "shape_website": "Сайт / лендинг с заявкой (как вы описали)",
+            "shape_website": "Сайт / лендинг с заявкой",
             "shape_miniapp": "Mini App-визитка с формой заявки",
             "shape_bot": "Бот, который собирает заявки в чате",
-            "shape_mobile": "Нативное приложение под заявки (как вы описали)",
+            "shape_mobile": "Нативное приложение под заявки",
         },
         "must_features": {
             "feat_intake": "Приём заявок с контактными полями",
@@ -259,7 +252,7 @@ _OPTION_BY_CAPABILITY: dict[str, dict[str, dict[str, str]]] = {
     },
     "admin_data": {
         "product_shape": {
-            "shape_db": "База и инструмент ведения (как вы описали)",
+            "shape_db": "База и инструмент ведения",
         },
         "must_features": {
             "feat_admin": "Список, поиск, добавление и правка записей",
@@ -427,7 +420,7 @@ def _shape_extras_from_request(
         extras.append(
             Choice(
                 "ctx:shape_android",
-                "Приложение для Android (как вы описали)",
+                "Приложение для Android",
                 recommended=True,
             )
         )
@@ -435,7 +428,7 @@ def _shape_extras_from_request(
         extras.append(
             Choice(
                 "ctx:shape_ios",
-                "Приложение для iOS (как вы описали)",
+                "Приложение для iOS",
                 recommended="android" not in slugs,
             )
         )
@@ -632,15 +625,15 @@ def build_question_overrides(
         )
         if brief:
             overrides["visitor_cta"] = (
-                f"Для Mini App «{brief}»: как посетитель свяжется — форма (какие поля), "
+                "Как посетитель свяжется из Mini App — форма (какие поля), "
                 "публичный @ник / телефон / почта, куда приходит заявка?"
             )
             overrides["integrations"] = (
-                f"Куда уходит заявка из Mini App «{brief}»: этот Telegram, канал, "
+                "Куда уходит заявка из Mini App: этот Telegram, канал, "
                 "почта, таблица — или никуда кроме уведомления?"
             )
             overrides["pages_sections"] = (
-                f"Для Mini App «{brief}»: какие экраны в v1 и какая главная кнопка?"
+                "Какие экраны Mini App нужны в v1 и какая главная кнопка?"
             )
         else:
             overrides["visitor_cta"] = (
@@ -656,7 +649,6 @@ def build_question_overrides(
     slugs = {slug for slug, _ in surfaces}
     if slugs & {"android", "ios", "mobile"}:
         overrides["product_shape"] = (
-            f"Вы описали: «{brief or 'мобильное приложение'}». "
             "Это нативное приложение для Android, для iOS, оба, "
             "или в первой версии сайт / бот / Mini App?"
         )
@@ -695,15 +687,15 @@ def build_option_overrides(
                 slot[choice_id] = _fill(label, brief)[:180]
     if not merged.get("product_shape") and brief:
         merged["product_shape"] = {
-            "shape_website": f"Сайт / лендинг под «{brief}»",
-            "shape_bot": f"Telegram-бот под «{brief}»",
-            "shape_miniapp": f"Mini App под «{brief}»",
-            "shape_mobile": f"Нативное приложение под «{brief}»",
-            "shape_agent": f"ИИ-агент под «{brief}»",
-            "shape_ai": f"Автоматизация «{brief}» с ИИ",
-            "shape_db": f"Учёт / база под «{brief}»",
-            "shape_integration": f"Связка систем для «{brief}»",
-            "shape_api": f"API / сервис для «{brief}»",
+            "shape_website": "Сайт / лендинг под эту задачу",
+            "shape_bot": "Telegram-бот под эту задачу",
+            "shape_miniapp": "Mini App под эту задачу",
+            "shape_mobile": "Нативное приложение под эту задачу",
+            "shape_agent": "ИИ-агент под эту задачу",
+            "shape_ai": "Автоматизация с ИИ",
+            "shape_db": "Учёт / база под эту задачу",
+            "shape_integration": "Связка систем",
+            "shape_api": "API / сервис под эту задачу",
         }
     _ground_labels_with_previous(merged, brief=brief, previous=previous)
     _ = product_type
@@ -753,10 +745,7 @@ def heuristic_extra_topics(
     extras: list[TzTopic] = []
     if "booking" in capabilities and "custom:who_books" not in existing_ids:
         question = (
-            f"В «{brief}» кто выбирает слот: клиент сам или администратор "
-            "после звонка/сообщения?"
-            if brief
-            else "Кто выбирает слот: клиент сам в продукте или администратор после заявки?"
+            "Кто выбирает слот: клиент сам или администратор после звонка/сообщения?"
         )
         extras.append(
             TzTopic(
@@ -776,11 +765,7 @@ def heuristic_extra_topics(
             )
         )
     if "integration" in capabilities and "custom:systems_pair" not in existing_ids:
-        question = (
-            f"Какие две системы связываем в «{brief}»? Напишите названия."
-            if brief
-            else "Какие системы связываем в v1? Напишите названия."
-        )
+        question = "Какие системы связываем в v1? Напишите названия."
         extras.append(
             TzTopic(
                 id="custom:systems_pair",
@@ -849,11 +834,6 @@ def topic_title(topic: TzTopic, plan: OutlinePlan | None) -> str:
 
 
 def format_outline_announcement(plan: OutlinePlan) -> str:
-    """Short consultant beat after the idea is known. No catalog title list."""
-    brief = plan.task_brief
-    if brief:
-        return (
-            f"Понял задачу про «{brief}». Дальше спрошу именно про неё — "
-            "без общей анкеты."
-        )
+    """Short consultant beat after the idea is known. No recap, no catalog list."""
+    _ = plan
     return "Понял. Дальше уточню только то, без чего нельзя собрать первую версию."
