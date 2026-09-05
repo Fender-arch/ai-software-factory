@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>ASF</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="./styles.css?v=20260905-hud" />
+  <link rel="stylesheet" href="./styles.css?v=20260906-hub" />
   <meta name="asf-mascot-riv" content="./mascot.riv" />
   <meta name="asf-mascot-sm" content="Mascot" />
 </head>
@@ -41,18 +41,18 @@
       <p class="lead">
         Идея → спецификация → MVP. Голос, кнопки, файлы.
       </p>
-      <div class="actions">
+      <div class="actions" id="home-actions">
         <button type="button" data-action="create" class="btn primary">
           <span class="btn-title">Создать проект</span>
           <span class="btn-desc">Новое интервью</span>
         </button>
-        <button type="button" data-action="change" class="btn">
+        <button type="button" data-action="change" class="btn hidden">
           <span class="btn-title">Изменить проект</span>
-          <span class="btn-desc">Подкрутить уже собранное ТЗ</span>
+          <span class="btn-desc">Дописать или поправить требования</span>
         </button>
-        <button type="button" data-action="feedback" class="btn">
+        <button type="button" data-action="feedback" class="btn hidden">
           <span class="btn-title">Замечания к реализации</span>
-          <span class="btn-desc">«Это не то» — тоже требование</span>
+          <span class="btn-desc">Наговорить или написать, что не так в MVP</span>
         </button>
       </div>
     </section>
@@ -183,6 +183,6 @@
   </div>
   <script src="./foundry.js?v=20260905-xp"></script>
   <script src="./experience.js?v=20260905-xp"></script>
-  <script src="./app.js?v=20260905-hud"></script>
+  <script src="./app.js?v=20260906-hub"></script>
 </body>
 </html>

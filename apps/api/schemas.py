@@ -25,6 +25,7 @@ class ProjectRead(BaseModel):
     product_type: str | None
     customer_telegram_id: str | None
     created_at: datetime
+    mvp_review_sent: bool = False
 
     model_config = {"from_attributes": True}
 

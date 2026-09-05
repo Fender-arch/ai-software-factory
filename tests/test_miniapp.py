@@ -29,7 +29,7 @@ def test_miniapp_static_served(client):
     assert "Ещё пара уточнений" in js.text
     assert "Сбор требований: ${percent}%" in js.text
     assert "из ${total}" not in js.text
-    assert "20260905-hud" in res.text
+    assert "20260906-hub" in res.text
     assert "customerWorkspaceHud" in js.text
     assert "customer_hud" in js.text
     assert "ждём ваш ответ" in js.text
@@ -94,6 +94,8 @@ def test_miniapp_js_uses_telegram_fullscreen_and_groq_voice(client):
     assert "contentSafeAreaInset" in js.text
     assert "applyWelcomeGate" in js.text
     assert "openChoicesModal" in js.text
+    assert "homeActionsFromProjects" in js.text
+    assert "refreshHome" in js.text
 
 
 def test_miniapp_experience_layer_slot_and_calm_mode(client):
