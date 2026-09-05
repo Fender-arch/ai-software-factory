@@ -5,7 +5,7 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.6 |
+| Version | 0.7 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -22,7 +22,7 @@ ADR: [DEC-009](../../decisions/DEC-009-Agent-Toolkit-Reuse.md). Экономия
 | `core/estimate.py` + `core/client_estimate.py` | Две оценки: эвристика владельца и рыночная смета клиенту (DEC-012) |
 | `docs/13-Dev-Setup.md` | Запуск / тесты / env |
 | `docs/16-VPS-Deploy.md` | VPS рядом с существующим сайтом |
-| `decisions/` | Зафиксированные ADR (в т.ч. DEC-009–013: toolkit, mobile_native, Experience Layer, клиентская смета, factory) |
+| `decisions/` | Зафиксированные ADR (в т.ч. DEC-009–014: toolkit, mobile_native, Experience Layer, клиентская смета, factory, UX без меню каталога) |
 | `tasks/EPIC-*` | Слайсы поставки |
 | `prompts/` | Промпты режимов Coordinator (`discovery-interview.md` — интервьюер) |
 | `schemas/` | Контракты структурированного I/O |

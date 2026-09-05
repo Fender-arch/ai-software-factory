@@ -5,7 +5,7 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.9 |
+| Version | 0.10 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -21,7 +21,7 @@
 | UI заказчика | Telegram **Mini App** (fullscreen) + Bot API (aiogram) для входа/уведомлений/owner HITL; маскот через CDN `@rive-app/canvas` + SVG fallback ([DEC-011](../../decisions/DEC-011-Experience-Layer-Mascot.md)) |
 | UI владельца | Внутренняя консоль графа ТЗ (`apps/console/`, vis-network); [DEC-007](../../decisions/DEC-007-Owner-TZ-Console.md) |
 | STT | Mini App в Telegram: **Groq Whisper** по записанному аудио; Web Speech только вне Telegram. Также `whisper` (OpenAI) / `stub` |
-| LLM | Подключаемый router; `stub` или **Groq** JSON (`LLM_PROVIDER=groq`) для адаптации каркаса ТЗ / подразделов и вариантов ответа на следующий вопрос |
+| LLM | Подключаемый router; `stub` или **Groq** JSON (`LLM_PROVIDER=groq`) для ходов интервью Discovery, доп. подразделов каркаса и полировки ТЗ. `stub` = FSM-запасной путь (DEC-008/014) |
 | Coding executor | Cursor Cloud Agent при `CURSOR_API_KEY`, иначе stub + Spec Kit/экспорт задач ([DEC-013](../../decisions/DEC-013-MVP-Factory-Interventions.md)) |
 | Контейнеры | Docker + Docker Compose (локально `docker-compose.yml`; VPS `docker-compose.prod.yml`) |
 | Тесты | Pytest |

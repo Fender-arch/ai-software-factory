@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.7 |
+| Version | 0.8 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -43,7 +43,7 @@ Then three actions (Russian labels in product UI):
 
 1. Create `project` for this Telegram user.
 2. Open that project’s workspace in the Mini App.
-3. Run Discovery (text, **choice popup**, and/or voice). After create, a popup explains the interview; «Поехали» starts the first TZ question. The next assistant turn is **only the next question** (no “we recorded that” recap; options live in «Варианты ответа», not in the chat). Inside Telegram, voice is **recorded in the Mini App and sent to Groq Whisper** (`POST /stt/transcribe`); Web Speech is not used in the Telegram WebView because it often starts with no transcript. Outside Telegram (browser smoke with `?uid=`), Web Speech may still be used. The transcript is inserted into the composer, then ingest is the same as text. Interview covers TZ sections until the customer pauses, hands remaining items to the developer, or confirms «готово» after coverage and wrap-up (extra notes, budget figure, attached brief). The workspace shows a **progress bar** (gray track, green fill) for requirements gathering; `done/total` is recomputed after every answer if the outline grows (extra modules, clarify, wrap-up). After send, the workspace offers a download of the same draft TZ.
+3. Run Discovery (text, **choice popup**, and/or voice). After create, a popup explains the interview; «Поехали» starts the first TZ question. The next assistant turn is **only the next question** (no “we recorded that” recap; options live in «Варианты ответа», not in the chat). Inside Telegram, voice is **recorded in the Mini App and sent to Groq Whisper** (`POST /stt/transcribe`); Web Speech is not used in the Telegram WebView because it often starts with no transcript. Outside Telegram (browser smoke with `?uid=`), Web Speech may still be used. The transcript is inserted into the composer, then ingest is the same as text. Interview covers TZ sections until the customer pauses, hands remaining items to the developer, or confirms «готово» after coverage and wrap-up (extra notes, budget figure, attached brief). The workspace shows a **progress bar** (gray track, green fill); the label is a **percent** or «ещё пара уточнений», not «N из M» section counts (DEC-014). After send, the workspace offers a download of the same draft TZ.
 4. Bot may notify when owner review is needed or when the customer must answer.
 5. After the owner approves the draft TZ, the workspace shows a **client estimate card** (market range, “why it costs this”, disclaimer). Buttons: **Подтверждаю** / **Нужно обсудить**. Planner starts only after confirm ([DEC-012](../decisions/DEC-012-Client-Market-Estimate.md)).
 

@@ -83,11 +83,14 @@ def submit_implementation_feedback(
         ProjectStatus.WAITING_OWNER,
     )
 
+    from core.clock import message_time
+
     message = Message(
         project_id=project.id,
         kind=MessageKind.TEXT,
         role="customer",
         text=text,
+        created_at=message_time(),
         meta={"channel": "implementation_feedback", "feedback_kind": kind.value},
     )
     db.add(message)

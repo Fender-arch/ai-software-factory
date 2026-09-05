@@ -242,7 +242,13 @@ def test_discovery_does_not_finalize_after_one_answer(client):
     body = msg.json()
     assert body["project_status"] != "WAITING_OWNER"
     assert body["discovery_stage"] != DiscoveryStage.READY_FOR_OWNER.value
-    assert "Раздел ТЗ" in (body["discovery_reply"] or "")
+    reply = body["discovery_reply"] or ""
+    assert reply
+    assert "Раздел ТЗ" not in reply
+    assert "раздел:" not in reply.lower()
+    from discovery.customer_copy import looks_like_catalog_menu
+
+    assert not looks_like_catalog_menu(reply)
 
 
 def test_discovery_pause_keeps_interview_open(client):
@@ -256,7 +262,13 @@ def test_discovery_pause_keeps_interview_open(client):
     assert body["discovery_stage"] != DiscoveryStage.READY_FOR_OWNER.value
     resumed = client.post(f"/projects/{pid}/messages", json={"text": "продолжить"})
     assert resumed.json()["paused"] is False
-    assert "Раздел ТЗ" in (resumed.json()["discovery_reply"] or "")
+    resumed_reply = resumed.json()["discovery_reply"] or ""
+    assert resumed_reply
+    assert "Раздел ТЗ" not in resumed_reply
+    assert "раздел:" not in resumed_reply.lower()
+    from discovery.customer_copy import looks_like_catalog_menu
+
+    assert not looks_like_catalog_menu(resumed_reply)
 
 
 def test_is_ready_intent_matches_quoted_and_chip_wording():
@@ -324,7 +336,10 @@ def test_discovery_multi_choice_covers_out_of_scope(client):
         assert fourth.json()["project_status"] != "WAITING_OWNER"
     assert fourth is not None
     assert fourth.json().get("allow_multiple") is True
-    assert "Вне объёма" in (fourth.json().get("discovery_reply") or "")
+    scope_reply = (fourth.json().get("discovery_reply") or "").lower()
+    assert fourth.json().get("topic_id") == "out_of_scope"
+    assert "не делаем" in scope_reply or "вне объёма" in scope_reply
+    assert "раздел тз" not in scope_reply
 
     fifth = client.post(
         f"/projects/{pid}/messages",
@@ -334,7 +349,7 @@ def test_discovery_multi_choice_covers_out_of_scope(client):
     body = fifth.json()
     assert body["project_status"] != "WAITING_OWNER"
     reply = body["discovery_reply"] or ""
-    assert "6/" in reply or "Сроки" in reply
+    assert "когда нужна" in reply.lower() or "срок" in reply.lower()
 
     tz_prep = _drive_discovery_to_owner(client, pid)
     assert tz_prep.json()["project_status"] == "WAITING_OWNER"
@@ -603,17 +618,26 @@ def test_waiting_owner_resumes_missing_content_topics(client):
     data = ws.json()
     assert data["status"] == "WAITING_CUSTOMER"
     reply = " ".join(m["text"] for m in data["messages"][-3:])
+    assert data.get("topic_id") in content_ids
     assert any(
-        marker in reply
+        marker in reply.lower()
         for marker in (
-            "Страницы и CTA",
-            "Имя и подпись",
-            "Услуги и портфолио",
-            "Как посетитель связывается",
-            "Референсы",
-            "Какой дизайн хотите",
+            "страниц",
+            "экран",
+            "кнопк",
+            "cta",
+            "услуг",
+            "портфол",
+            "свяжется",
+            "заявк",
+            "референс",
+            "пример",
+            "дизайн",
+            "логотип",
+            "контактн",
         )
     )
+    assert "раздел тз" not in reply.lower()
 
 
 def test_miniapp_shape_sets_task_and_pages(client):
@@ -888,11 +912,15 @@ def test_heuristic_rewrites_questions_and_option_chips():
         announce_outline=True,
     )
     blob = prompt.text.lower()
-    assert "функции записи" in blob
     assert "салон" in blob or "запис" in blob
-    assert "не спрашиваю" in blob
+    assert "раздел тз" not in blob
+    assert "не спрашиваю" not in blob
+    assert "добавляю:" not in blob
     assert "выберите вариант:" not in blob
     assert not any(ln.strip().startswith("1. ") for ln in prompt.text.splitlines())
+    from discovery.customer_copy import looks_like_catalog_menu
+
+    assert not looks_like_catalog_menu(prompt.text)
     labels = [c.label.lower() for c in prompt.choices]
     assert any("слот" in label or "запис" in label for label in labels)
 
@@ -912,15 +940,17 @@ def test_described_task_rewrites_next_question_and_chips(client):
     assert first.status_code == 201
     reply = (first.json().get("discovery_reply") or "").lower()
     assert first.json().get("topic_id") == "product_shape"
-    assert "вы описали" in reply or "по задаче" in reply
-    assert "салон" in reply or "запис" in reply
-    assert "добавляю" in reply
-    assert "не спрашиваю" in reply
+    assert "вы описали" not in reply
+    assert "уже зафиксировали" not in reply
+    assert "добавляю:" not in reply
+    assert "не спрашиваю" not in reply
+    assert "раздел тз" not in reply
+    assert "тип решения" in reply or "понял" in reply
     labels = " ".join(
         str(c.get("label") or "") for c in first.json().get("discovery_choices") or []
     ).lower()
     assert "бот" in labels
-    assert "записи" in labels or "слот" in labels or "как вы описали" in labels
+    assert "записи" in labels or "слот" in labels or "бот" in labels
     recommended = [
         c for c in first.json().get("discovery_choices") or [] if c.get("recommended")
     ]
@@ -934,7 +964,8 @@ def test_described_task_rewrites_next_question_and_chips(client):
     assert second.status_code == 201
     body = (second.json().get("discovery_reply") or "").lower()
     assert "как сейчас" in body or "запис" in body
-    assert "салон" in body or "бот" in body
+    assert "вы описали" not in body
+    assert "уже зафиксировали" not in body
 
 
 def test_previous_answers_ground_next_choice_chips():
@@ -1396,3 +1427,90 @@ def test_discovery_progress_recomputes_when_total_grows():
     assert done["done"] == done["total"]
     assert done["percent"] == 100
     assert done["remaining"] == 0
+
+
+def test_fsm_prompt_is_not_a_catalog_menu():
+    from discovery.customer_copy import looks_like_catalog_menu
+    from discovery.literacy import ITLiteracy
+    from discovery.questions import build_prompt
+
+    prompt = build_prompt(
+        stage=DiscoveryStage.UNDERSTANDING_IDEA,
+        literacy=ITLiteracy.LOW,
+        product_type="website",
+        topic_id="purpose_problem",
+    )
+    assert prompt.text
+    assert "Раздел ТЗ" not in prompt.text
+    assert "раздел:" not in prompt.text.lower()
+    assert not looks_like_catalog_menu(prompt.text)
+
+
+def test_narrow_internal_bot_skips_generic_spine_extras():
+    from discovery.adapt import heuristic_plan
+    from discovery.tz_outline import remaining_topics
+
+    plan = heuristic_plan(
+        product_type="telegram_bot",
+        task_shape="telegram_bot",
+        texts=["Нужен внутренний Telegram-бот учёта смен для своей команды."],
+    )
+    ids = {
+        topic.id
+        for topic in remaining_topics(
+            "telegram_bot",
+            task_shape="telegram_bot",
+            done_ids=set(),
+            plan=plan,
+        )
+    }
+    assert "purpose_problem" in ids
+    assert "legal_compliance" in ids
+    assert "locale_ux" not in ids
+    assert "ops_constraints" not in ids
+    assert "operator" not in ids
+    assert "public_identity" not in ids
+
+
+def test_greenfield_skips_as_is_process():
+    from discovery.adapt import heuristic_plan
+    from discovery.tz_outline import remaining_topics
+
+    plan = heuristic_plan(
+        product_type="telegram_bot",
+        task_shape="telegram_bot",
+        texts=["Делаем с нуля Telegram-бот для команды, процесса ещё нет."],
+    )
+    ids = {
+        topic.id
+        for topic in remaining_topics(
+            "telegram_bot",
+            task_shape="telegram_bot",
+            done_ids=set(),
+            plan=plan,
+        )
+    }
+    assert "as_is_process" not in ids
+    assert "must_features" in ids
+
+
+def test_message_time_stays_after_previous_stamp():
+    from datetime import datetime, timedelta, timezone
+
+    from core.clock import message_time
+
+    earlier = datetime(2026, 9, 5, 12, 0, 0, tzinfo=timezone.utc)
+    later = message_time(earlier)
+    assert later > earlier
+    assert later >= earlier + timedelta(milliseconds=1)
+
+
+def test_fsm_next_question_does_not_echo_captured_idea(client):
+    created = client.post("/projects", json={"name": "NoEcho", "product_type": "website"})
+    pid = created.json()["id"]
+    idea = "Нужен сайт-визитка для пекарни «Корица» с формой заявки на торт."
+    res = client.post(f"/projects/{pid}/messages", json={"text": idea})
+    reply = res.json().get("discovery_reply") or ""
+    assert "Вы описали" not in reply
+    assert "Корица" not in reply
+    assert "уже зафиксировали" not in reply.lower()

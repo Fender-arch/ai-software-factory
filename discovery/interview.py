@@ -48,7 +48,9 @@ from discovery.adapt import (
     adapt_topic_choices,
     infer_already_answered,
 )
+from discovery.customer_copy import PAUSE_RU, READY_TOO_EARLY_RU, REVIEW_COVERED_RU
 from discovery.questions import DiscoveryPrompt, build_prompt, first_topic
+from discovery.rephrase import extract_task_brief
 from discovery.tz_outline import (
     DISCUSS_WITH_DEVELOPER_ID,
     Choice,
@@ -510,11 +512,7 @@ def run_discovery_turn(
 
     if _PAUSE_RE.search(text) or (text.lower() in {"pause", "пауза"}):
         prompt = prompt_for(stage, tid=topic_id)
-        reply = (
-            "Интервью на паузе — черновик ТЗ пока не отправляю владельцу.\n\n"
-            "Напишите «продолжить», когда будете готовы. "
-            f"Сейчас открыт раздел: {prompt.topic_id or stage.value}."
-        )
+        reply = PAUSE_RU
         return persist_and_result(
             reply=reply,
             choices=[Choice("resume", "Продолжить интервью", exclusive=True)],
@@ -560,6 +558,9 @@ def run_discovery_turn(
             llm_result = None
         if llm_result is not None:
             return llm_result
+        logger.warning(
+            "Discovery falling back to FSM (LLM enabled but turn returned None)"
+        )
 
     if not text:
         prompt = prompt_for(stage, tid=topic_id)
@@ -642,14 +643,7 @@ def run_discovery_turn(
                 tid=leftover[0].id,
                 done_ids=set(answered) | set(escalated),
             )
-            names = "; ".join(t.title_ru for t in leftover)
-            reply = (
-                "Ещё рано закрывать ТЗ — не покрыты разделы: "
-                f"{names}.\n\n"
-                "Продолжим текущий вопрос, напишите «пауза», либо "
-                "«остальное с разработчиком».\n\n"
-                + prompt.text
-            )
+            reply = READY_TOO_EARLY_RU + "\n\n" + prompt.text
             return persist_and_result(
                 reply=reply,
                 choices=prompt.choices,
@@ -1000,7 +994,12 @@ def run_discovery_turn(
 
     done_after = set(answered) | set(escalated)
     announce = False
-    should_adapt = current_topic.id in ADAPT_AFTER_TOPIC_IDS or not plan.adapted
+    incoming_brief = extract_task_brief([text])
+    should_adapt = (
+        current_topic.id in ADAPT_AFTER_TOPIC_IDS
+        or not plan.adapted
+        or bool(incoming_brief and incoming_brief != plan.task_brief)
+    )
     if should_adapt or plan.adapted:
         previous_adapted = plan.adapted
         previous_brief = plan.task_brief
@@ -1056,7 +1055,7 @@ def run_discovery_turn(
                 paused_now=False,
                 artifact=artifact.id if artifact else None,
             )
-        return enter_review(prefix="Разделы ТЗ покрыты. Проверьте уточнения и подтвердите отправку.")
+        return enter_review(prefix=REVIEW_COVERED_RU)
 
     nxt = leftover_after[0]
     answers_now = _previous_answers(kg, project.id)

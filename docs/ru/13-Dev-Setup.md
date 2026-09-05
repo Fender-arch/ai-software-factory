@@ -5,7 +5,7 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.10 |
+| Version | 0.11 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -50,8 +50,9 @@ pytest
 | `OPENAI_API_KEY` | OpenAI Whisper при `STT_PROVIDER=whisper` (+ будущий LLM) |
 | `STT_PROVIDER` | `stub` \| `groq` \| `whisper` |
 | `STT_MODEL` | напр. `whisper-large-v3-turbo` (Groq) или `whisper-1` (OpenAI) |
-| `LLM_PROVIDER` | `stub` \| `groq` (адаптация каркаса ТЗ и вариантов ответа JSON; ходы заказчика остаются детерминированными) |
+| `LLM_PROVIDER` | `stub` \| `groq`. **Живое интервью (DEC-008/014) на `stub` не включается** — заказчик получает FSM-запасной путь. На проде: `groq` + `GROQ_API_KEY` |
 | `LLM_MODEL` | Модель Groq chat (по умолчанию `llama-3.3-70b-versatile`; для stub не нужна) |
+| `DISCOVERY_ENGINE` | `auto` \| `llm` \| `fsm` — DEC-008. `auto` = ходы LLM, если `LLM_PROVIDER` не `stub`; `fsm` принудительно запасной путь (без меню заголовков каталога, DEC-014) |
 | `OWNER_TELEGRAM_ID` | Чат владельца для HITL |
 | `ASF_ESTIMATE_HOURLY_RATE` | Ставка часа для оценки стоимости ТЗ (по умолчанию `3000`) |
 | `ASF_ESTIMATE_CURRENCY` | Валюта этой оценки (по умолчанию `RUB`) |

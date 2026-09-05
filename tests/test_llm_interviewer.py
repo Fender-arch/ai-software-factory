@@ -135,7 +135,19 @@ def test_llm_ready_for_owner_blocked_until_coverage(llm_client, monkeypatch):
     body = res.json()
     assert body["project_status"] != "WAITING_OWNER"
     assert body["discovery_stage"] != "READY_FOR_OWNER"
-    assert "осталось пройти разделы" in body["discovery_reply"]
+    reply = body["discovery_reply"]
+    assert "осталось пройти разделы" not in reply
+    assert "давай уточним ещё пару вещей" in reply.lower()
+    leftover_titles = [
+        "Цель и проблема",
+        "Тип решения",
+        "Обязательные функции",
+        "Бюджет",
+        "Контакты",
+        "Законы и персональные данные",
+    ]
+    hits = [title for title in leftover_titles if title in reply]
+    assert len(hits) < 2, f"coverage gate leaked catalog titles: {hits}"
 
 
 def test_llm_invalid_output_falls_back_to_fsm(llm_client, monkeypatch):
@@ -143,7 +155,14 @@ def test_llm_invalid_output_falls_back_to_fsm(llm_client, monkeypatch):
     project_id = _create_project(llm_client)
     res = _send(llm_client, project_id, "Хочу сайт для студии UNI4IT.")
     body = res.json()
-    assert "Раздел ТЗ" in body["discovery_reply"]
+    reply = body["discovery_reply"] or ""
+    assert reply
+    assert "Раздел ТЗ" not in reply
+    assert "раздел:" not in reply.lower()
+    assert "осталось пройти разделы" not in reply.lower()
+    from discovery.customer_copy import looks_like_catalog_menu
+
+    assert not looks_like_catalog_menu(reply)
 
 
 def test_llm_unknown_topic_ids_are_dropped(llm_client, monkeypatch):
@@ -294,3 +313,67 @@ def test_llm_quoted_ready_emits_draft_after_coverage(llm_client, monkeypatch):
     assert body["project_status"] == "WAITING_OWNER"
     assert body.get("tz_available") is True
     assert body["discovery_stage"] == "READY_FOR_OWNER"
+
+
+def test_customer_copy_strips_catalog_menu_lines():
+    from discovery.customer_copy import (
+        COVERAGE_CONTINUE_RU,
+        coverage_continue_reply,
+        looks_like_catalog_menu,
+        reply_lists_topic_titles,
+        strip_catalog_menu,
+    )
+
+    raw = (
+        "Понял, сайт для студии.\n\n"
+        "Чтобы закрыть черновик, осталось пройти разделы: "
+        "Цель и проблема; Бюджет; Контакты."
+    )
+    assert looks_like_catalog_menu(raw)
+    cleaned = strip_catalog_menu(raw)
+    assert "осталось пройти разделы" not in cleaned
+    assert "Цель и проблема" not in cleaned
+    assert "Понял, сайт для студии." in cleaned
+    soft = coverage_continue_reply(raw)
+    assert COVERAGE_CONTINUE_RU in soft
+    assert "осталось пройти разделы" not in soft
+    assert not reply_lists_topic_titles(
+        soft, ["Цель и проблема", "Бюджет", "Контакты"]
+    )
+
+
+def test_customer_copy_strips_prior_answer_echo():
+    from discovery.customer_copy import strip_prior_answer_echo
+
+    raw = (
+        "Вы описали: «бот записи в салон красоты с напоминаниями». "
+        "Какой тип решения ближе?\n"
+        "Понял."
+    )
+    cleaned = strip_prior_answer_echo(raw)
+    assert "вы описали" not in cleaned.lower()
+    assert "бот записи в салон" not in cleaned
+    assert "тип решения" in cleaned.lower()
+    assert "Понял." in cleaned
+
+
+def test_llm_next_question_does_not_echo_task_brief(llm_client, monkeypatch):
+    def echoing(system, user):
+        if "LLM interviewer" not in system:
+            return {}
+        return {
+            "reply_to_customer": (
+                "Вы описали: «сайт для студии». Когда нужна первая версия?"
+            ),
+            "captured": [],
+            "chips": [{"id": "soon", "label": "В ближайший месяц"}],
+            "next_action": "continue",
+        }
+
+    monkeypatch.setattr("discovery.interview._llm_json", echoing)
+    project_id = _create_project(llm_client)
+    res = _send(llm_client, project_id, "Хочу сайт для студии с портфолио.")
+    reply = res.json()["discovery_reply"]
+    assert "Вы описали" not in reply
+    assert "сайт для студии с портфолио" not in reply
+    assert "перв" in reply.lower() or "уточн" in reply.lower()

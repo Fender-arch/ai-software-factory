@@ -26,7 +26,14 @@ def test_miniapp_static_served(client):
     assert "renderProgress" in js.text
     assert "renderClientEstimate" in js.text
     assert "discovery_progress" in js.text
-    assert "20260905-xpce" in res.text
+    assert "Ещё пара уточнений" in js.text
+    assert "Сбор требований: ${percent}%" in js.text
+    assert "из ${total}" not in js.text
+    assert "20260905-mic" in res.text
+    assert "ensureMicStream" in js.text
+    assert "micStreamLive" in js.text
+    assert "sortThreadMessages" in js.text
+    assert "setMicTracksEnabled" in js.text
     assert "experience.js" in res.text
     assert "client-estimate" in res.text
     assert "Подтверждаю" in res.text
@@ -390,3 +397,40 @@ def test_workspace_progress_grows_when_outline_adapts(client):
     assert after["percent"] == int(round((after["done"] / after["total"]) * 100))
     assert after["percent"] < 100
     assert after["phase"] == "interview"
+
+
+def test_workspace_messages_keep_conversational_order(client):
+    created = client.post(
+        "/projects",
+        json={"name": "OrderChat", "customer_telegram_id": "8801"},
+    )
+    pid = created.json()["id"]
+    first = "Нужен сайт-визитка для пекарни с формой заявки."
+    second = "Сайт, лендинг с заявками — этого достаточно для v1."
+    client.post(
+        f"/projects/{pid}/messages",
+        params={"customer_telegram_id": "8801"},
+        json={"text": first},
+    )
+    client.post(
+        f"/projects/{pid}/messages",
+        params={"customer_telegram_id": "8801"},
+        json={"text": second},
+    )
+    ws = client.get(
+        f"/projects/{pid}/workspace",
+        params={"customer_telegram_id": "8801", "mode": "create"},
+    )
+    assert ws.status_code == 200
+    rows = ws.json()["messages"]
+    texts = [m["text"] for m in rows]
+    i1 = texts.index(first)
+    i2 = texts.index(second)
+    assert i1 < i2
+    assert rows[i1]["role"] == "customer"
+    assert rows[i1 + 1]["role"] == "assistant"
+    assert rows[i2]["role"] == "customer"
+    assert i2 + 1 < len(rows) and rows[i2 + 1]["role"] == "assistant"
+    t_cust = rows[i1]["created_at"]
+    t_bot = rows[i1 + 1]["created_at"]
+    assert t_cust <= t_bot
