@@ -700,11 +700,13 @@
     );
   }
 
-  function tzCardLead(m) {
-    if (m && m.meta_kind === "tz_updated") {
-      return "Черновик ТЗ обновлён. Получить новую версию в чат бота:";
-    }
-    return "Черновик ТЗ готов. Получить в чат бота:";
+  function tzCardTitle(m) {
+    if (m && m.meta_kind === "tz_updated") return "ТЗ обновилось";
+    return "ТЗ готово";
+  }
+
+  function tzCardLead() {
+    return "Кинуть в чат бота";
   }
 
   function appendTzFormatButtons(host) {
@@ -733,14 +735,12 @@
     if (m && m.id) div.setAttribute("data-tz-msg", String(m.id));
     const title = document.createElement("p");
     title.className = "tz-download-title";
-    title.textContent = (m && m.text) || tzCardLead(m);
+    title.textContent = tzCardTitle(m);
     div.appendChild(title);
-    if (m && m.text) {
-      const lead = document.createElement("p");
-      lead.className = "tz-download-lead";
-      lead.textContent = "Получить в чат бота";
-      div.appendChild(lead);
-    }
+    const lead = document.createElement("p");
+    lead.className = "tz-download-lead";
+    lead.textContent = tzCardLead();
+    div.appendChild(lead);
     appendTzFormatButtons(div);
     thread.appendChild(div);
   }
@@ -765,7 +765,7 @@
       thread.appendChild(div);
     });
     if (state.tzAvailable && cards === 0 && !state.welcomePending) {
-      renderTzCard(thread, { text: tzCardLead(null), meta_kind: "tz_download" }, true);
+      renderTzCard(thread, { meta_kind: "tz_download" }, true);
     }
   }
 

@@ -5,13 +5,13 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.12 |
+| Version | 0.13 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
 ## Назначение
 
-Внутренний UI **владельца / аналитика** для просмотра собранных требований ТЗ в виде графа. UI заказчика остаётся Telegram Mini App. HITL-утверждение черновика ТЗ остаётся в боте владельца. В шапке — wordmark UNI4IT (`apps/console/brand/`, см. `docs/17-Brand-Assets.md`).
+Внутренний UI **владельца / аналитика** для просмотра собранных требований ТЗ в виде графа. UI заказчика остаётся Telegram Mini App. HITL-утверждение черновика ТЗ остаётся в боте владельца. В шапке — wordmark Uni 4 IT (`apps/console/brand/`, см. `docs/17-Brand-Assets.md`).
 
 ADR: [DEC-007](../../decisions/DEC-007-Owner-TZ-Console.md).
 

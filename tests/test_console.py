@@ -54,10 +54,12 @@ def test_console_static_served(client):
     assert "новое" in res.text
     assert "foundry-field" in res.text
     assert "logo-wordmark-on-dark.svg" in res.text
-    assert "UNI4IT" in res.text
+    assert "Uni 4 IT" in res.text
     logo = client.get("/console/brand/logo-wordmark-on-dark.svg")
     assert logo.status_code == 200
-    assert "#9B98E1" in logo.text
+    assert "#00D2FF" in logo.text
+    assert "#9D50BB" in logo.text
+    assert "#9B98E1" not in logo.text
     js = client.get("/console/app.js")
     assert js.status_code == 200
     assert "estimateHtml" in js.text
@@ -70,7 +72,9 @@ def test_console_static_served(client):
     assert css.status_code == 200
     assert "min(760px" in css.text
     assert "--brand-navy" in css.text
-    assert "--brand-lavender" in css.text
+    assert "--brand-cyan" in css.text
+    assert "--brand-purple" in css.text
+    assert "--brand-lavender" not in css.text
     assert "min(380px" not in css.text
     assert "Authorization" in js.text
     assert "Токен неверный" in js.text

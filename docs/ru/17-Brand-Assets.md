@@ -1,11 +1,11 @@
-# 17 — Бренд-ассеты UNI4IT
+# 17 — Бренд-ассеты Uni 4 IT
 
 > Перевод. Канон: [`docs/17-Brand-Assets.md`](../17-Brand-Assets.md)
 
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.1 |
+| Version | 0.2 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -17,20 +17,20 @@
 
 | Файл | Назначение |
 |------|------------|
-| `logo-full.svg` | Слово + подпись «УНИВЕРСАЛЬНЫЕ РЕШЕНИЯ ДЛЯ IT» (navy) |
+| `logo-full.svg` | Знак + «Uni 4 IT» + подпись UNIVERSAL IT SOLUTIONS (тёмные буквы, без подложки) |
 | `logo-full-on-dark.svg` | Тот же lockup, светлые буквы для тёмного foundry |
-| `logo-wordmark.svg` / `logo-wordmark-on-dark.svg` | UNI4IT без подписи |
-| `logo-mark.svg` | Лавандовая **4** + спиральный рог (шапка чата) |
-| `mascot-bust.png` | Компаньон Experience Layer (только персонаж, прозрачный фон) |
-| `mascot-head.png` | Более плотный кроп того же бюста |
+| `logo-wordmark.svg` / `logo-wordmark-on-dark.svg` | Знак + Uni 4 IT без подписи |
+| `logo-mark.svg` | Пиксельный знак U+4, градиент cyan→purple (шапка чата) |
+| `mascot-bust.png` | Компаньон Experience Layer (весь персонаж, прозрачный фон) |
+| `mascot-head.png` | Более плотный кроп головы |
 
-Navy `#222B45` · lavender `#9B98E1`. На тёмном фоне буквы кремовые; **4** и рог остаются лавандовыми. Имена `--tg-theme-*` не перезаписывать — только читать как fallback (`--tg-bg` / `--tg-text`) рядом с `--brand-navy` / `--brand-lavender`.
+Cyan `#00D2FF` · purple `#9D50BB`. Navy-прямоугольника под логотипом нет — фон приложения уже тёмный. Имена `--tg-theme-*` не перезаписывать — только читать как fallback (`--tg-bg` / `--tg-text`) рядом с `--brand-cyan` / `--brand-purple`.
 
 ## Mini App
 
 - Старт: полный lockup (на низкой высоте — wordmark)
 - Шапка workspace: компактный mark, слот маскота не занимает
-- Маскот: робот-единорог UNI4IT (PNG); CSS-реакции на те же биты DEC-011 (`idle`, `listening`, `thinking`, `got_*`, `draft_ready`, `error`). `mascot.riv` по-прежнему опционален. Редактор Rive для этого слайса не нужен.
+- Маскот: единорог Uni 4 IT в худи и VR-visor; CSS-реакции на те же биты DEC-011 (`idle`, `listening`, `thinking`, `got_*`, `draft_ready`, `error`) — дыхание, взгляд, периодический взмах. `mascot.riv` по-прежнему опционален. Редактор Rive для этого слайса не нужен.
 
 ## Консоль
 
