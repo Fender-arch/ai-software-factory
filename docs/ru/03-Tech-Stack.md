@@ -5,8 +5,8 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.7 |
-| Updated | 2026-08-28 |
+| Version | 0.8 |
+| Updated | 2026-09-05 |
 | Owner | ASF Core |
 
 Зафиксированные выборы для MVP. Альтернативы — в Future, не в бесконечных bake-off.
@@ -18,7 +18,7 @@
 | ORM / миграции | SQLAlchemy 2 + Alembic |
 | БД | PostgreSQL 16 (`entity`, `relation`, JSONB) |
 | Очередь / кэш | **Нет в MVP** (статусы в Postgres); Redis = Future |
-| UI заказчика | Telegram **Mini App** (fullscreen) + Bot API (aiogram) для входа/уведомлений/owner HITL |
+| UI заказчика | Telegram **Mini App** (fullscreen) + Bot API (aiogram) для входа/уведомлений/owner HITL; маскот через CDN `@rive-app/canvas` + SVG fallback ([DEC-011](../../decisions/DEC-011-Experience-Layer-Mascot.md)) |
 | UI владельца | Внутренняя консоль графа ТЗ (`apps/console/`, vis-network); [DEC-007](../../decisions/DEC-007-Owner-TZ-Console.md) |
 | STT | Mini App в Telegram: **Groq Whisper** по записанному аудио; Web Speech только вне Telegram. Также `whisper` (OpenAI) / `stub` |
 | LLM | Подключаемый router; `stub` или **Groq** JSON (`LLM_PROVIDER=groq`) для адаптации каркаса ТЗ / подразделов и вариантов ответа на следующий вопрос |

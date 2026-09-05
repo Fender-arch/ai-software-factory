@@ -1,12 +1,20 @@
 (() => {
-  const reduced =
-    window.matchMedia &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let fieldCtl = null;
+  let pulseUntil = 0;
+  let pulseKind = "";
+
+  function motionBlocked() {
+    if (document.documentElement.classList.contains("asf-calm")) return true;
+    if (document.documentElement.classList.contains("asf-reduced")) return true;
+    return Boolean(
+      window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
+  }
 
   function startField(canvas) {
-    if (!canvas || reduced) return { stop() {} };
+    if (!canvas) return { stop() {}, setPaused() {} };
     const ctx = canvas.getContext("2d", { alpha: true });
-    if (!ctx) return { stop() {} };
+    if (!ctx) return { stop() {}, setPaused() {} };
 
     const small =
       Math.min(window.innerWidth || 400, window.innerHeight || 400) < 640;
@@ -25,7 +33,7 @@
 
     let raf = 0;
     let t = 0;
-    let running = true;
+    let running = !motionBlocked();
 
     function size() {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -74,10 +82,14 @@
           ctx.lineTo(b.x, b.y);
           ctx.stroke();
         }
-        const r = 1.4 + (a.z + 1.2) * 0.9;
-        ctx.fillStyle = a.ember
+        const pulsing = pulseUntil > Date.now();
+        const r = 1.4 + (a.z + 1.2) * 0.9 + (pulsing && a.ember ? 0.6 : 0);
+        let fill = a.ember
           ? "rgba(255, 150, 72, 0.85)"
           : "rgba(120, 236, 240, 0.8)";
+        if (pulsing && pulseKind === "error" && a.ember) fill = "rgba(255, 107, 44, 0.95)";
+        if (pulsing && pulseKind === "draft_ready" && !a.ember) fill = "rgba(232, 195, 106, 0.95)";
+        ctx.fillStyle = fill;
         ctx.beginPath();
         ctx.arc(a.x, a.y, r, 0, Math.PI * 2);
         ctx.fill();
@@ -86,7 +98,7 @@
     }
 
     function onVis() {
-      running = document.visibilityState !== "hidden";
+      running = document.visibilityState !== "hidden" && !motionBlocked();
       if (running) {
         window.cancelAnimationFrame(raf);
         raf = window.requestAnimationFrame(frame);
@@ -95,16 +107,35 @@
 
     window.addEventListener("resize", size);
     document.addEventListener("visibilitychange", onVis);
-    raf = window.requestAnimationFrame(frame);
-    return {
+    if (running) raf = window.requestAnimationFrame(frame);
+    const ctl = {
       stop() {
         running = false;
         window.cancelAnimationFrame(raf);
         window.removeEventListener("resize", size);
         document.removeEventListener("visibilitychange", onVis);
       },
+      setPaused(paused) {
+        running = !paused && document.visibilityState !== "hidden";
+        if (running) {
+          window.cancelAnimationFrame(raf);
+          raf = window.requestAnimationFrame(frame);
+        }
+      },
     };
+    fieldCtl = ctl;
+    return ctl;
   }
 
-  window.ASFFoundry = { startField };
+  function setPaused(paused) {
+    if (fieldCtl && typeof fieldCtl.setPaused === "function") fieldCtl.setPaused(paused);
+  }
+
+  function pulse(kind) {
+    if (motionBlocked()) return;
+    pulseKind = String(kind || "");
+    pulseUntil = Date.now() + 720;
+  }
+
+  window.ASFFoundry = { startField, setPaused, pulse };
 })();

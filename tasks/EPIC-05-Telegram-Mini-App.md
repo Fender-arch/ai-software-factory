@@ -31,3 +31,9 @@ APIs: `GET /projects?customer_telegram_id=`, `GET /projects/{id}/workspace`, `PO
 - [x] Mini App chat: gray track + green fill; bar rescales when more TZ sections appear
 
 Verified: `pytest` covers workspace progress growth after Mini App outline adapt.
+
+## v0.3 — Experience Layer mascot (DEC-011)
+
+- [x] Client event bus + mascot slot in Mini App workspace (Rive CDN progressive, SVG fallback)
+- [x] «Спокойный режим» + `prefers-reduced-motion`; Discovery/API contracts unchanged
+- [x] Docs: DEC-011, `docs/14`, `miniapp-ux.mdc`; smoke tests for slot / calm flag

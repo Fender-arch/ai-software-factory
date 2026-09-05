@@ -29,7 +29,7 @@ Vibe-coding defaults to the same landing: Inter, indigo/purple gradient, `gray-8
 - Distinct **brand tokens** (background, ink, accent, danger, radius, motion) named in `DESIGN.md`
 - One unexpected pairing (type, color temperature, or layout rhythm) that a stranger could describe
 - Real content hierarchy: type scale and spacing do the work, not more boxes
-- Motion with intent (one signature interaction). Mini App: see `.cursor/rules/miniapp-ux.mdc` (mascot / Experience Layer is Future)
+- Motion with intent (one signature interaction). Mini App: see `.cursor/rules/miniapp-ux.mdc` (Experience Layer mascot is DEC-011; keep gold/cyan, honor calm / reduced motion)
 
 ## ASF itself
 

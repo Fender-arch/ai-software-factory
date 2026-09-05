@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.7 |
-| Updated | 2026-08-28 |
+| Version | 0.8 |
+| Updated | 2026-09-05 |
 | Owner | ASF Core |
 
 Locked choices for MVP. Alternatives belong in Future, not in endless bake-offs.
@@ -16,7 +16,7 @@ Locked choices for MVP. Alternatives belong in Future, not in endless bake-offs.
 | ORM / migrations | SQLAlchemy 2 + Alembic |
 | Database | PostgreSQL 16 (`entity`, `relation`, JSONB) |
 | Queue / cache | **None in MVP** (Postgres statuses); Redis = Future |
-| Customer UI | Telegram **Mini App** (fullscreen) + Bot API (aiogram) for entry/notifications/owner HITL |
+| Customer UI | Telegram **Mini App** (fullscreen) + Bot API (aiogram) for entry/notifications/owner HITL; mascot via `@rive-app/canvas` CDN + SVG fallback ([DEC-011](../decisions/DEC-011-Experience-Layer-Mascot.md)) |
 | Owner UI | Internal TZ graph console (`apps/console/`, vis-network); [DEC-007](../decisions/DEC-007-Owner-TZ-Console.md) |
 | STT | Mini App in Telegram: **Groq Whisper** via recorded audio; Web Speech only outside Telegram. Also `whisper` (OpenAI) / `stub` |
 | LLM | Pluggable router; `stub` or **Groq** JSON (`LLM_PROVIDER=groq`) to adapt TZ outline, extra subsections, and next-question choice chips |

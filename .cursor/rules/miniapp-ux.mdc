@@ -1,5 +1,5 @@
 ---
-description: Telegram Mini App UX — compact workspace, future mascot events
+description: Telegram Mini App UX — compact workspace, Experience Layer mascot
 globs: "apps/miniapp/**/*.{js,css,html}"
 alwaysApply: false
 ---
@@ -9,5 +9,5 @@ alwaysApply: false
 - Customer UI is Russian. Keep the compact workspace: thread + composer 20–25%, options in the popup — see `docs/14-Telegram-Customer-UX.md`.
 - Do not turn the Mini App into a marketing landing or a second owner console.
 - Motion stays purposeful (existing gold/cyan voice). No generic AI-orb chrome.
-- **Experience Layer / mascot events (Rive or similar):** Future. Do not add a mascot runtime, Rive dependency, or event bus in MVP. If a TZ later asks for delight beats, file `backlog/Future.md` or wait for an ADR.
+- **Experience Layer (DEC-011):** Rive runtime (`@rive-app/canvas`, CDN, progressive) + client event bus for the interview mascot is allowed. Events: `idle`, `listening`/`thinking`, `got_answer`, `got_voice`, `got_file`, `draft_ready`, `error`. Honor `prefers-reduced-motion` and «Спокойный режим» (`localStorage`). Do not change Discovery/API contracts, secrets, or HITL. No lip-sync/TTS puppet in this slice.
 - Visual rules: `.cursor/skills/anti-slop-design/SKILL.md`.
