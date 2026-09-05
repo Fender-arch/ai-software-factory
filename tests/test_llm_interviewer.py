@@ -349,6 +349,10 @@ def test_customer_workspace_hud_is_russian_not_raw_codes():
 
     assert customer_workspace_hud(
         status=ProjectStatus.WAITING_CUSTOMER,
+        stage=DiscoveryStage.CUSTOMER_INTRO,
+    ) == "знакомимся"
+    assert customer_workspace_hud(
+        status=ProjectStatus.WAITING_CUSTOMER,
         stage=DiscoveryStage.UNDERSTANDING_IDEA,
     ) == "уточняем идею"
     assert customer_workspace_hud(

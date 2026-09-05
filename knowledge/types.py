@@ -15,6 +15,8 @@ ENTITY_TYPES: Final[frozenset[str]] = frozenset(
         "Artifact",
         "Risk",
         "Feedback",
+        "Customer",
+        "Organization",
     }
 )
 

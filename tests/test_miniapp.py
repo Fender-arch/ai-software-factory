@@ -216,7 +216,7 @@ def test_create_project_welcome_and_russian_question(client):
     assert any(ch.isalpha() and ord(ch) > 127 for ch in first_q)
     assert "выберите вариант" not in first_q.lower()
     assert ws.json().get("discovery_choices")
-    assert ws.json().get("allow_multiple") is True
+    assert ws.json().get("topic_id") == "customer_intro"
     hud = ws.json().get("customer_hud") or ""
     assert hud
     assert "waiting" not in hud.lower()
@@ -332,6 +332,9 @@ def test_workspace_and_message(client):
     )
     assert forbidden.status_code == 403
 
+    from tests.test_discovery import _complete_intro
+
+    _complete_intro(client, pid)
     msg = client.post(
         f"/projects/{pid}/messages",
         params={"customer_telegram_id": "2002"},

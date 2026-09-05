@@ -225,6 +225,9 @@ def test_discovery_api_includes_coverage(client):
         "/projects", json={"name": "Covered Site", "product_type": "website"}
     )
     project_id = created.json()["id"]
+    from tests.test_discovery import _complete_intro
+
+    _complete_intro(client, project_id)
     client.post(
         f"/projects/{project_id}/messages",
         json={

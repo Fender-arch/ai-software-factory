@@ -135,7 +135,8 @@ _PROJECT_STATUS_HUD_RU = {
 }
 
 _DISCOVERY_STAGE_HUD_RU = {
-    "PROJECT_CREATED": "уточняем идею",
+    "PROJECT_CREATED": "знакомимся",
+    "CUSTOMER_INTRO": "знакомимся",
     "UNDERSTANDING_IDEA": "уточняем идею",
     "BUSINESS_CONTEXT": "уточняем задачу",
     "USERS": "кто будет пользоваться",
