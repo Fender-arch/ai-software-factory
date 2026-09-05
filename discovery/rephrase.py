@@ -305,12 +305,43 @@ def _fill(template: str, brief: str) -> str:
     return template.replace("{brief}", brief).strip()
 
 
+_INTRO_BRIEF_NOISE = (
+    "меня зовут",
+    "как обращаться",
+    "нет названия компании",
+    "я физлицо",
+    "нет готовой постановки",
+)
+_PRODUCT_BRIEF_HINTS = (
+    "нужен",
+    "нужна",
+    "сайт",
+    "бот",
+    "приложение",
+    "android",
+    "ios",
+    "лендинг",
+    "мини",
+    "api",
+    "автоматиз",
+)
+
+
+def _looks_like_intro_blob(text: str) -> bool:
+    low = (text or "").lower()
+    return any(token in low for token in _INTRO_BRIEF_NOISE) and not any(
+        hint in low for hint in _PRODUCT_BRIEF_HINTS
+    )
+
+
 def extract_task_brief(texts: list[str]) -> str:
     """Short phrase of the customer's idea (first substantial answer wins)."""
     candidates: list[str] = []
     for text in texts:
         compact = " ".join((text or "").split())
         if len(compact) < 18 or is_underspecified(compact):
+            continue
+        if _looks_like_intro_blob(compact):
             continue
         sentence = re.split(r"[.!?\n]", compact, maxsplit=1)[0].strip()
         blob = sentence if len(sentence) >= 18 else compact
@@ -319,6 +350,13 @@ def extract_task_brief(texts: list[str]) -> str:
             candidates.append(blob)
     if not candidates:
         return ""
+    productish = [
+        item
+        for item in candidates
+        if any(hint in item.lower() for hint in _PRODUCT_BRIEF_HINTS)
+    ]
+    if productish:
+        candidates = productish
     best = candidates[0]
     for item in candidates[1:]:
         if len(item) > len(best) + 40:

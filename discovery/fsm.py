@@ -7,6 +7,7 @@ from core.models import ProjectStatus
 
 class DiscoveryStage(str, Enum):
     PROJECT_CREATED = "PROJECT_CREATED"
+    CUSTOMER_INTRO = "CUSTOMER_INTRO"
     UNDERSTANDING_IDEA = "UNDERSTANDING_IDEA"
     BUSINESS_CONTEXT = "BUSINESS_CONTEXT"
     USERS = "USERS"
@@ -91,5 +92,5 @@ def status_after_customer_message(current: ProjectStatus) -> ProjectStatus:
 
 def stage_after_project_created(current: DiscoveryStage) -> DiscoveryStage:
     if current == DiscoveryStage.PROJECT_CREATED:
-        return DiscoveryStage.UNDERSTANDING_IDEA
+        return DiscoveryStage.CUSTOMER_INTRO
     return current

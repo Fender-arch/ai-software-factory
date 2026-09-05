@@ -13,6 +13,8 @@ LICENSE_URL = "https://cdn.jsdelivr.net/npm/lucide-static@0.511.0/LICENSE"
 
 # TZ topics (all product types) + stages + product hubs + fallbacks
 TOPICS = {
+    "customer_intro": "contact",
+    "have_brief": "clipboard-check",
     "purpose_problem": "target",
     "product_shape": "app-window",
     "as_is_process": "git-branch",
@@ -54,6 +56,7 @@ TOPICS = {
 
 STAGES = {
     "PROJECT_CREATED": "flag",
+    "CUSTOMER_INTRO": "contact",
     "UNDERSTANDING_IDEA": "lightbulb",
     "BUSINESS_CONTEXT": "briefcase",
     "USERS": "users",

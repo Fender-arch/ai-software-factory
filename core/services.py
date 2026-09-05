@@ -61,7 +61,7 @@ def create_project(
     db.add(project)
     db.flush()
 
-    stage = DiscoveryStage.UNDERSTANDING_IDEA
+    stage = DiscoveryStage.CUSTOMER_INTRO
     literacy = ITLiteracy.LOW
     prompt = build_prompt(
         stage=stage,
@@ -549,7 +549,7 @@ async def ingest_file_message(
     assistant_message: Message | None = None
     if run_discovery:
         discovery = run_discovery_turn(
-            db, project, customer_text, source_message_id=message.id
+            db, project, note, source_message_id=message.id
         )
         assistant_message = _store_assistant_reply(
             db, project, discovery, after=message.created_at

@@ -18,7 +18,9 @@ from core.models import (
     TZ_DOWNLOAD_STATUSES,
 )
 from discovery.artifacts import render_draft_tz
+from discovery.brief_ingest import looks_like_brief_document, merge_brief_into_graph
 from discovery.closing import (
+    CLOSING_BRIEF,
     closing_ids,
     closing_item_by_id,
     looks_like_file_answer,
@@ -442,6 +444,12 @@ def run_discovery_turn(
         clarify_current = None
         if not closing_initialized:
             closing_queue = closing_ids()
+            if (
+                "have_brief" in answered
+                or "have_brief" in escalated
+                or "source_brief" in answered
+            ):
+                closing_queue = [cid for cid in closing_queue if cid != CLOSING_BRIEF]
             closing_initialized = True
         if closing_queue:
             closing_current = closing_queue[0]
@@ -536,6 +544,55 @@ def run_discovery_turn(
             current_topic=prompt.topic_id,
             current_stage=prompt.stage,
         )
+
+    def apply_brief_merge() -> DiscoveryTurnResult | None:
+        nonlocal plan, answered, extracted_ids
+        if not text or "не разобрано автоматически" in text:
+            return None
+        from discovery.brief_ingest import strip_file_prefix
+
+        body = strip_file_prefix(text)
+        is_file = looks_like_file_answer(text)
+        if not (looks_like_brief_document(text) or (is_file and len(body) >= 40)):
+            return None
+        merge = merge_brief_into_graph(
+            kg,
+            project,
+            text,
+            plan=plan,
+            done_ids=set(answered) | set(escalated),
+            source_message_id=source_message_id,
+            llm_json=_llm_json,
+            task_shape=task_shape,
+        )
+        if merge.plan is not None:
+            plan = merge.plan
+        extracted_ids.extend(merge.requirement_ids)
+        for tid in merge.filled_topic_ids:
+            if tid not in answered and tid not in escalated:
+                answered.append(tid)
+        leftover = remaining_topics(
+            project.product_type,
+            task_shape=task_shape,
+            done_ids=set(answered) | set(escalated),
+            plan=plan,
+        )
+        if not leftover:
+            return enter_review(prefix=merge.reply_ru)
+        nxt = leftover[0]
+        prompt = prompt_for(nxt.stage, tid=nxt.id)
+        return persist_and_result(
+            reply=merge.reply_ru,
+            choices=prompt.choices,
+            allow_multiple=prompt.multi,
+            current_topic=prompt.topic_id,
+            current_stage=prompt.stage,
+            paused_now=False,
+        )
+
+    brief_turn = apply_brief_merge()
+    if brief_turn is not None:
+        return brief_turn
 
     # DEC-008: LLM interviewer drives the turn. Deterministic intents
     # (pause/resume above; escalate-rest/ready below) stay with the FSM.
@@ -955,7 +1012,7 @@ def run_discovery_turn(
                 return persist_and_result(
                     reply=(
                         "Нужно конкретнее — этой формулировки недостаточно, "
-                        "чтобы закрыть раздел ТЗ. "
+                        "чтобы зафиксировать ответ. "
                         + hint
                         + "\n\n"
                         + prompt.text
@@ -978,6 +1035,29 @@ def run_discovery_turn(
             )
             extracted_ids.append(req.id)
             answered.append(current_topic.id)
+            if current_topic.id == "customer_intro":
+                from discovery.stakeholders import (
+                    parse_stakeholder_text,
+                    upsert_stakeholders,
+                )
+
+                facts = parse_stakeholder_text(
+                    description,
+                    choice_ids=[c.id for c in regular_hits],
+                )
+                upsert_stakeholders(kg, project, facts)
+                if facts.has_contact() and "contacts" not in answered:
+                    contact_req = _record_requirement(
+                        kg,
+                        project=project,
+                        stage=current_topic.stage,
+                        text=facts.contact_line_ru() or facts.summary_en(),
+                        product_type=project.product_type,
+                        source_message_id=source_message_id,
+                        topic_id="contacts",
+                    )
+                    extracted_ids.append(contact_req.id)
+                    answered.append("contacts")
             if current_topic.id == "timeline":
                 override = design_deadline_override(description)
                 if override:

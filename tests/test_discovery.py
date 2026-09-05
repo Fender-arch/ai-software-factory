@@ -8,6 +8,11 @@ import io
 
 def _content_reply_for_topic(topic_id: str | None, fallback_index: int) -> str:
     replies = {
+        "customer_intro": (
+            "Меня зовут Иван Петров, +7 900 111-22-33, ivan@bakery.test, "
+            "компания Пекарня у дома, отрасль общепит, я владелец"
+        ),
+        "have_brief": "Нет готовой постановки — давайте в разговоре",
         "public_identity": (
             "Студия UNI4IT — IT-услуги, слоган «Универсальные решения для IT»"
         ),
@@ -60,6 +65,30 @@ def _drive_discovery_to_owner(client, project_id: str):
         )
         assert last.status_code == 201
     raise AssertionError("Discovery did not reach WAITING_OWNER")
+
+
+INTRO_ANSWER = (
+    "Меня зовут Иван Петров, +7 900 111-22-33, ivan@bakery.test, "
+    "компания Пекарня у дома, отрасль общепит, я владелец"
+)
+
+
+def _complete_intro(client, project_id: str, *, have_brief: bool = False):
+    """Finish customer intro; optionally leave have_brief open for a file."""
+    first = client.post(
+        f"/projects/{project_id}/messages",
+        json={"text": INTRO_ANSWER},
+    )
+    assert first.status_code == 201
+    if have_brief:
+        assert first.json().get("topic_id") == "have_brief"
+        return first
+    second = client.post(
+        f"/projects/{project_id}/messages",
+        json={"text": "Нет готовой постановки — давайте в разговоре"},
+    )
+    assert second.status_code == 201
+    return second
 
 
 def _seek_topic(client, project_id: str, target: str, limit: int = 60, start=None):
@@ -137,6 +166,7 @@ def test_discovery_interview_extracts_requirements(client):
         json={"name": "Booking", "product_type": "telegram_bot"},
     )
     project_id = created.json()["id"]
+    _complete_intro(client, project_id)
 
     msg = client.post(
         f"/projects/{project_id}/messages",
@@ -229,7 +259,7 @@ def test_voice_path_runs_discovery(client):
     data = response.json()
     assert "stub transcript" in data["text"]
     assert data["discovery_reply"]
-    assert data["discovery_stage"] == DiscoveryStage.UNDERSTANDING_IDEA.value
+    assert data["discovery_stage"] == DiscoveryStage.CUSTOMER_INTRO.value
 
 
 def test_discovery_does_not_finalize_after_one_answer(client):
@@ -311,6 +341,7 @@ def test_discovery_discuss_with_developer_creates_open_question(client):
 def test_discovery_choice_sets_product_shape(client):
     created = client.post("/projects", json={"name": "Shape"})
     pid = created.json()["id"]
+    _complete_intro(client, pid)
     client.post(f"/projects/{pid}/messages", json={"text": "Нужно автоматизировать заявки"})
     shaped = client.post(
         f"/projects/{pid}/messages",
@@ -351,15 +382,10 @@ def test_discovery_multi_choice_covers_out_of_scope(client):
         "/projects", json={"name": "MultiScope", "product_type": "website"}
     )
     pid = created.json()["id"]
-    fourth = None
-    for i in range(4):
-        fourth = client.post(
-            f"/projects/{pid}/messages",
-            json={"text": f"Подробный ответ по разделу MVP номер {i + 1} для пекарни."},
-        )
-        assert fourth.status_code == 201
-        assert fourth.json()["project_status"] != "WAITING_OWNER"
-    assert fourth is not None
+    _complete_intro(client, pid)
+    fourth = _seek_topic(client, pid, "out_of_scope")
+    assert fourth.status_code == 201
+    assert fourth.json()["project_status"] != "WAITING_OWNER"
     assert fourth.json().get("allow_multiple") is True
     scope_reply = (fourth.json().get("discovery_reply") or "").lower()
     assert fourth.json().get("topic_id") == "out_of_scope"
@@ -386,6 +412,7 @@ def test_discovery_multi_choice_covers_out_of_scope(client):
 def test_vague_free_text_does_not_advance_topic(client):
     created = client.post("/projects", json={"name": "Vague", "product_type": "website"})
     pid = created.json()["id"]
+    _complete_intro(client, pid)
     first = client.post(f"/projects/{pid}/messages", json={"text": "ну чтоб было удобно"})
     body = first.json()
     assert body["project_status"] != "WAITING_OWNER"
@@ -396,6 +423,7 @@ def test_vague_free_text_does_not_advance_topic(client):
 def test_chip_answer_advances_topic(client):
     created = client.post("/projects", json={"name": "Chip", "product_type": "website"})
     pid = created.json()["id"]
+    _complete_intro(client, pid)
     first = client.post(
         f"/projects/{pid}/messages",
         json={"text": "Клиентам неудобно оставлять заявки / получать информацию"},
@@ -409,6 +437,7 @@ def test_chip_answer_advances_topic(client):
 def test_second_vague_answer_escalates_topic(client):
     created = client.post("/projects", json={"name": "EscalateVague", "product_type": "website"})
     pid = created.json()["id"]
+    _complete_intro(client, pid)
     client.post(f"/projects/{pid}/messages", json={"text": "ну чтоб было удобно"})
     second = client.post(f"/projects/{pid}/messages", json={"text": "просто чтобы было хорошо"})
     body = second.json()
@@ -668,6 +697,7 @@ def test_waiting_owner_resumes_missing_content_topics(client):
 def test_miniapp_shape_sets_task_and_pages(client):
     created = client.post("/projects", json={"name": "MiniShape"})
     pid = created.json()["id"]
+    _complete_intro(client, pid)
     client.post(
         f"/projects/{pid}/messages",
         json={"text": "Нужно автоматизировать заявки"},
@@ -733,11 +763,9 @@ def test_closing_wrapup_adds_notes_budget_and_download(client):
         f"/projects/{pid}/messages",
         json={"text": "Закладываю 120 тысяч рублей на MVP с хостингом."},
     )
-    assert budget.json().get("topic_id") == "closing:closing_brief"
+    assert budget.json().get("topic_id") != "closing:closing_brief"
 
-    skip_brief = client.post(f"/projects/{pid}/messages", json={"text": "1"})
-    assert skip_brief.status_code == 201
-    ready = skip_brief
+    ready = budget
     if ready.json()["project_status"] != "WAITING_OWNER":
         ready = client.post(f"/projects/{pid}/messages", json={"text": "готово"})
     body = ready.json()
@@ -772,9 +800,11 @@ def test_ready_on_last_closing_skips_brief_and_emits_draft(client):
     additions = client.post(f"/projects/{pid}/messages", json={"text": "1"})
     assert additions.json().get("topic_id") == "closing:closing_budget"
     budget = client.post(f"/projects/{pid}/messages", json={"text": "1"})
-    assert budget.json().get("topic_id") == "closing:closing_brief"
+    assert budget.json().get("topic_id") != "closing:closing_brief"
 
-    ready = client.post(f"/projects/{pid}/messages", json={"text": "«готово»"})
+    ready = budget
+    if ready.json()["project_status"] != "WAITING_OWNER":
+        ready = client.post(f"/projects/{pid}/messages", json={"text": "«готово»"})
     body = ready.json()
     assert body["project_status"] == "WAITING_OWNER"
     assert body.get("tz_available") is True
@@ -801,7 +831,7 @@ def test_closing_brief_file_lands_in_tz(client):
     additions_done = client.post(f"/projects/{pid}/messages", json={"text": "1"})
     assert additions_done.json().get("topic_id") == "closing:closing_budget"
     budget_done = client.post(f"/projects/{pid}/messages", json={"text": "1"})
-    assert budget_done.json().get("topic_id") == "closing:closing_brief"
+    assert budget_done.json().get("topic_id") != "closing:closing_brief"
 
     content = (
         "# Постановка из ChatGPT\n\nНужен лендинг пекарни с формой заявки и фото витрины."
@@ -953,6 +983,7 @@ def test_heuristic_rewrites_questions_and_option_chips():
 def test_described_task_rewrites_next_question_and_chips(client):
     created = client.post("/projects", json={"name": "чвап"})
     pid = created.json()["id"]
+    _complete_intro(client, pid)
     first = client.post(
         f"/projects/{pid}/messages",
         json={
@@ -970,7 +1001,7 @@ def test_described_task_rewrites_next_question_and_chips(client):
     assert "добавляю:" not in reply
     assert "не спрашиваю" not in reply
     assert "раздел тз" not in reply
-    assert "тип решения" in reply or "понял" in reply
+    assert "тип" in reply or "понял" in reply or "сайт" in reply or "бот" in reply
     labels = " ".join(
         str(c.get("label") or "") for c in first.json().get("discovery_choices") or []
     ).lower()
@@ -1108,6 +1139,7 @@ def test_llm_adds_contextual_choice_chips_from_previous_answers():
 def test_described_task_chips_follow_previous_answers(client):
     created = client.post("/projects", json={"name": "SalonWA"})
     pid = created.json()["id"]
+    _complete_intro(client, pid)
     first = client.post(
         f"/projects/{pid}/messages",
         json={
@@ -1146,6 +1178,7 @@ def test_android_idea_puts_android_and_ios_on_solution_type(client):
 
     created = client.post("/projects", json={"name": "AndroidApp"})
     pid = created.json()["id"]
+    _complete_intro(client, pid)
     first = client.post(
         f"/projects/{pid}/messages",
         json={

@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.5 |
+| Version | 0.6 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -57,7 +57,9 @@ Append-only audit (not an event bus). Used by the owner TZ console.
 
 ## Entity types (MVP)
 
-`Project` · `Message` · `Requirement` · `OpenQuestion` · `Decision` · `Task` · `Artifact` · `Risk` (optional) · `Feedback` (implementation notes)
+`Project` · `Message` · `Requirement` · `OpenQuestion` · `Decision` · `Task` · `Artifact` · `Risk` (optional) · `Feedback` (implementation notes) · `Customer` · `Organization`
+
+`Customer` / `Organization` are written during Discovery intro (DEC-015): name, contacts, role, company or explicit individual / no company name, industry. Same `entity` table — no extra migration. The TZ header (`compose_tz_markdown`) reads them first, then `contacts` / `preferred_contact` requirements.
 
 `Artifact` payload `kind`: `draft_tz` (generated markdown), `uploaded_file` (customer/console attachment; bytes on disk under `UPLOAD_DIR`, not in JSONB), or `cursor_brief` (Spec Kit files + task export for a BuildJob).
 
