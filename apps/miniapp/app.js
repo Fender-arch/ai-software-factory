@@ -236,6 +236,45 @@
     return true;
   }
 
+  const HOME_ACTIONS = {
+    empty: ["create"],
+    withProject: ["create", "change"],
+    withMvpReview: ["create", "change", "feedback"],
+  };
+
+  function homeActionsFromProjects(projects) {
+    const list = Array.isArray(projects) ? projects : [];
+    if (!list.length) return HOME_ACTIONS.empty.slice();
+    const hasReview = list.some((p) => Boolean(p && p.mvp_review_sent));
+    return (hasReview ? HOME_ACTIONS.withMvpReview : HOME_ACTIONS.withProject).slice();
+  }
+
+  function applyHomeActions(projects) {
+    const allowed = new Set(homeActionsFromProjects(projects));
+    document.querySelectorAll("[data-action]").forEach((btn) => {
+      const action = btn.getAttribute("data-action");
+      const showBtn = allowed.has(action);
+      btn.classList.toggle("hidden", !showBtn);
+      btn.setAttribute("aria-hidden", showBtn ? "false" : "true");
+    });
+  }
+
+  async function refreshHome() {
+    show("home");
+    if (!userId) {
+      applyHomeActions([]);
+      return;
+    }
+    try {
+      const projects = await api(
+        `/projects?customer_telegram_id=${encodeURIComponent(userId)}`
+      );
+      applyHomeActions(projects);
+    } catch (err) {
+      applyHomeActions([]);
+    }
+  }
+
   document.querySelectorAll("[data-action]").forEach((btn) => {
     btn.addEventListener("click", () => {
       haptic("light");
@@ -344,7 +383,7 @@
     btn.addEventListener("click", () => {
       abortWorkspaceLoad();
       xp("idle");
-      show("home");
+      refreshHome();
     });
   });
 
@@ -352,7 +391,7 @@
     abortWorkspaceLoad();
     state.projectId = null;
     xp("idle");
-    if (state.listMode === "create") show("home");
+    if (state.listMode === "create") refreshHome();
     else loadProjects();
   });
 
@@ -388,16 +427,25 @@
     const list = $("project-list");
     const empty = $("list-empty");
     list.innerHTML = "";
+    empty.textContent = "Пока нет проектов.";
     try {
       const projects = await api(
         `/projects?customer_telegram_id=${encodeURIComponent(userId)}`
       );
-      if (!projects.length) {
+      const visible =
+        state.listMode === "feedback"
+          ? projects.filter((p) => Boolean(p && p.mvp_review_sent))
+          : projects;
+      if (!visible.length) {
+        empty.textContent =
+          state.listMode === "feedback"
+            ? "Пока нет проектов с MVP на проверке."
+            : "Пока нет проектов.";
         empty.classList.remove("hidden");
         return;
       }
       empty.classList.add("hidden");
-      projects.forEach((p) => {
+      visible.forEach((p) => {
         const li = document.createElement("li");
         li.className = "project-row";
 
@@ -519,7 +567,7 @@
       if (isAbortError(err) || requestId !== state.wsRequestId) return;
       xp("error");
       alert(err.message || String(err));
-      show("home");
+      refreshHome();
     }
   }
 
@@ -1731,5 +1779,5 @@
     $("subtitle").textContent = "Откройте из Telegram-бота или добавьте ?uid=";
   }
 
-  show("home");
+  refreshHome();
 })();

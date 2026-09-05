@@ -43,6 +43,7 @@ from core.models import TZ_DOWNLOAD_STATUSES
 from core.planner import PlannerError
 from core.project_files import FileError
 from core.tz_document import TzExportError, export_client_estimate_file, export_tz_file
+from core.miniapp_home import attach_mvp_review_flags, project_has_mvp_review
 from core.services import (
     assert_project_owner,
     create_project,
@@ -128,13 +129,20 @@ async def api_transcribe(file: UploadFile = File(...)) -> TranscribeResponse:
     )
 
 
+def _project_read(project, *, mvp_review_sent: bool = False) -> ProjectRead:
+    return ProjectRead.model_validate(project).model_copy(
+        update={"mvp_review_sent": bool(mvp_review_sent)}
+    )
+
+
 @app.get("/projects", response_model=list[ProjectRead])
 def api_list_projects(
     customer_telegram_id: str = Query(min_length=1),
     db: Session = Depends(get_db),
 ) -> list[ProjectRead]:
     projects = list_projects_for_customer(db, customer_telegram_id)
-    return [ProjectRead.model_validate(p) for p in projects]
+    flags = attach_mvp_review_flags(db, projects)
+    return [_project_read(p, mvp_review_sent=flags.get(p.id, False)) for p in projects]
 
 
 @app.post("/projects", response_model=ProjectRead, status_code=201)
@@ -145,7 +153,7 @@ def api_create_project(body: ProjectCreate, db: Session = Depends(get_db)) -> Pr
         customer_telegram_id=body.customer_telegram_id,
         product_type=body.product_type,
     )
-    return ProjectRead.model_validate(project)
+    return _project_read(project, mvp_review_sent=False)
 
 
 @app.get("/projects/{project_id}", response_model=ProjectRead)
@@ -153,7 +161,9 @@ def api_get_project(project_id: uuid.UUID, db: Session = Depends(get_db)) -> Pro
     project = get_project(db, project_id)
     if project is None:
         raise HTTPException(status_code=404, detail="project not found")
-    return ProjectRead.model_validate(project)
+    return _project_read(
+        project, mvp_review_sent=project_has_mvp_review(db, project.id)
+    )
 
 
 @app.delete("/projects/{project_id}", status_code=204)
