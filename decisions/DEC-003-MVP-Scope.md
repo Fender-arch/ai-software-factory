@@ -17,6 +17,7 @@ MVP delivers customer Discovery via Telegram Mini App (see [DEC-006](DEC-006-Tel
 - `telegram_bot`
 - `rest_service`
 - `ai_automation`
+- `mobile_native` — added by [DEC-010](DEC-010-Mobile-Native.md) (supersedes the four-type-only reading of this ADR)
 
 Complex SaaS / multi-tenant / heavy integrations are out of MVP.
 

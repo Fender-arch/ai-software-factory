@@ -5,8 +5,8 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.3 |
-| Updated | 2026-08-16 |
+| Version | 0.4 |
+| Updated | 2026-09-05 |
 | Owner | ASF Core |
 
 | Термин | Значение |
@@ -19,7 +19,7 @@
 | HITL | Human in the loop |
 | TZ | Техническое задание / пакет требований |
 | STT | Speech-to-text (Whisper в MVP) |
-| Product type | Один из: website, telegram_bot, rest_service, ai_automation |
+| Product type | Один из: website, telegram_bot, rest_service, ai_automation, mobile_native |
 | Telegram Mini App | Полноэкранный UI заказчика внутри Telegram (основной канал) |
 | Owner TZ console | Внутренний граф требований ТЗ для владельца/аналитика (`/console/`, DEC-007) |
 | Project workspace | UI/лента Mini App, привязанная к одному `project_id` («чат проекта») |

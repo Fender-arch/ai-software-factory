@@ -5,8 +5,8 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.5 |
-| Updated | 2026-08-29 |
+| Version | 0.6 |
+| Updated | 2026-09-05 |
 | Owner | ASF Core |
 
 ## Назначение

@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.5 |
-| Updated | 2026-08-28 |
+| Version | 0.6 |
+| Updated | 2026-09-05 |
 | Owner | ASF Core |
 
 ```
@@ -24,10 +24,10 @@ ai-software-factory/
 ├── tasks/                # Epics for delivery
 ├── prompts/              # Mode prompts
 ├── schemas/              # JSON schemas
-├── templates/            # Product-type hints
+├── templates/            # Product-type hints, DESIGN.md, customer AGENTS, Spec Kit stubs
 ├── .cursor/
-│   ├── rules/            # Persistent Cursor rules
-│   └── skills/asf-mvp/   # Project implementation skill
+│   ├── rules/            # Thin always-on + glob rules
+│   └── skills/           # On-demand skills (asf-mvp + interview/design/security/…)
 ├── apps/
 │   ├── api/              # FastAPI entrypoint
 │   ├── miniapp/          # Telegram Mini App frontend (customer UI)

@@ -44,6 +44,8 @@
     "api_consumers": "users",
     "voice_input": "headphones",
     "failure_path": "siren",
+    "native_platforms": "phone",
+    "store_distribution": "app-window",
     "other": "circle-help"
   },
   "stages": {
@@ -66,6 +68,7 @@
     "telegram_bot": "send",
     "rest_service": "server-cog",
     "ai_automation": "sparkles",
+    "mobile_native": "phone",
     "default": "hexagon"
   },
   "fallback": "circle-dot"

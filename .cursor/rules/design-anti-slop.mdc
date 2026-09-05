@@ -1,0 +1,13 @@
+---
+description: Anti-slop UI — require DESIGN.md; ban default Tailwind SaaS look
+globs: "{apps/miniapp,apps/console}/**/*.{css,js,html,svg}"
+alwaysApply: false
+---
+
+# Design anti-slop
+
+- Read `DESIGN.md` or `templates/DESIGN.md` before changing look-and-feel.
+- Do not restyle Mini App / console toward Inter + purple/indigo + `gray-800` + `blue-500`.
+- Extend existing brand tokens; do not introduce a second palette “because Tailwind”.
+- Marketing-template heroes (3 feature cards, generic AI gradient) are out of scope for ASF chrome.
+- Full checklist: `.cursor/skills/anti-slop-design/SKILL.md`.

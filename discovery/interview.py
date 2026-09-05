@@ -93,6 +93,17 @@ _PRODUCT_ALIASES: dict[str, str] = {
     "агент": "ai_automation",
     "ии-агент": "ai_automation",
     "ai agent": "ai_automation",
+    "mobile_native": "mobile_native",
+    "native app": "mobile_native",
+    "native mobile": "mobile_native",
+    "ios app": "mobile_native",
+    "android app": "mobile_native",
+    "iphone app": "mobile_native",
+    "мобильное приложение": "mobile_native",
+    "нативное приложение": "mobile_native",
+    "приложение для android": "mobile_native",
+    "приложение для ios": "mobile_native",
+    "приложение для iphone": "mobile_native",
 }
 
 _TASK_SHAPE_ALIASES: dict[str, tuple[str, ...]] = {
@@ -109,6 +120,12 @@ _TASK_SHAPE_ALIASES: dict[str, tuple[str, ...]] = {
     "integration": ("интеграц", "обмен данными", "webhook", "синхрон"),
     "ai_agent": ("агент", "ai agent", "ии-агент"),
     "process_automation": ("автоматизац", "ai automation"),
+    "mobile_native": (
+        "мобильное приложение",
+        "нативное приложение",
+        "ios app",
+        "android app",
+    ),
 }
 
 _READY_EXACT = frozenset(

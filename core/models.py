@@ -42,6 +42,7 @@ class ProductType(str, enum.Enum):
     TELEGRAM_BOT = "telegram_bot"
     REST_SERVICE = "rest_service"
     AI_AUTOMATION = "ai_automation"
+    MOBILE_NATIVE = "mobile_native"
 
 
 class Project(Base):

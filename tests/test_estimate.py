@@ -32,6 +32,7 @@ def test_base_hours_by_product_type():
         ("telegram_bot", 20),
         ("rest_service", 24),
         ("ai_automation", 24),
+        ("mobile_native", 32),
         (None, 20),
         ("unknown", 20),
     ):

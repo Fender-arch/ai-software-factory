@@ -227,6 +227,7 @@ _OPTION_BY_CAPABILITY: dict[str, dict[str, dict[str, str]]] = {
             "shape_website": "Сайт / лендинг с заявкой (как вы описали)",
             "shape_miniapp": "Mini App-визитка с формой заявки",
             "shape_bot": "Бот, который собирает заявки в чате",
+            "shape_mobile": "Нативное приложение под заявки (как вы описали)",
         },
         "must_features": {
             "feat_intake": "Приём заявок с контактными полями",
@@ -306,6 +307,7 @@ _SHAPE_RECOMMEND: dict[str, str] = {
     "ai_agent": "shape_agent",
     "process_automation": "shape_ai",
     "ai_automation": "shape_agent",
+    "mobile_native": "shape_mobile",
 }
 
 
@@ -699,6 +701,7 @@ def build_option_overrides(
             "shape_website": f"Сайт / лендинг под «{brief}»",
             "shape_bot": f"Telegram-бот под «{brief}»",
             "shape_miniapp": f"Mini App под «{brief}»",
+            "shape_mobile": f"Нативное приложение под «{brief}»",
             "shape_agent": f"ИИ-агент под «{brief}»",
             "shape_ai": f"Автоматизация «{brief}» с ИИ",
             "shape_db": f"Учёт / база под «{brief}»",

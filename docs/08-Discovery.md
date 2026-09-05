@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.18 |
-| Updated | 2026-08-28 |
+| Version | 0.19 |
+| Updated | 2026-09-05 |
 | Owner | ASF Core |
 
 ## Purpose
@@ -94,14 +94,14 @@ The catalog is a **library**, not the interview script. `discovery/adapt.py` bui
 3. **Capability modules** — booking rules, notifications, API consumers, voice, failure path — only when the captured idea needs them
 4. **Dynamic subsections** (`custom:…`) — heuristics add a few task-specific extras (for example who books a slot); Groq may add up to 8 when `LLM_PROVIDER=groq`
 5. **Skips** — public identity / offer / visitor CTA / brand / pages / **promotion (SEO, ads)** / **design references and direction** when there is no public presence; Mini App already chosen → skip “bot vs Mini App”
-6. **Wording** — after the idea is captured, remaining **questions, section titles, and choice chips** are rewritten from that task **and from later answers**. If the customer asked for an Android or iOS app, those chips appear on the solution-type question (even though native mobile is outside factory product types — website / bot / API / AI). Catalog chip ids stay; labels are retargeted, irrelevant chips are hidden, and extra `ctx:*` chips may echo a fact already given (heuristic always; Groq refines when `LLM_PROVIDER=groq`). The next turn announces added and skipped sections.
+6. **Wording** — after the idea is captured, remaining **questions, section titles, and choice chips** are rewritten from that task **and from later answers**. If the customer asked for an Android or iOS app, those chips appear on the solution-type question and lock `mobile_native` (DEC-010). Catalog chip ids stay; labels are retargeted, irrelevant chips are hidden, and extra `ctx:*` chips may echo a fact already given (heuristic always; Groq refines when `LLM_PROVIDER=groq`). The next turn announces added and skipped sections.
 
 FSM stages stay the same. The agent still advances **one topic per answer**. Owner console virtual nodes follow the adapted outline (no new Section entity type).
 
 | Section | What we must know to start coding |
 |---------|-----------------------------------|
 | Purpose and problem | What pain this solves |
-| Solution type | website / bot / API / AI agent / automation / data admin / integration |
+| Solution type | website / bot / API / AI agent / automation / data admin / integration / native mobile |
 | Current process | How it is done today (object of automation) |
 | MVP success | How v1 is judged |
 | Out of scope | Explicit non-goals |
@@ -127,7 +127,7 @@ FSM stages stay the same. The agent still advances **one topic per answer**. Own
 | Operator | Who runs it after delivery |
 | Risks | Blockers / unknowns |
 
-Product types remain DEC-003: `website` | `telegram_bot` | `rest_service` | `ai_automation`. Customer shapes map onto those types:
+Product types (DEC-003 + DEC-010): `website` | `telegram_bot` | `rest_service` | `ai_automation` | `mobile_native`. Customer shapes map onto those types:
 
 | Customer asks for | Locked type |
 |-------------------|-------------|
@@ -137,6 +137,7 @@ Product types remain DEC-003: `website` | `telegram_bot` | `rest_service` | `ai_
 | Database + admin tool | `rest_service` (`task_shape=database_tool`) |
 | Integration between systems | `rest_service` (`task_shape=integration`) |
 | AI agent or process automation | `ai_automation` |
+| Native Android / iOS app | `mobile_native` |
 
 Out of MVP even if asked: payments/SaaS, multi-tenant, unrestricted tool-using agents — escalate.
 

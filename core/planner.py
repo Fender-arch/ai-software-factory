@@ -59,6 +59,7 @@ def plan_product_tasks(
         "telegram_bot": _plan_telegram_bot,
         "rest_service": _plan_rest_service,
         "ai_automation": _plan_ai_automation,
+        "mobile_native": _plan_mobile_native,
     }
     builder = builders.get(pt, _plan_website)
     return builder(req_ids, must_ids)
@@ -114,6 +115,52 @@ def _plan_website(req_ids: list[str], must_ids: list[str]) -> list[PlannedTaskSp
                 *_BASE_CRITERIA,
                 "Usable on narrow viewport",
                 "README lists smoke steps",
+            ],
+            requirement_ids=must_ids[:1] or req_ids[:1],
+            depends_on=[1, 2],
+        ),
+    ]
+
+
+def _plan_mobile_native(req_ids: list[str], must_ids: list[str]) -> list[PlannedTaskSpec]:
+    return [
+        PlannedTaskSpec(
+            title="Scaffold native mobile MVP",
+            description=(
+                "Create a one-platform-first project skeleton per "
+                "templates/mobile_native.md (Android or iOS as locked in TZ)."
+            ),
+            acceptance_criteria=[
+                *_BASE_CRITERIA,
+                "Runnable on a simulator/emulator with a documented start command",
+                "Product type stays mobile_native",
+            ],
+            requirement_ids=must_ids[:2] or req_ids[:2],
+            depends_on=[],
+        ),
+        PlannedTaskSpec(
+            title="Implement primary mobile job",
+            description="Build the one happy-path job from approved must-level requirements.",
+            acceptance_criteria=[
+                *_BASE_CRITERIA,
+                "Primary user job works on the locked platform",
+            ],
+            requirement_ids=must_ids or req_ids,
+            depends_on=[0],
+        ),
+        PlannedTaskSpec(
+            title="Persist minimal local state",
+            description="Store enough local state for the MVP flow (documented if in-memory).",
+            acceptance_criteria=[*_BASE_CRITERIA, "State survives process restart or is documented"],
+            requirement_ids=req_ids,
+            depends_on=[1],
+        ),
+        PlannedTaskSpec(
+            title="Smoke build and README",
+            description="Document build/run steps and a short device smoke checklist.",
+            acceptance_criteria=[
+                *_BASE_CRITERIA,
+                "README lists simulator smoke steps",
             ],
             requirement_ids=must_ids[:1] or req_ids[:1],
             depends_on=[1, 2],

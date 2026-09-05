@@ -8,7 +8,7 @@ alwaysApply: false
 
 When implementing tasks exported from ASF Planner:
 
-1. Lock product type to one of: `website` | `telegram_bot` | `rest_service` | `ai_automation`
+1. Lock product type to one of: `website` | `telegram_bot` | `rest_service` | `ai_automation` | `mobile_native`
 2. Read `templates/<product_type>.md` before coding — Typical MVP is the ceiling
 3. Stay inside the template checklist; escalate out-of-scope items (do not invent SaaS / payments / multi-agent)
 4. Prefer small, testable slices matching exported task acceptance criteria
@@ -23,6 +23,7 @@ When implementing tasks exported from ASF Planner:
 | telegram_bot | `templates/telegram_bot.md` | Commands/flow, light state |
 | rest_service | `templates/rest_service.md` | Small API, one resource, simple auth |
 | ai_automation | `templates/ai_automation.md` | Trigger → step → side effect + logs |
+| mobile_native | `templates/mobile_native.md` | One platform-first native MVP (DEC-010) |
 
 ## Export handoff
 
