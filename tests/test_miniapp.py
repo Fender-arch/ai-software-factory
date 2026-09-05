@@ -29,7 +29,21 @@ def test_miniapp_static_served(client):
     assert "Ещё пара уточнений" in js.text
     assert "Сбор требований: ${percent}%" in js.text
     assert "из ${total}" not in js.text
-    assert "20260905-tzcard" in res.text
+    assert "20260905-brand" in res.text
+    assert "logo-full-on-dark.svg" in res.text
+    assert "mascot-bust.png" in res.text
+    assert "UNI4IT" in res.text
+    brand_full = client.get("/miniapp/brand/logo-full.svg")
+    assert brand_full.status_code == 200
+    assert "#222B45" in brand_full.text
+    assert "#9B98E1" in brand_full.text
+    assert "УНИВЕРСАЛЬНЫЕ РЕШЕНИЯ ДЛЯ IT" in brand_full.text
+    mark = client.get("/miniapp/brand/logo-mark.svg")
+    assert mark.status_code == 200
+    bust = client.get("/miniapp/brand/mascot-bust.png")
+    assert bust.status_code == 200
+    assert bust.headers.get("content-type", "").startswith("image/png")
+    assert bust.content[:8] == b"\x89PNG\r\n\x1a\n"
     assert "customerWorkspaceHud" in js.text
     assert "customer_hud" in js.text
     assert "ждём ваш ответ" in js.text
@@ -71,6 +85,9 @@ def test_miniapp_static_served(client):
     assert "#2ecc71" in css.text
     assert "#5c5c5c" in css.text
     assert "--app-vh" in css.text
+    assert "--brand-navy" in css.text
+    assert "--brand-lavender" in css.text
+    assert "--tg-theme-bg-color" in css.text
     assert "flex: 0 0 24%" in css.text
     assert "microphone=(self)" in (res.headers.get("permissions-policy") or "")
     assert res.headers.get("cache-control") == "no-store"
@@ -115,6 +132,9 @@ def test_miniapp_experience_layer_slot_and_calm_mode(client):
     assert res.status_code == 200
     assert "mascot-slot" in res.text
     assert "mascot-status" in res.text
+    assert "mascot-bust.png" in res.text
+    assert "mascot-photo" in res.text
+    assert "Компаньон интервью UNI4IT" in res.text
     assert "Спокойный режим" in res.text
     assert "data-calm-toggle" in res.text
     assert "experience.js" in res.text
@@ -148,6 +168,8 @@ def test_miniapp_experience_layer_slot_and_calm_mode(client):
     css = client.get("/miniapp/styles.css")
     assert "asf-calm" in css.text
     assert ".mascot-slot" in css.text
+    assert ".mascot-photo" in css.text
+    assert "asf-mascot-success" in css.text
     assert "prefers-reduced-motion" in css.text
 
     foundry = client.get("/miniapp/foundry.js")

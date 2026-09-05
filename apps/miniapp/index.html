@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>ASF</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="./styles.css?v=20260905-tzcard" />
+  <link rel="stylesheet" href="./styles.css?v=20260905-brand" />
   <meta name="asf-mascot-riv" content="./mascot.riv" />
   <meta name="asf-mascot-sm" content="Mascot" />
 </head>
@@ -14,15 +14,11 @@
   <div id="app">
     <header class="top">
       <div class="brand-row">
-        <div class="foundry-core" aria-hidden="true">
-          <div class="foundry-cube">
-            <i class="f"></i><i class="bk"></i><i class="l"></i><i class="r"></i><i class="u"></i><i class="d"></i>
-          </div>
+        <div class="brand-lockup">
+          <img class="brand-logo brand-logo-full" src="./brand/logo-full-on-dark.svg" alt="UNI4IT — универсальные решения для IT" width="220" height="84" />
+          <img class="brand-logo brand-logo-wordmark" src="./brand/logo-wordmark-on-dark.svg" alt="UNI4IT" width="180" height="56" />
         </div>
-        <div class="brand-copy">
-          <div class="brand">ASF</div>
-          <p class="hook" id="subtitle">ТЗ, от которого не хочется зевать.</p>
-        </div>
+        <p class="hook" id="subtitle">ТЗ, от которого не хочется зевать.</p>
         <button type="button" id="btn-calm" class="calm-toggle" data-calm-toggle aria-pressed="false" title="Отключить анимации маскота и фона">
           Спокойный режим
         </button>
@@ -78,6 +74,7 @@
       <div class="ws-chrome">
         <div class="ws-chrome-top">
           <button type="button" class="linkback" data-back-workspace>← К проектам</button>
+          <img class="ws-brand-mark" src="./brand/logo-mark.svg" alt="UNI4IT" width="28" height="36" />
           <button type="button" id="btn-calm-ws" class="calm-toggle" data-calm-toggle aria-pressed="false" title="Отключить анимации маскота и фона">
             Спокойный режим
           </button>
@@ -86,15 +83,7 @@
           <aside id="mascot-slot" class="mascot-slot" data-state="idle" aria-live="polite">
             <canvas id="mascot-rive" class="mascot-rive hidden" width="128" height="128" aria-hidden="true"></canvas>
             <div id="mascot-fallback" class="mascot-fallback" aria-hidden="true">
-              <svg class="mascot-svg" viewBox="0 0 64 64" role="img" aria-label="Компаньон интервью">
-                <ellipse class="mascot-ember" cx="32" cy="56" rx="13" ry="4" />
-                <g class="mascot-body">
-                  <path class="mascot-side" d="M18 24 L32 16 L46 24 L46 40 L32 48 L18 40 Z" />
-                  <path class="mascot-lid" d="M18 24 L32 16 L46 24 L32 32 Z" />
-                  <circle class="mascot-lens" cx="32" cy="33" r="6.2" />
-                  <circle class="mascot-pupil" cx="33.2" cy="33" r="2.3" />
-                </g>
-              </svg>
+              <img class="mascot-photo mascot-body" src="./brand/mascot-bust.png" alt="Компаньон интервью UNI4IT" width="80" height="98" />
             </div>
             <p id="mascot-status" class="mascot-status">На связи</p>
           </aside>
@@ -175,6 +164,6 @@
   </div>
   <script src="./foundry.js?v=20260905-xp"></script>
   <script src="./experience.js?v=20260905-xp"></script>
-  <script src="./app.js?v=20260905-tzcard"></script>
+  <script src="./app.js?v=20260905-brand"></script>
 </body>
 </html>
