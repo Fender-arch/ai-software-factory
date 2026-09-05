@@ -82,7 +82,7 @@ ADR: [DEC-006](../../decisions/DEC-006-Telegram-Mini-App.md), [DEC-011](../../de
 | `draft_ready` | В ленте показана карточка выгрузки ТЗ |
 | `error` | Ошибка запроса / микрофона / STT |
 
-**Спокойный режим:** кнопка **«Спокойный режим»** пишется в `localStorage` (`asf-calm-mode`). `prefers-reduced-motion` замораживает или скрывает маскота и foundry-фон; текст статуса остаётся. Замена placeholder: положить `apps/miniapp/mascot.riv` (state machine `Mascot`, входы как имена событий). См. `apps/miniapp/README.md`. Lip-sync / рот под TTS — Future.
+**Спокойный режим:** кнопка **«Спокойный режим»** пишется в `localStorage` (`asf-calm-mode`). `prefers-reduced-motion` замораживает или скрывает маскота и foundry-фон; текст статуса остаётся. Компаньон — робот-единорог UNI4IT (`apps/miniapp/brand/mascot-bust.png`) с CSS-реакциями на те же биты; опциональный `mascot.riv` по-прежнему progressive. Логотип: `docs/17-Brand-Assets.md`. Lip-sync / рот под TTS — Future.
 
 ## Язык
 

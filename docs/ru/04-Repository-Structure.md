@@ -5,7 +5,7 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.7 |
+| Version | 0.8 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -32,8 +32,8 @@ ai-software-factory/
 │   └── skills/           # Skills по требованию (asf-mvp + interview/design/security/…)
 ├── apps/
 │   ├── api/              # Точка входа FastAPI
-│   ├── miniapp/          # Фронтенд Telegram Mini App (UI заказчика)
-│   └── console/          # Консоль графа ТЗ владельца (DEC-007)
+│   ├── miniapp/          # Фронтенд Telegram Mini App (UI заказчика + brand/)
+│   └── console/          # Консоль графа ТЗ владельца (DEC-007 + brand/)
 ├── core/                 # config, db, models, coordinator, estimate, client_estimate, factory
 ├── knowledge/            # репозитории entity/relation
 ├── discovery/            # Discovery FSM, интервью, черновик ТЗ
