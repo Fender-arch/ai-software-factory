@@ -5,7 +5,7 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.4 |
+| Version | 0.5 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -97,6 +97,30 @@ curl -sS http://127.0.0.1:18000/health/telegram
 ```
 
 Ожидается HTTP до `api.telegram.org` и `bot_ok: true` с username бота Mini App. `401` / `Unauthorized` — неверный или placeholder-токен. Transport / timeout — файрвол, DNS или IPv6 egress, не телефон заказчика. В логах `sendDocument` есть `http` status + `description` Telegram, токена нет.
+
+## Исходящий доступ к Telegram Bot API (sendDocument)
+
+`sendDocument` / `getMe` идут из **контейнера API** (сеть Docker `asf_internal`, bridge) через NAT хоста. Входящий HTTPS Mini App здесь ни при чём.
+
+Типичный сбой (на проде `ConnectError`, пустой `bot_username`):
+
+| Проверка | Смысл |
+|----------|--------|
+| С хоста `curl -4 https://api.telegram.org` ок, из контейнера нет | IPv6/AAAA в Docker или DNS контейнера. Приложение предпочитает IPv4 (`ASF_TELEGRAM_IP=auto`/`4`). Локальный override `docker-compose.telegram-egress.yml` (`extra_hosts`, не в git). |
+| `curl https://example.org` ок, Telegram нет | Провайдер/файрвол режет Telegram. Разрешите `api.telegram.org:443` **или** задайте секрет `HTTPS_PROXY` / `TELEGRAM_PROXY` (не коммитить) и задеплойте снова. |
+| Нет исходящего HTTPS вообще | Закрыт OUTPUT 443 (`ufw` / iptables / панель). Разрешите 443/tcp наружу. |
+
+На VPS (в выводе нет секретов):
+
+```bash
+sudo bash /opt/asf/deploy/diagnose_telegram_egress.sh
+# если с хоста IPv4 до Telegram живой:
+sudo bash /opt/asf/deploy/hotfix_telegram_ipv4.sh
+curl -sS http://127.0.0.1:18000/health/telegram
+# ждать egress_ok=true и непустой bot_username
+```
+
+GitHub: **Actions → Telegram egress → Run workflow** (те же SSH-секреты, что у Deploy VPS; токен бота не печатается). В compose DNS контейнеров — `8.8.8.8` / `1.1.1.1`. `ASF_TELEGRAM_IP=4` принудительно IPv4; `6` — dual-stack.
 
 ## Откат только ASF
 

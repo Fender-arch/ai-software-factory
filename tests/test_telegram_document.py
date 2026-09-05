@@ -19,13 +19,15 @@ from integrations.telegram.notify import (
     reset_telegram_identity_cache,
     send_customer_telegram_document,
     telegram_bot_username,
+    telegram_http_client,
 )
 
 
 def _fake_client(handler):
     class FakeClient:
-        def __init__(self, timeout=None):
+        def __init__(self, timeout=None, **kwargs):
             self.timeout = timeout
+            self.kwargs = kwargs
 
         def __enter__(self):
             return self
@@ -248,7 +250,7 @@ def test_classify_telegram_document_error_splits_causes():
 
 def test_send_document_transport_error_is_server_egress(monkeypatch, caplog):
     class BoomClient:
-        def __init__(self, timeout=None):
+        def __init__(self, timeout=None, **kwargs):
             self.timeout = timeout
 
         def __enter__(self):
@@ -307,6 +309,18 @@ def test_send_document_401_is_unauthorized(monkeypatch, caplog):
     assert "Unauthorized" in caplog.text
     get_settings.cache_clear()
     reset_telegram_identity_cache()
+
+
+def test_telegram_http_client_prefers_ipv4_when_asked(monkeypatch):
+    monkeypatch.setenv("ASF_TELEGRAM_IP", "4")
+    client = telegram_http_client(3.0)
+    try:
+        transport = client._transport
+        pool = getattr(transport, "_pool", None)
+        local = getattr(pool, "_local_address", None) if pool is not None else None
+        assert local == "0.0.0.0"
+    finally:
+        client.close()
 
 
 def test_diagnose_telegram_bot_api_no_token_in_output(monkeypatch, caplog):

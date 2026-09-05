@@ -61,6 +61,18 @@ def test_optional_set_me_becomes_empty():
     assert values["GROQ_API_KEY"] == ""
 
 
+def test_telegram_proxy_and_ip_mode_go_to_env():
+    values = build_env_values(
+        _base_raw(TELEGRAM_PROXY="http://127.0.0.1:8888", ASF_TELEGRAM_IP="4")
+    )
+    assert values["HTTPS_PROXY"] == "http://127.0.0.1:8888"
+    assert values["HTTP_PROXY"] == "http://127.0.0.1:8888"
+    assert values["ASF_TELEGRAM_IP"] == "4"
+    assert values["NO_PROXY"] == "localhost,127.0.0.1,db"
+    bad = build_env_values(_base_raw(ASF_TELEGRAM_IP="99"))
+    assert bad["ASF_TELEGRAM_IP"] == "auto"
+
+
 def test_render_env_file_contains_keys():
     text = render_env_file(build_env_values(_base_raw()))
     assert "ASF_ENV=production" in text
@@ -106,3 +118,13 @@ def test_same_domain_emits_one_site_file(tmp_path: Path):
 
 def test_normalize_domain_strips_url():
     assert normalize_domain("https://TZ.Example.com/console/") == "tz.example.com"
+
+
+def test_telegram_egress_scripts_do_not_print_secrets():
+    diagnose = Path("deploy/diagnose_telegram_egress.sh").read_text(encoding="utf-8")
+    hotfix = Path("deploy/hotfix_telegram_ipv4.sh").read_text(encoding="utf-8")
+    assert "api.telegram.org" in diagnose
+    assert "VERDICT=" in diagnose
+    assert "TELEGRAM_BOT_TOKEN" not in diagnose
+    assert "TELEGRAM_BOT_TOKEN" not in hotfix
+    assert "extra_hosts" in hotfix

@@ -45,6 +45,10 @@ ENV_KEYS = (
     "ASF_HOST_PORT",
     "DOMAIN_MINIAPP",
     "DOMAIN_CONSOLE",
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "NO_PROXY",
+    "ASF_TELEGRAM_IP",
 )
 
 
@@ -113,6 +117,10 @@ def build_env_values(raw: dict[str, str] | None = None) -> dict[str, str]:
     if is_placeholder(console_token):
         raise ValueError("CONSOLE_TOKEN is required in production (replace GitHub secret SET_ME)")
 
+    ip_mode = (src.get("ASF_TELEGRAM_IP") or "auto").lower()
+    if ip_mode not in {"auto", "4", "6"}:
+        ip_mode = "auto"
+
     values = {
         "ASF_ENV": src.get("ASF_ENV") or "production",
         "ASF_DEBUG": src.get("ASF_DEBUG") or "false",
@@ -148,6 +156,10 @@ def build_env_values(raw: dict[str, str] | None = None) -> dict[str, str]:
         "ASF_HOST_PORT": host_port,
         "DOMAIN_MINIAPP": domain_miniapp,
         "DOMAIN_CONSOLE": domain_console,
+        "HTTP_PROXY": src.get("HTTP_PROXY") or src.get("TELEGRAM_PROXY") or "",
+        "HTTPS_PROXY": src.get("HTTPS_PROXY") or src.get("TELEGRAM_PROXY") or "",
+        "NO_PROXY": src.get("NO_PROXY") or "localhost,127.0.0.1,db",
+        "ASF_TELEGRAM_IP": ip_mode,
     }
     return values
 

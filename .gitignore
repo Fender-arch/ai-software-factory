@@ -35,3 +35,4 @@ tmp/
 
 # Docker
 docker-compose.override.yml
+docker-compose.telegram-egress.yml
