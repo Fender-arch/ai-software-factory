@@ -398,7 +398,7 @@ html.asf-workspace body {
   margin: 0;
   max-width: var(--mascot-w);
   min-height: 2.4em;
-  font-size: 0.6rem;
+  font-size: 0.7rem;
   line-height: 1.2;
   letter-spacing: 0.02em;
   color: var(--muted);
@@ -887,9 +887,9 @@ h1 { font-size: var(--fs-lg); margin: var(--space-2) 0 var(--space-3); }
   color: var(--text);
   border-radius: 10px;
   padding: 0;
-  width: 40px;
-  min-width: 40px;
-  min-height: 40px;
+  width: 44px;
+  min-width: 44px;
+  min-height: 44px;
   font-size: 0.8rem;
   font-family: inherit;
   cursor: pointer;
@@ -930,7 +930,7 @@ h1 { font-size: var(--fs-lg); margin: var(--space-2) 0 var(--space-3); }
   color: var(--brand-cyan);
   border-radius: 10px;
   padding: var(--space-2) 10px;
-  min-height: 40px;
+  min-height: 44px;
   font-size: 0.78rem;
   font-family: inherit;
   font-weight: 600;
@@ -946,7 +946,7 @@ h1 { font-size: var(--fs-lg); margin: var(--space-2) 0 var(--space-3); }
   margin-left: 0;
   text-align: center;
   min-width: 0;
-  min-height: 40px;
+  min-height: 44px;
   padding: var(--space-2) 10px;
   font-size: 0.82rem;
   display: inline-flex;

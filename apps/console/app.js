@@ -8,14 +8,16 @@
     rejected: "отклонено",
     superseded: "заменено",
   };
-  const STATUS_COLORS = {
-    new: { background: "#3d8bfd", border: "#7eb3ff" },
-    processed: { background: "#3ecf8e", border: "#7be0b2" },
-    needs_clarification: { background: "#e4c27a", border: "#f0d59a" },
-    conflict: { background: "#e05a4f", border: "#ff8a80" },
-    rejected: { background: "#6b7380", border: "#9aa3b0" },
-    superseded: { background: "#8b7bb8", border: "#b9aad8" },
-  };
+  function cssVar(name, fallback) {
+    const v = (getComputedStyle(document.documentElement).getPropertyValue(name) || "").trim();
+    return v || fallback;
+  }
+
+  function statusColors(status) {
+    const key = status || "new";
+    const c = cssVar(`--${key}`, "#3d8bfd");
+    return { background: c, border: c };
+  }
   const STAGE_COLORS = {
     PROJECT_CREATED: "#6b7380",
     UNDERSTANDING_IDEA: "#e4c27a",
@@ -258,10 +260,10 @@
         brokenImage: iconFile("hexagon"),
         size: 36,
         shapeProperties: { useBorderWithImage: false },
-        color: { background: "rgba(0,0,0,0)", border: "#e4c27a", highlight: "#f0d59a" },
+        color: { background: "rgba(0,0,0,0)", border: "#00d2ff", highlight: "#7ef0ff" },
         font: { ...font, size: 15, color: "#f4ead2" },
         borderWidth: 0,
-        shadow: { enabled: true, color: "rgba(228,194,122,0.55)", size: 28, x: 0, y: 0 },
+        shadow: { enabled: true, color: "rgba(0,210,255,0.55)", size: 28, x: 0, y: 0 },
       };
     }
     if (n.kind === "stage" || n.kind === "topic") {
@@ -292,7 +294,7 @@
         shadow: { enabled: true, color: hue, size: isStage ? 18 : 12, x: 0, y: 0 },
       };
     }
-    const colors = STATUS_COLORS[n.status] || STATUS_COLORS.new;
+    const colors = statusColors(n.status);
     return {
       id: n.id,
       label: wrapLabel(n.label, 18),
