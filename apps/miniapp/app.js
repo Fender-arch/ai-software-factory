@@ -100,6 +100,7 @@
     choiceItems: [],
     allowMultiple: false,
     sending: false,
+    exportRetry: null,
     recorderExt: "webm",
     recordingStartedAt: 0,
     welcomePending: false,
@@ -236,6 +237,45 @@
     return true;
   }
 
+  const HOME_ACTIONS = {
+    empty: ["create"],
+    withProject: ["create", "change"],
+    withMvpReview: ["create", "change", "feedback"],
+  };
+
+  function homeActionsFromProjects(projects) {
+    const list = Array.isArray(projects) ? projects : [];
+    if (!list.length) return HOME_ACTIONS.empty.slice();
+    const hasReview = list.some((p) => Boolean(p && p.mvp_review_sent));
+    return (hasReview ? HOME_ACTIONS.withMvpReview : HOME_ACTIONS.withProject).slice();
+  }
+
+  function applyHomeActions(projects) {
+    const allowed = new Set(homeActionsFromProjects(projects));
+    document.querySelectorAll("[data-action]").forEach((btn) => {
+      const action = btn.getAttribute("data-action");
+      const showBtn = allowed.has(action);
+      btn.classList.toggle("hidden", !showBtn);
+      btn.setAttribute("aria-hidden", showBtn ? "false" : "true");
+    });
+  }
+
+  async function refreshHome() {
+    show("home");
+    if (!userId) {
+      applyHomeActions([]);
+      return;
+    }
+    try {
+      const projects = await api(
+        `/projects?customer_telegram_id=${encodeURIComponent(userId)}`
+      );
+      applyHomeActions(projects);
+    } catch (err) {
+      applyHomeActions([]);
+    }
+  }
+
   document.querySelectorAll("[data-action]").forEach((btn) => {
     btn.addEventListener("click", () => {
       haptic("light");
@@ -344,7 +384,7 @@
     btn.addEventListener("click", () => {
       abortWorkspaceLoad();
       xp("idle");
-      show("home");
+      refreshHome();
     });
   });
 
@@ -352,7 +392,7 @@
     abortWorkspaceLoad();
     state.projectId = null;
     xp("idle");
-    if (state.listMode === "create") show("home");
+    if (state.listMode === "create") refreshHome();
     else loadProjects();
   });
 
@@ -388,16 +428,25 @@
     const list = $("project-list");
     const empty = $("list-empty");
     list.innerHTML = "";
+    empty.textContent = "Пока нет проектов.";
     try {
       const projects = await api(
         `/projects?customer_telegram_id=${encodeURIComponent(userId)}`
       );
-      if (!projects.length) {
+      const visible =
+        state.listMode === "feedback"
+          ? projects.filter((p) => Boolean(p && p.mvp_review_sent))
+          : projects;
+      if (!visible.length) {
+        empty.textContent =
+          state.listMode === "feedback"
+            ? "Пока нет проектов с MVP на проверке."
+            : "Пока нет проектов.";
         empty.classList.remove("hidden");
         return;
       }
       empty.classList.add("hidden");
-      projects.forEach((p) => {
+      visible.forEach((p) => {
         const li = document.createElement("li");
         li.className = "project-row";
 
@@ -519,7 +568,7 @@
       if (isAbortError(err) || requestId !== state.wsRequestId) return;
       xp("error");
       alert(err.message || String(err));
-      show("home");
+      refreshHome();
     }
   }
 
@@ -756,6 +805,34 @@
     hint.textContent = text;
   }
 
+  function hideExportFallback() {
+    const box = $("export-fallback");
+    const textEl = $("export-fallback-text");
+    if (box) box.classList.add("hidden");
+    if (textEl) textEl.textContent = "";
+    state.exportRetry = null;
+  }
+
+  function showExportFallback(reason, kind, fmt, exportPath) {
+    const why = String(reason || "").trim() || "Не удалось отправить файл в чат бота.";
+    const box = $("export-fallback");
+    const textEl = $("export-fallback-text");
+    const open = $("export-open");
+    if (textEl) textEl.textContent = why;
+    if (box) box.classList.remove("hidden");
+    showSendHint(why);
+    state.exportRetry = { kind, fmt, exportPath };
+    if (open) {
+      if (exportPath) {
+        open.href = exportPath;
+        open.classList.remove("hidden");
+      } else {
+        open.removeAttribute("href");
+        open.classList.add("hidden");
+      }
+    }
+  }
+
   function renderClientEstimate(est, projectStatus) {
     const card = $("client-estimate");
     if (!card) return;
@@ -848,122 +925,36 @@
     ceDiscuss.addEventListener("click", () => decideClientEstimate("discuss"));
   }
 
-  function filenameFromDisposition(cd, fallback) {
-    const header = cd || "";
-    const star = header.match(/filename\*=UTF-8''([^;]+)/i);
-    const plain = header.match(/filename="?([^";]+)"?/i);
+  function openCustomerBotChat(username) {
+    const name = String(username || "").replace(/^@/, "").trim();
+    const link = name ? `https://t.me/${name}` : "";
+    if (!link || !tg || typeof tg.openTelegramLink !== "function") return;
     try {
-      return decodeURIComponent((star && star[1]) || (plain && plain[1]) || fallback);
+      tg.openTelegramLink(link);
     } catch (_) {
-      return fallback;
+      /* older clients keep the hint */
     }
   }
 
-  function triggerBlobDownload(blob, name) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = name;
-    a.rel = "noopener";
-    a.style.display = "none";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 2000);
-  }
-
-  function withTimeout(promise, ms, fallback) {
-    return new Promise((resolve) => {
-      let settled = false;
-      const timer = window.setTimeout(() => {
-        if (!settled) {
-          settled = true;
-          resolve(fallback);
-        }
-      }, ms);
-      Promise.resolve(promise).then(
-        (value) => {
-          if (!settled) {
-            settled = true;
-            window.clearTimeout(timer);
-            resolve(value);
-          }
-        },
-        () => {
-          if (!settled) {
-            settled = true;
-            window.clearTimeout(timer);
-            resolve(fallback);
-          }
-        }
-      );
-    });
-  }
-
-  function tryTelegramDownloadFile(abs, name) {
-    if (!tg || typeof tg.downloadFile !== "function") return Promise.resolve(false);
-    return new Promise((resolve) => {
+  function openExportInBrowser(exportPath) {
+    if (!exportPath) return false;
+    const abs = exportPath.startsWith("http")
+      ? exportPath
+      : `${window.location.origin}${exportPath}`;
+    if (inTelegramWebView() && tg && typeof tg.openLink === "function") {
       try {
-        tg.downloadFile({ url: abs, file_name: name }, (done) => resolve(Boolean(done)));
+        tg.openLink(abs, { try_instant_view: false });
+        return true;
       } catch (_) {
-        resolve(false);
-      }
-    });
-  }
-
-  function dismissExportHint() {
-    window.setTimeout(() => showSendHint(""), 1400);
-  }
-
-  function finishTzExportUi() {
-    dismissExportHint();
-  }
-
-  function fallbackExportHint(reason, kind) {
-    const why = String(reason || "").trim() || "Не удалось отправить файл в чат бота.";
-    const suffix =
-      kind === "estimate"
-        ? " Скачиваем смету сюда."
-        : " Скачиваем файл сюда.";
-    showSendHint(why.endsWith(".") ? why + suffix : `${why}.${suffix}`);
-  }
-
-  async function fallbackDeviceExport(kind, fmt, exportPath, fallbackName) {
-    const res = await fetch(exportPath);
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      showSendHint("");
-      throw new Error(err.detail || res.statusText || "Не удалось скачать файл");
-    }
-    const blob = await res.blob();
-    const name = filenameFromDisposition(res.headers.get("Content-Disposition"), fallbackName);
-    triggerBlobDownload(blob, name);
-    if (inTelegramWebView()) {
-      const abs = `${window.location.origin}${exportPath}`;
-      const saved = await withTimeout(tryTelegramDownloadFile(abs, name), 4000, false);
-      if (saved) {
-        showSendHint("В чат бота не ушло. Файл сохранён на устройство.");
-        dismissExportHint();
-        return;
-      }
-      if (tg && typeof tg.openLink === "function") {
         try {
-          tg.openLink(abs, { try_instant_view: false });
-        } catch (_) {
-          try {
-            tg.openLink(abs);
-          } catch (__) {
-            /* ignore */
-          }
+          tg.openLink(abs);
+          return true;
+        } catch (__) {
+          return false;
         }
       }
     }
-    showSendHint(
-      kind === "estimate"
-        ? "В чат бота не ушло. Смета скачана на устройство."
-        : "В чат бота не ушло. Файл скачан на устройство."
-    );
-    dismissExportHint();
+    return false;
   }
 
   async function downloadExport(kind, fmt) {
@@ -975,21 +966,45 @@
     const base = kind === "estimate" ? "estimate" : "tz";
     const exportPath = `/projects/${state.projectId}/${base}-export?${qs}`;
     const sendPath = `/projects/${state.projectId}/${base}-send?${qs}`;
-    const fallbackName = kind === "estimate" ? `smeta.${fmt}` : `tz.${fmt}`;
+    hideExportFallback();
     showSendHint("Отправляем файл в чат бота…");
 
     try {
       const sent = await api(sendPath, { method: "POST" });
-      const sentName = (sent && sent.filename) || fallbackName;
-      showSendHint(`Файл «${sentName}» отправлен в чат с ботом.`);
-      if (kind === "tz") finishTzExportUi();
-      else dismissExportHint();
+      if (!sent || sent.sent !== true || !sent.message_id) {
+        throw new Error("Бот не подтвердил отправку файла в личку.");
+      }
+      showSendHint("Файл в личке с ботом. Закройте Mini App — его нет в этой ленте.");
+      openCustomerBotChat(sent.bot_username);
       return;
     } catch (err) {
-      fallbackExportHint(err && err.message, kind);
+      showExportFallback(err && err.message, kind, fmt, exportPath);
+      xp("error");
     }
+  }
 
-    await fallbackDeviceExport(kind, fmt, exportPath, fallbackName);
+  const exportRetryBtn = $("export-retry");
+  if (exportRetryBtn) {
+    exportRetryBtn.addEventListener("click", async () => {
+      const retry = state.exportRetry;
+      if (!retry) return;
+      await downloadExport(retry.kind, retry.fmt);
+    });
+  }
+  const exportOpenBtn = $("export-open");
+  if (exportOpenBtn) {
+    exportOpenBtn.addEventListener("click", (ev) => {
+      const retry = state.exportRetry;
+      const href = (retry && retry.exportPath) || exportOpenBtn.getAttribute("href") || "";
+      if (!href || href === "#") {
+        ev.preventDefault();
+        return;
+      }
+      if (openExportInBrowser(href)) {
+        ev.preventDefault();
+        showSendHint("Если файл не открылся — напишите боту /start и нажмите «Ещё раз в бота».");
+      }
+    });
   }
 
   const threadEl = $("thread");
@@ -1000,9 +1015,13 @@
       try {
         await downloadExport("tz", btn.getAttribute("data-tz-fmt") || "md");
       } catch (err) {
-        showSendHint("");
         xp("error");
-        alert(err.message || String(err));
+        showExportFallback(
+          err.message || String(err),
+          "tz",
+          btn.getAttribute("data-tz-fmt") || "md",
+          ""
+        );
       }
     });
   }
@@ -1012,9 +1031,13 @@
       try {
         await downloadExport("estimate", btn.getAttribute("data-ce-fmt") || "md");
       } catch (err) {
-        showSendHint("");
         xp("error");
-        alert(err.message || String(err));
+        showExportFallback(
+          err.message || String(err),
+          "estimate",
+          btn.getAttribute("data-ce-fmt") || "md",
+          ""
+        );
       }
     });
   });
@@ -1731,5 +1754,5 @@
     $("subtitle").textContent = "Откройте из Telegram-бота или добавьте ?uid=";
   }
 
-  show("home");
+  refreshHome();
 })();

@@ -33,19 +33,23 @@ A bot has **one** private chat with a user. Bot API cannot open a second DM “f
 
 Short explanation: idea → Discovery → draft TZ → owner review → **client estimate** → tasks → simple MVP.
 
-Then three actions (Russian labels in product UI):
+Home buttons follow project state (do not show extras “just in case”):
 
-1. **Создать проект** (Create project)
-2. **Изменить проект** (Change project)
-3. **Замечания к реализации** (Implementation feedback)
+| State | Buttons |
+|-------|---------|
+| No projects | **Создать проект** |
+| Has a project, MVP not yet sent for client review | **Создать проект** · **Изменить проект** |
+| At least one project already sent to the client (`BuildJob` `sent_to_client` / owner `/sendreview`) | those two plus **Замечания к реализации** |
+
+`READY` after estimate confirm is not enough: the feedback button appears only after the MVP was actually sent for client review. `GET /projects` includes `mvp_review_sent` for that check.
 
 ### Create project
 
 1. Create `project` for this Telegram user.
 2. Open that project’s workspace in the Mini App.
-3. Run Discovery (text, **choice popup**, and/or voice). After create, a popup explains the interview; «Поехали» starts the first TZ question. The next assistant turn is **only the next question** (no “we recorded that” recap; options live in «Варианты ответа», not in the chat). Inside Telegram, voice is **recorded in the Mini App and sent to Groq Whisper** (`POST /stt/transcribe`); Web Speech is not used in the Telegram WebView because it often starts with no transcript. Outside Telegram (browser smoke with `?uid=`), Web Speech may still be used. The transcript is inserted into the composer, then ingest is the same as text. Interview covers TZ sections until the customer pauses, hands remaining items to the developer, or confirms «готово» after coverage and wrap-up (extra notes, budget figure, attached brief). The workspace shows a **progress bar** (gray track, green fill); the label is a **percent** or «ещё пара уточнений», not «N из M» section counts (DEC-014). Under the bar, `ws-meta` is a **human Russian HUD** (`customer_hud`: «ждём ваш ответ», «уточняем идею», «на ревью у владельца») — never raw `ProjectStatus`, workspace mode (`create`), Discovery stage (`NON_FUNCTIONAL`), topic id, product type, or chip id; unknown maps to «в работе». Multi-select sends **chip labels** into the chat (comma / «и»), not indexes (`1, 3`). A chip like «Сейчас напишу» / «напишу сам» / «свой вариант» stays in the draft and focuses the composer; the turn completes only after Send/Enter with labels + typed text. Ordinary chips still send on tap. After the draft is sent, the **TZ download card is a message in the thread** (not a sticky bar over the composer). Format buttons **send the file to the bot chat first** (`POST /projects/{id}/tz-send` → Telegram `sendDocument`); device download / `downloadFile` / `openLink` is only a fallback when chat_id or the Bot API is missing, with an explicit hint. A later owner-corrected TZ uses the same send channel (current KG export). When the customer adds notes after the draft, a **new version card** is appended in the thread.
+3. Run Discovery (text, **choice popup**, and/or voice). After create, a popup explains the interview; «Поехали» starts the first TZ question. The next assistant turn is **only the next question** (no “we recorded that” recap; options live in «Варианты ответа», not in the chat). Inside Telegram, voice is **recorded in the Mini App and sent to Groq Whisper** (`POST /stt/transcribe`); Web Speech is not used in the Telegram WebView because it often starts with no transcript. Outside Telegram (browser smoke with `?uid=`), Web Speech may still be used. The transcript is inserted into the composer, then ingest is the same as text. Interview covers TZ sections until the customer pauses, hands remaining items to the developer, or confirms «готово» after coverage and wrap-up (extra notes, budget figure, attached brief). The workspace shows a **progress bar** (gray track, green fill); the label is a **percent** or «ещё пара уточнений», not «N из M» section counts (DEC-014). Under the bar, `ws-meta` is a **human Russian HUD** (`customer_hud`: «ждём ваш ответ», «уточняем идею», «на ревью у владельца») — never raw `ProjectStatus`, workspace mode (`create`), Discovery stage (`NON_FUNCTIONAL`), topic id, product type, or chip id; unknown maps to «в работе». Multi-select sends **chip labels** into the chat (comma / «и»), not indexes (`1, 3`). A chip like «Сейчас напишу» / «напишу сам» / «свой вариант» stays in the draft and focuses the composer; the turn completes only after Send/Enter with labels + typed text. Ordinary chips still send on tap. After the draft is sent, the **TZ download card is a message in the thread** (not a sticky bar over the composer). Format buttons **send the file to the bot DM** (`POST /projects/{id}/tz-send` → Telegram `sendDocument` with the Mini App user id, MIME type, and `message_id` proof). Success copy: «Файл в личке с ботом. Закройте Mini App». On failure the Mini App does **not** claim a download (blob/`a[download]` is a no-op in Telegram WebView); it shows the Telegram/`/start` error plus **«Ещё раз в бота»** and **«Открыть файл»**. A later owner-corrected TZ uses the same send channel (current KG export). When the customer adds notes after the draft, a **new version card** is appended in the thread.
 4. Bot may notify when owner review is needed or when the customer must answer.
-5. After the owner approves the draft TZ, the workspace shows a **client estimate card** (market range, “why it costs this”, disclaimer). Buttons: **Подтверждаю** / **Нужно обсудить**, plus **Markdown / Word / PDF** «Получить в чат бота» for the same quote (`POST /projects/{id}/estimate-send` → `sendDocument`; `GET .../estimate-export` only as fallback). Planner starts only after confirm ([DEC-012](../decisions/DEC-012-Client-Market-Estimate.md)). On success the Mini App says «файл отправлен в чат с ботом»; the TZ card stays in the thread.
+5. After the owner approves the draft TZ, the workspace shows a **client estimate card** (market range, “why it costs this”, disclaimer). Buttons: **Подтверждаю** / **Нужно обсудить**, plus **Markdown / Word / PDF** «Получить в чат бота» for the same quote (`POST /projects/{id}/estimate-send` → `sendDocument`; `GET .../estimate-export` only via «Открыть файл» after an explicit send error). Planner starts only after confirm ([DEC-012](../decisions/DEC-012-Client-Market-Estimate.md)). On success the Mini App says «Файл в личке с ботом. Закройте Mini App»; the TZ card stays in the thread.
 
 ### Change project
 
@@ -55,7 +59,7 @@ Then three actions (Russian labels in product UI):
 
 ### Implementation feedback
 
-1. Show projects the user may comment on (after delivery / after they reviewed the MVP).
+1. Show only projects already sent for MVP review (`mvp_review_sent`).
 2. User picks a project and submits feedback (text/voice).
 3. System classifies: defect / change request / new requirement.
 4. Check against approved TZ / KG; on contradiction or blocking ambiguity → `HumanDecisionRequired` / owner path.

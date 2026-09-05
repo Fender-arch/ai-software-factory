@@ -318,7 +318,7 @@ def test_customer_estimate_export_and_send(client, monkeypatch):
 
     def fake_doc(chat_id, *, data, filename, caption=None):
         delivered.append((chat_id, filename, caption, len(data or b"")))
-        return True
+        return {"ok": True, "chat_id": str(chat_id), "message_id": 202, "bot_username": "asf_bot"}
 
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "test-token")
     from core.config import get_settings
@@ -378,6 +378,8 @@ def test_customer_estimate_export_and_send(client, monkeypatch):
     )
     assert sent.status_code == 200
     assert sent.json()["sent"] is True
+    assert sent.json()["message_id"] == 202
+    assert sent.json()["chat_id"] == "88004"
     assert delivered
     assert delivered[-1][0] == "88004"
     assert "Смета" in (delivered[-1][2] or "")
