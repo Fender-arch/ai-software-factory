@@ -36,3 +36,4 @@ When an English doc changes, update the matching file under `docs/ru/` (Cursor h
 | [14-Telegram-Customer-UX.md](14-Telegram-Customer-UX.md) | Mini App customer UX |
 | [15-Owner-TZ-Console.md](15-Owner-TZ-Console.md) | Owner TZ graph console |
 | [16-VPS-Deploy.md](16-VPS-Deploy.md) | VPS deploy next to an existing website |
+| [17-Brand-Assets.md](17-Brand-Assets.md) | UNI4IT logo + mascot files |

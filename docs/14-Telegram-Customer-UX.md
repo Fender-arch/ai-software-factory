@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.11 |
+| Version | 0.12 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -76,7 +76,7 @@ Client-only companion for the interview (DEC-011). It does **not** change Discov
 | `draft_ready` | TZ download card is shown in the thread |
 | `error` | Failed request / mic / STT |
 
-**Calm:** button **«Спокойный режим»** persists in `localStorage` (`asf-calm-mode`). `prefers-reduced-motion` freezes or hides the mascot and foundry field; status text stays. Replace the placeholder: drop `apps/miniapp/mascot.riv` (state machine `Mascot`, inputs named like the beats). See `apps/miniapp/README.md`. Lip-sync / TTS mouth shapes are Future.
+**Calm:** button **«Спокойный режим»** persists in `localStorage` (`asf-calm-mode`). `prefers-reduced-motion` freezes or hides the mascot and foundry field; status text stays. The companion is the UNI4IT unicorn-robot (`apps/miniapp/brand/mascot-bust.png`) with CSS reactions on the same beats; optional `mascot.riv` is still progressive. Logo lockup and mark: `docs/17-Brand-Assets.md`. Lip-sync / TTS mouth shapes are Future.
 
 ## Language
 
