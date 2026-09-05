@@ -29,7 +29,7 @@ def test_miniapp_static_served(client):
     assert "Ещё пара уточнений" in js.text
     assert "Сбор требований: ${percent}%" in js.text
     assert "из ${total}" not in js.text
-    assert "20260905-hud" in res.text
+    assert "20260905-tzcard" in res.text
     assert "customerWorkspaceHud" in js.text
     assert "customer_hud" in js.text
     assert "ждём ваш ответ" in js.text
@@ -53,17 +53,20 @@ def test_miniapp_static_served(client):
     assert "client-estimate" in res.text
     assert "Подтверждаю" in res.text
     assert "Нужно обсудить" in res.text
-    assert "Скачать смету" in res.text
+    assert "Получить смету в чат бота" in res.text
     assert "data-ce-fmt" in res.text
     assert "ws-progress" in res.text
     assert "foundry-field" in res.text
-    assert "tz-download" in res.text
+    assert "tz-download-row" in res.text
+    assert 'id="tz-download"' not in res.text
     assert "Поехали" in res.text
     assert "Варианты ответа" in res.text
     assert "welcome-modal" in res.text
     assert "choices-modal" in res.text
     css = client.get("/miniapp/styles.css")
     assert css.status_code == 200
+    assert ".bubble.tz-card" in css.text
+    assert "position: sticky" not in css.text
     assert ".ws-progress-track" in css.text
     assert "#2ecc71" in css.text
     assert "#5c5c5c" in css.text
@@ -87,6 +90,17 @@ def test_miniapp_js_uses_telegram_fullscreen_and_groq_voice(client):
     assert "triggerBlobDownload" in js.text
     assert "dismissExportHint" in js.text
     assert "finishTzExportUi" in js.text
+    assert "fallbackDeviceExport" in js.text
+    assert "isTzDownloadMessage" in js.text
+    assert "renderTzCard" in js.text
+    assert "Получить в чат бота" in js.text
+    assert "файл отправлен в чат с ботом" in js.text
+    assert "Отправляем файл в чат бота" in js.text
+    export_fn = js.text.split("async function downloadExport")[1]
+    send_at = export_fn.find("await api(sendPath")
+    fallback_at = export_fn.find("fallbackDeviceExport")
+    assert send_at != -1 and fallback_at != -1 and send_at < fallback_at
+    assert "renderTzDownload(false)" not in js.text
     assert "withTimeout" in js.text
     assert "if (inTelegramWebView()) return false" in js.text
     assert "pickRecorderMime" in js.text
@@ -463,3 +477,47 @@ def test_workspace_messages_keep_conversational_order(client):
     t_cust = rows[i1]["created_at"]
     t_bot = rows[i1 + 1]["created_at"]
     assert t_cust <= t_bot
+
+
+def test_workspace_tz_download_is_a_thread_message(client):
+    from tests.test_discovery import _drive_discovery_to_owner
+
+    created = client.post(
+        "/projects",
+        json={
+            "name": "TzCard",
+            "product_type": "website",
+            "customer_telegram_id": "8802",
+        },
+    )
+    pid = created.json()["id"]
+    last = _drive_discovery_to_owner(client, pid)
+    assert last.json()["project_status"] == "WAITING_OWNER"
+    assert last.json().get("tz_available") is True
+
+    ws = client.get(
+        f"/projects/{pid}/workspace",
+        params={"customer_telegram_id": "8802", "mode": "change"},
+    )
+    assert ws.status_code == 200
+    body = ws.json()
+    assert body["tz_available"] is True
+    kinds = [m.get("meta_kind") for m in body["messages"]]
+    assert "tz_download" in kinds
+
+    added = client.post(
+        f"/projects/{pid}/messages",
+        params={"customer_telegram_id": "8802"},
+        json={"text": "Ещё нужна тёмная тема на главной."},
+    )
+    assert added.status_code == 201
+    ws2 = client.get(
+        f"/projects/{pid}/workspace",
+        params={"customer_telegram_id": "8802", "mode": "change"},
+    )
+    kinds2 = [m.get("meta_kind") for m in ws2.json()["messages"]]
+    assert "tz_download" in kinds2
+    assert "tz_updated" in kinds2
+    first = kinds2.index("tz_download")
+    later = kinds2.index("tz_updated")
+    assert first < later
