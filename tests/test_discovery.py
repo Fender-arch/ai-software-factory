@@ -336,7 +336,10 @@ def test_discovery_multi_choice_covers_out_of_scope(client):
         assert fourth.json()["project_status"] != "WAITING_OWNER"
     assert fourth is not None
     assert fourth.json().get("allow_multiple") is True
-    assert "Вне объёма" in (fourth.json().get("discovery_reply") or "")
+    scope_reply = (fourth.json().get("discovery_reply") or "").lower()
+    assert fourth.json().get("topic_id") == "out_of_scope"
+    assert "не делаем" in scope_reply or "вне объёма" in scope_reply
+    assert "раздел тз" not in scope_reply
 
     fifth = client.post(
         f"/projects/{pid}/messages",
@@ -346,7 +349,7 @@ def test_discovery_multi_choice_covers_out_of_scope(client):
     body = fifth.json()
     assert body["project_status"] != "WAITING_OWNER"
     reply = body["discovery_reply"] or ""
-    assert "6/" in reply or "Сроки" in reply
+    assert "когда нужна" in reply.lower() or "срок" in reply.lower()
 
     tz_prep = _drive_discovery_to_owner(client, pid)
     assert tz_prep.json()["project_status"] == "WAITING_OWNER"
@@ -615,17 +618,26 @@ def test_waiting_owner_resumes_missing_content_topics(client):
     data = ws.json()
     assert data["status"] == "WAITING_CUSTOMER"
     reply = " ".join(m["text"] for m in data["messages"][-3:])
+    assert data.get("topic_id") in content_ids
     assert any(
-        marker in reply
+        marker in reply.lower()
         for marker in (
-            "Страницы и CTA",
-            "Имя и подпись",
-            "Услуги и портфолио",
-            "Как посетитель связывается",
-            "Референсы",
-            "Какой дизайн хотите",
+            "страниц",
+            "экран",
+            "кнопк",
+            "cta",
+            "услуг",
+            "портфол",
+            "свяжется",
+            "заявк",
+            "референс",
+            "пример",
+            "дизайн",
+            "логотип",
+            "контактн",
         )
     )
+    assert "раздел тз" not in reply.lower()
 
 
 def test_miniapp_shape_sets_task_and_pages(client):
@@ -1439,7 +1451,7 @@ def test_narrow_internal_bot_skips_generic_spine_extras():
     plan = heuristic_plan(
         product_type="telegram_bot",
         task_shape="telegram_bot",
-        texts=["Нужен внутренний Telegram-бот учёта смен команды, без сайта и витрины."],
+        texts=["Нужен внутренний Telegram-бот учёта смен для своей команды."],
     )
     ids = {
         topic.id
