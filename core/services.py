@@ -7,6 +7,7 @@ from typing import Literal
 
 from sqlalchemy.orm import Session
 
+from core.clock import message_time
 from core.coordinator import AICoordinator, CoordinatorMode, LLMRouter
 from core.export import TaskExport, export_tasks
 from core.hitl import (
@@ -60,7 +61,7 @@ def create_project(
     db.add(project)
     db.flush()
 
-    stage = DiscoveryStage.UNDERSTANDING_IDEA
+    stage = DiscoveryStage.CUSTOMER_INTRO
     literacy = ITLiteracy.LOW
     prompt = build_prompt(
         stage=stage,
@@ -86,6 +87,7 @@ def create_project(
 
     welcome = welcome_for_create(name)
     first_q = prompt.text
+    stamp = None
     for text, kind_meta, extra_meta in (
         (welcome, "welcome", {}),
         (
@@ -107,12 +109,14 @@ def create_project(
     ):
         if not text:
             continue
+        stamp = message_time(stamp)
         db.add(
             Message(
                 project_id=project.id,
                 kind=MessageKind.SYSTEM,
                 role="assistant",
                 text=text,
+                created_at=stamp,
                 meta={
                     "discovery_stage": prompt.stage.value,
                     "it_literacy": literacy.value,
@@ -187,14 +191,27 @@ def delete_project(
     return pid
 
 
+def _same_telegram_user(left: str | None, right: str | None) -> bool:
+    a = str(left or "").strip()
+    b = str(right or "").strip()
+    if not a or not b:
+        return False
+    if a == b:
+        return True
+    try:
+        ia, ib = int(a), int(b)
+    except ValueError:
+        return False
+    return ia > 0 and ia == ib
+
+
 def assert_project_owner(
     project: Project, customer_telegram_id: str | None
 ) -> None:
     if not customer_telegram_id:
         return
-    if (
-        project.customer_telegram_id
-        and str(project.customer_telegram_id) != str(customer_telegram_id)
+    if project.customer_telegram_id and not _same_telegram_user(
+        project.customer_telegram_id, customer_telegram_id
     ):
         raise PermissionError("project not owned by customer")
 
@@ -211,7 +228,7 @@ def list_project_messages(
         db.scalars(
             select(Message)
             .where(Message.project_id == project.id)
-            .order_by(Message.created_at.asc())
+            .order_by(Message.created_at.asc(), Message.id.asc())
         ).all()
     )
 
@@ -266,6 +283,7 @@ def get_project_workspace(
             break
 
     tz_available = project.status in TZ_DOWNLOAD_STATUSES
+    from discovery.customer_copy import customer_workspace_hud
     from core.client_estimate import (
         client_estimate_from_artifact,
         client_estimate_report_from_artifact,
@@ -290,6 +308,11 @@ def get_project_workspace(
         "allow_multiple": allow_multiple,
         "tz_available": tz_available,
         "discovery_progress": compute_discovery_progress(project, state),
+        "customer_hud": customer_workspace_hud(
+            status=project.status,
+            stage=stage,
+            paused=paused,
+        ),
         "client_estimate": client_estimate,
     }
 
@@ -334,6 +357,7 @@ def ingest_text_message(
         kind=MessageKind.TEXT,
         role=role,
         text=text,
+        created_at=message_time(),
         meta={},
     )
     db.add(message)
@@ -361,7 +385,9 @@ def ingest_text_message(
         discovery = run_discovery_turn(
             db, project, text, source_message_id=message.id
         )
-        assistant_message = _store_assistant_reply(db, project, discovery)
+        assistant_message = _store_assistant_reply(
+            db, project, discovery, after=message.created_at
+        )
 
     db.commit()
     db.refresh(message)
@@ -398,6 +424,7 @@ async def ingest_voice_message(
         role=role,
         text=transcript,
         raw_file_id=telegram_file_id,
+        created_at=message_time(),
         meta={"stt_provider": stt.__class__.__name__, "filename": filename},
     )
     db.add(message)
@@ -422,7 +449,9 @@ async def ingest_voice_message(
         discovery = run_discovery_turn(
             db, project, transcript, source_message_id=message.id
         )
-        assistant_message = _store_assistant_reply(db, project, discovery)
+        assistant_message = _store_assistant_reply(
+            db, project, discovery, after=message.created_at
+        )
 
     db.commit()
     db.refresh(message)
@@ -478,6 +507,7 @@ async def ingest_file_message(
         kind=MessageKind.TEXT,
         role="customer",
         text=note[:12000],
+        created_at=message_time(),
         meta={
             "channel": "file_attach",
             "filename": name,
@@ -519,9 +549,11 @@ async def ingest_file_message(
     assistant_message: Message | None = None
     if run_discovery:
         discovery = run_discovery_turn(
-            db, project, customer_text, source_message_id=message.id
+            db, project, note, source_message_id=message.id
         )
-        assistant_message = _store_assistant_reply(db, project, discovery)
+        assistant_message = _store_assistant_reply(
+            db, project, discovery, after=message.created_at
+        )
 
     db.commit()
     db.refresh(message)
@@ -899,24 +931,35 @@ def export_project_tasks(
 
 
 def _store_assistant_reply(
-    db: Session, project: Project, turn: DiscoveryTurnResult
+    db: Session,
+    project: Project,
+    turn: DiscoveryTurnResult,
+    *,
+    after: object | None = None,
 ) -> Message | None:
     if not turn.reply_to_customer:
         return None
+    from datetime import datetime
+
+    stamp = message_time(after if isinstance(after, datetime) else None)
+    meta = {
+        "discovery_stage": turn.stage.value,
+        "it_literacy": turn.literacy.value,
+        "artifact_id": str(turn.artifact_id) if turn.artifact_id else None,
+        "topic_id": turn.topic_id,
+        "choices": turn.choices,
+        "paused": turn.paused,
+        "allow_multiple": turn.allow_multiple,
+    }
+    if turn.artifact_id and turn.tz_available:
+        meta["kind"] = "tz_download" if turn.notify_owner else "tz_updated"
     assistant = Message(
         project_id=project.id,
         kind=MessageKind.SYSTEM,
         role="assistant",
         text=turn.reply_to_customer,
-        meta={
-            "discovery_stage": turn.stage.value,
-            "it_literacy": turn.literacy.value,
-            "artifact_id": str(turn.artifact_id) if turn.artifact_id else None,
-            "topic_id": turn.topic_id,
-            "choices": turn.choices,
-            "paused": turn.paused,
-            "allow_multiple": turn.allow_multiple,
-        },
+        created_at=stamp,
+        meta=meta,
     )
     db.add(assistant)
     db.flush()
@@ -968,7 +1011,81 @@ def _maybe_notify_owner_tz_ready(
 
 
 class TzSendError(ValueError):
-    """Customer TZ file could not be sent to Telegram."""
+    """Customer TZ / estimate file could not be sent to Telegram."""
+
+
+def _humanize_telegram_send_error(
+    description: str,
+    *,
+    error_kind: str | None = None,
+    http_status: int | None = None,
+) -> str:
+    from integrations.telegram.notify import classify_telegram_document_error
+
+    return classify_telegram_document_error(
+        description,
+        error_kind=error_kind,
+        http_status=http_status,
+    )
+
+
+def _humanize_export_error(detail: str, fmt: str) -> str:
+    kind = (fmt or "файл").upper()
+    low = (detail or "").lower()
+    if "ttf" in low or "font" in low or "unicode" in low:
+        return f"не удалось собрать {kind} (нет шрифта) — выберите Markdown или повторите"
+    return f"не удалось собрать {kind} — выберите Markdown или повторите"
+
+
+def _deliver_customer_document(
+    project: Project,
+    *,
+    customer_telegram_id: str | None,
+    payload: bytes,
+    filename: str,
+    caption: str,
+) -> dict:
+    from core.config import get_settings
+    from integrations.telegram.notify import (
+        customer_dm_chat_id,
+        send_customer_telegram_document,
+    )
+
+    settings = get_settings()
+    chat_id = customer_dm_chat_id(
+        project_customer_telegram_id=project.customer_telegram_id,
+        actor_telegram_id=customer_telegram_id,
+        owner_telegram_id=settings.owner_telegram_id,
+    )
+    if not chat_id:
+        raise TzSendError(
+            "нет chat_id — откройте Mini App из Telegram и нажмите /start"
+        )
+    if not (settings.telegram_bot_token or "").strip():
+        raise TzSendError("бот на сервере настроен неверно")
+    result = send_customer_telegram_document(
+        chat_id,
+        data=payload,
+        filename=filename,
+        caption=caption,
+    )
+    if not result or not result.get("ok") or not result.get("message_id"):
+        raise TzSendError(
+            _humanize_telegram_send_error(
+                (result or {}).get("description") or "",
+                error_kind=(result or {}).get("error_kind"),
+                http_status=(result or {}).get("http_status"),
+            )
+        )
+    if str(result.get("chat_id") or "") != str(chat_id):
+        raise TzSendError("файл ушёл не в чат заказчика")
+    return {
+        "sent": True,
+        "filename": filename,
+        "message_id": int(result["message_id"]),
+        "chat_id": str(result["chat_id"]),
+        "bot_username": result.get("bot_username"),
+    }
 
 
 def send_customer_tz_file(
@@ -980,7 +1097,6 @@ def send_customer_tz_file(
 ) -> dict:
     """Export the draft TZ and deliver it to the customer's Telegram chat."""
     from core.tz_document import TzExportError, export_tz_file
-    from integrations.telegram.notify import send_customer_telegram_document
 
     project = get_project(db, project_id)
     if project is None:
@@ -993,14 +1109,50 @@ def send_customer_tz_file(
     try:
         payload, _media, filename = export_tz_file(db, project, fmt)
     except TzExportError as exc:
-        raise TzSendError(str(exc)) from exc
-    chat_id = (project.customer_telegram_id or customer_telegram_id or "").strip()
-    ok = send_customer_telegram_document(
-        chat_id,
-        data=payload,
+        raise TzSendError(_humanize_export_error(str(exc), fmt)) from exc
+    except Exception as exc:
+        logger.exception("TZ export failed format=%s", fmt)
+        raise TzSendError(_humanize_export_error(str(exc), fmt)) from exc
+    return _deliver_customer_document(
+        project,
+        customer_telegram_id=customer_telegram_id,
+        payload=payload,
         filename=filename,
-        caption=f"Черновик ТЗ «{project.name}»",
+        caption=(
+            f"ТЗ «{project.name}» (актуальная версия)"
+            if project.status != ProjectStatus.WAITING_OWNER
+            else f"Черновик ТЗ «{project.name}»"
+        ),
     )
-    if not ok:
-        raise TzSendError("не удалось отправить файл в Telegram")
-    return {"sent": True, "filename": filename}
+
+
+def send_customer_estimate_file(
+    db: Session,
+    project_id: str | uuid.UUID,
+    fmt: str,
+    *,
+    customer_telegram_id: str | None = None,
+) -> dict:
+    """Export the client market estimate and deliver it to Telegram (DEC-012)."""
+    from core.tz_document import TzExportError, export_client_estimate_file
+
+    project = get_project(db, project_id)
+    if project is None:
+        raise ValueError("project not found")
+    assert_project_owner(project, customer_telegram_id)
+    if fmt not in {"md", "pdf", "docx"}:
+        raise TzSendError("unsupported format")
+    try:
+        payload, _media, filename = export_client_estimate_file(db, project, fmt)
+    except TzExportError as exc:
+        raise TzSendError(_humanize_export_error(str(exc), fmt)) from exc
+    except Exception as exc:
+        logger.exception("estimate export failed format=%s", fmt)
+        raise TzSendError(_humanize_export_error(str(exc), fmt)) from exc
+    return _deliver_customer_document(
+        project,
+        customer_telegram_id=customer_telegram_id,
+        payload=payload,
+        filename=filename,
+        caption=f"Смета «{project.name}» (ориентир рынка, не оферта)",
+    )

@@ -100,10 +100,14 @@
     choiceItems: [],
     allowMultiple: false,
     sending: false,
+    exportRetry: null,
     recorderExt: "webm",
     recordingStartedAt: 0,
     welcomePending: false,
+    tzAvailable: false,
     wsMessages: [],
+    micStream: null,
+    micConstraints: null,
   };
 
   const SpeechRecognition =
@@ -233,6 +237,45 @@
     return true;
   }
 
+  const HOME_ACTIONS = {
+    empty: ["create"],
+    withProject: ["create", "change"],
+    withMvpReview: ["create", "change", "feedback"],
+  };
+
+  function homeActionsFromProjects(projects) {
+    const list = Array.isArray(projects) ? projects : [];
+    if (!list.length) return HOME_ACTIONS.empty.slice();
+    const hasReview = list.some((p) => Boolean(p && p.mvp_review_sent));
+    return (hasReview ? HOME_ACTIONS.withMvpReview : HOME_ACTIONS.withProject).slice();
+  }
+
+  function applyHomeActions(projects) {
+    const allowed = new Set(homeActionsFromProjects(projects));
+    document.querySelectorAll("[data-action]").forEach((btn) => {
+      const action = btn.getAttribute("data-action");
+      const showBtn = allowed.has(action);
+      btn.classList.toggle("hidden", !showBtn);
+      btn.setAttribute("aria-hidden", showBtn ? "false" : "true");
+    });
+  }
+
+  async function refreshHome() {
+    show("home");
+    if (!userId) {
+      applyHomeActions([]);
+      return;
+    }
+    try {
+      const projects = await api(
+        `/projects?customer_telegram_id=${encodeURIComponent(userId)}`
+      );
+      applyHomeActions(projects);
+    } catch (err) {
+      applyHomeActions([]);
+    }
+  }
+
   document.querySelectorAll("[data-action]").forEach((btn) => {
     btn.addEventListener("click", () => {
       haptic("light");
@@ -268,6 +311,62 @@
     }
   }
 
+  const CUSTOMER_STATUS_HUD_RU = {
+    NEW: "уточняем идею",
+    INTERVIEW: "ждём ваш ответ",
+    ANALYZING: "собираем черновик",
+    WAITING_CUSTOMER: "ждём ваш ответ",
+    WAITING_OWNER: "на ревью у владельца",
+    WAITING_CLIENT_ESTIMATE: "смотрите смету",
+    READY: "можно собирать MVP",
+    ARCHIVED: "проект закрыт",
+  };
+  const CUSTOMER_STAGE_HUD_RU = {
+    PROJECT_CREATED: "уточняем идею",
+    UNDERSTANDING_IDEA: "уточняем идею",
+    BUSINESS_CONTEXT: "уточняем задачу",
+    USERS: "кто будет пользоваться",
+    FUNCTIONAL: "что должно уметь",
+    DATA: "какие данные нужны",
+    NON_FUNCTIONAL: "как должно работать",
+    INTEGRATIONS: "какие связи с другими системами",
+    ACCEPTANCE: "как примем работу",
+    RISKS: "риски и ограничения",
+    REVIEW: "проверяем черновик",
+    READY_FOR_OWNER: "на ревью у владельца",
+  };
+  const HOLD_STATUS_HUD = {
+    WAITING_OWNER: true,
+    WAITING_CLIENT_ESTIMATE: true,
+    READY: true,
+    ARCHIVED: true,
+    ANALYZING: true,
+  };
+
+  function hudKey(value) {
+    return String(value || "")
+      .trim()
+      .toUpperCase()
+      .replace(/[\s-]+/g, "_");
+  }
+
+  function customerWorkspaceHud(status, stage, paused, serverHud) {
+    const ready = String(serverHud || "").trim();
+    if (ready && !/[_]|^(create|change|feedback)$/i.test(ready)) {
+      const looksEnglishEnum = /^[A-Z][A-Z0-9_]+$/.test(ready);
+      if (!looksEnglishEnum) return ready;
+    }
+    if (paused) return "на паузе";
+    const statusKey = hudKey(status);
+    if (HOLD_STATUS_HUD[statusKey] && CUSTOMER_STATUS_HUD_RU[statusKey]) {
+      return CUSTOMER_STATUS_HUD_RU[statusKey];
+    }
+    const stageKey = hudKey(stage);
+    if (CUSTOMER_STAGE_HUD_RU[stageKey]) return CUSTOMER_STAGE_HUD_RU[stageKey];
+    if (CUSTOMER_STATUS_HUD_RU[statusKey]) return CUSTOMER_STATUS_HUD_RU[statusKey];
+    return "в работе";
+  }
+
   function resetWorkspaceDom(nameText, metaText) {
     $("ws-name").textContent = nameText || "Проект";
     $("ws-meta").textContent = metaText || "";
@@ -277,6 +376,7 @@
     showSendHint("");
     const box = $("composer-text");
     if (box) box.value = "";
+    state.tzAvailable = false;
     renderClientEstimate(null, "");
   }
 
@@ -284,7 +384,7 @@
     btn.addEventListener("click", () => {
       abortWorkspaceLoad();
       xp("idle");
-      show("home");
+      refreshHome();
     });
   });
 
@@ -292,7 +392,7 @@
     abortWorkspaceLoad();
     state.projectId = null;
     xp("idle");
-    if (state.listMode === "create") show("home");
+    if (state.listMode === "create") refreshHome();
     else loadProjects();
   });
 
@@ -328,16 +428,25 @@
     const list = $("project-list");
     const empty = $("list-empty");
     list.innerHTML = "";
+    empty.textContent = "Пока нет проектов.";
     try {
       const projects = await api(
         `/projects?customer_telegram_id=${encodeURIComponent(userId)}`
       );
-      if (!projects.length) {
+      const visible =
+        state.listMode === "feedback"
+          ? projects.filter((p) => Boolean(p && p.mvp_review_sent))
+          : projects;
+      if (!visible.length) {
+        empty.textContent =
+          state.listMode === "feedback"
+            ? "Пока нет проектов с MVP на проверке."
+            : "Пока нет проектов.";
         empty.classList.remove("hidden");
         return;
       }
       empty.classList.add("hidden");
-      projects.forEach((p) => {
+      visible.forEach((p) => {
         const li = document.createElement("li");
         li.className = "project-row";
 
@@ -345,7 +454,7 @@
         btn.type = "button";
         btn.className = "project-open";
         btn.innerHTML = `<div>${escapeHtml(p.name)}</div><div class="meta">${escapeHtml(
-          p.status
+          customerWorkspaceHud(p.status, p.discovery_stage, false, p.customer_hud)
         )}</div>`;
         btn.addEventListener("click", () => openWorkspace(p.id, state.listMode));
         li.appendChild(btn);
@@ -397,13 +506,19 @@
   async function openWorkspace(projectId, mode, afterEvent) {
     const pid = String(projectId || "");
     if (!pid) return;
+    const keepThread =
+      state.mode === "workspace" &&
+      String(state.projectId) === pid &&
+      Boolean(afterEvent);
     abortWorkspaceLoad();
     const requestId = state.wsRequestId;
     state.projectId = pid;
     if (mode === "create" || mode === "change" || mode === "feedback") {
       state.listMode = mode;
     }
-    resetWorkspaceDom("Загрузка…", "Открываю чат этого проекта…");
+    if (!keepThread) {
+      resetWorkspaceDom("Загрузка…", "Открываю чат этого проекта…");
+    }
     show("workspace");
     xp("thinking");
     const controller = new AbortController();
@@ -419,10 +534,14 @@
       if (requestId !== state.wsRequestId) return;
       if (String(ws.project_id) !== pid) return;
       $("ws-name").textContent = ws.name;
-      $("ws-meta").textContent = `${ws.status} · ${ws.mode} · ${ws.discovery_stage || "—"}${
-        ws.paused ? " · пауза" : ""
-      }`;
+      $("ws-meta").textContent = customerWorkspaceHud(
+        ws.status,
+        ws.discovery_stage,
+        Boolean(ws.paused),
+        ws.customer_hud
+      );
       renderProgress(ws.discovery_progress, mode !== "feedback");
+      state.tzAvailable = Boolean(ws.tz_available);
       applyWelcomeGate(ws.messages || [], mode);
       renderChoices(
         mode === "feedback" ? [] : ws.discovery_choices || [],
@@ -440,7 +559,6 @@
             ? "Можно добавить уточнение…"
             : "Ответьте текстом или откройте варианты…";
       $("composer-text").placeholder = placeholder;
-      renderTzDownload(Boolean(ws.tz_available));
       renderClientEstimate(ws.client_estimate, ws.status);
       if (ws.tz_available) xp("draft_ready");
       else if (afterEvent) xp(afterEvent);
@@ -450,7 +568,7 @@
       if (isAbortError(err) || requestId !== state.wsRequestId) return;
       xp("error");
       alert(err.message || String(err));
-      show("home");
+      refreshHome();
     }
   }
 
@@ -476,10 +594,16 @@
     fill.style.width = `${percent}%`;
     bar.setAttribute("aria-valuenow", String(percent));
     bar.setAttribute("aria-valuemax", "100");
+    const remaining = Math.max(
+      0,
+      Number(progress.remaining != null ? progress.remaining : total - done)
+    );
     if (progress.phase === "done" || percent >= 100) {
-      label.textContent = `Сбор требований: готово (${done} из ${total})`;
+      label.textContent = "Сбор требований: готово";
+    } else if (remaining <= 3) {
+      label.textContent = "Ещё пара уточнений";
     } else {
-      label.textContent = `Сбор требований: ${done} из ${total}`;
+      label.textContent = `Сбор требований: ${percent}%`;
     }
   }
 
@@ -543,27 +667,106 @@
     renderThread(list);
   }
 
+  function sortThreadMessages(messages) {
+    return [...(messages || [])].sort((a, b) => {
+      const ta = Date.parse(a.created_at || "") || 0;
+      const tb = Date.parse(b.created_at || "") || 0;
+      if (ta !== tb) return ta - tb;
+      return String(a.id || "").localeCompare(String(b.id || ""));
+    });
+  }
+
   function visibleThreadMessages(messages) {
     const hold = Boolean(state.welcomePending);
-    return (messages || []).filter((m) => {
+    return sortThreadMessages(messages).filter((m) => {
       if (isWelcomeMessage(m)) return false;
       if (hold) return false;
       return true;
     });
   }
 
+  function isTzDownloadMessage(m) {
+    if (!m) return false;
+    if (m.meta_kind === "tz_download" || m.meta_kind === "tz_updated") return true;
+    const t = String(m.text || "").toLowerCase();
+    if (!t.includes("черновик")) return false;
+    return (
+      t.includes("скачайте") ||
+      t.includes("скачать его можно") ||
+      t.includes("добавлено к материалам ревью") ||
+      t.includes("обновлён") ||
+      t.includes("обновлен") ||
+      /обновил[аи]?\s+черновик/.test(t)
+    );
+  }
+
+  function tzCardTitle(m) {
+    if (m && m.meta_kind === "tz_updated") return "ТЗ обновилось";
+    return "ТЗ готово";
+  }
+
+  function tzCardLead() {
+    return "Кинуть в чат бота";
+  }
+
+  function appendTzFormatButtons(host) {
+    const row = document.createElement("div");
+    row.className = "tz-download-row";
+    [
+      ["md", "Markdown", false],
+      ["docx", "Word", false],
+      ["pdf", "PDF", true],
+    ].forEach(([fmt, label, primary]) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = primary ? "btn primary" : "btn";
+      btn.setAttribute("data-tz-fmt", fmt);
+      btn.textContent = label;
+      row.appendChild(btn);
+    });
+    host.appendChild(row);
+  }
+
+  function renderTzCard(thread, m, latest) {
+    const div = document.createElement("div");
+    div.className = "bubble assistant tz-card";
+    if (latest) div.classList.add("latest");
+    div.setAttribute("data-tz-card", m && m.id ? "message" : "synthetic");
+    if (m && m.id) div.setAttribute("data-tz-msg", String(m.id));
+    const title = document.createElement("p");
+    title.className = "tz-download-title";
+    title.textContent = tzCardTitle(m);
+    div.appendChild(title);
+    const lead = document.createElement("p");
+    lead.className = "tz-download-lead";
+    lead.textContent = tzCardLead();
+    div.appendChild(lead);
+    appendTzFormatButtons(div);
+    thread.appendChild(div);
+  }
+
   function renderThread(messages) {
     const thread = $("thread");
     thread.innerHTML = "";
     const rows = visibleThreadMessages(messages);
+    let cards = 0;
     rows.forEach((m, idx) => {
+      const latest = idx === rows.length - 1;
+      if (state.tzAvailable && isTzDownloadMessage(m)) {
+        cards += 1;
+        renderTzCard(thread, m, latest);
+        return;
+      }
       const div = document.createElement("div");
       const role = m.role === "customer" ? "customer" : "assistant";
       div.className = `bubble ${role}`;
-      if (idx === rows.length - 1) div.classList.add("latest");
+      if (latest) div.classList.add("latest");
       div.textContent = m.text;
       thread.appendChild(div);
     });
+    if (state.tzAvailable && cards === 0 && !state.welcomePending) {
+      renderTzCard(thread, { meta_kind: "tz_download" }, true);
+    }
   }
 
   function scrollThreadToLatest() {
@@ -602,10 +805,45 @@
     hint.textContent = text;
   }
 
-  function renderTzDownload(available) {
-    const bar = $("tz-download");
-    if (!bar) return;
-    bar.classList.toggle("hidden", !available);
+  function hideExportFallback() {
+    const box = $("export-fallback");
+    const textEl = $("export-fallback-text");
+    if (box) box.classList.add("hidden");
+    if (textEl) textEl.textContent = "";
+    state.exportRetry = null;
+  }
+
+  function humanizeTelegramSendError(raw) {
+    const text = String(raw || "").trim();
+    const low = text.toLowerCase();
+    if (
+      low.includes("сеть до telegram недоступна") ||
+      low.includes("telegram_bot_api_unreachable")
+    ) {
+      return "Сервер не смог связаться с Telegram Bot API (не ваш интернет). Попробуйте ещё раз.";
+    }
+    return text;
+  }
+
+  function showExportFallback(reason, kind, fmt, exportPath) {
+    const why =
+      humanizeTelegramSendError(reason) || "Не удалось отправить файл в чат бота.";
+    const box = $("export-fallback");
+    const textEl = $("export-fallback-text");
+    const open = $("export-open");
+    if (textEl) textEl.textContent = why;
+    if (box) box.classList.remove("hidden");
+    showSendHint(why);
+    state.exportRetry = { kind, fmt, exportPath };
+    if (open) {
+      if (exportPath) {
+        open.href = exportPath;
+        open.classList.remove("hidden");
+      } else {
+        open.removeAttribute("href");
+        open.classList.add("hidden");
+      }
+    }
   }
 
   function renderClientEstimate(est, projectStatus) {
@@ -700,74 +938,119 @@
     ceDiscuss.addEventListener("click", () => decideClientEstimate("discuss"));
   }
 
-  async function downloadTz(fmt) {
+  function openCustomerBotChat(username) {
+    const name = String(username || "").replace(/^@/, "").trim();
+    const link = name ? `https://t.me/${name}` : "";
+    if (!link || !tg || typeof tg.openTelegramLink !== "function") return;
+    try {
+      tg.openTelegramLink(link);
+    } catch (_) {
+      /* older clients keep the hint */
+    }
+  }
+
+  function openExportInBrowser(exportPath) {
+    if (!exportPath) return false;
+    const abs = exportPath.startsWith("http")
+      ? exportPath
+      : `${window.location.origin}${exportPath}`;
+    if (inTelegramWebView() && tg && typeof tg.openLink === "function") {
+      try {
+        tg.openLink(abs, { try_instant_view: false });
+        return true;
+      } catch (_) {
+        try {
+          tg.openLink(abs);
+          return true;
+        } catch (__) {
+          return false;
+        }
+      }
+    }
+    return false;
+  }
+
+  async function downloadExport(kind, fmt) {
     if (!state.projectId || !requireUser()) return;
     const qs = new URLSearchParams({
       format: fmt,
       customer_telegram_id: userId,
     });
-    const exportPath = `/projects/${state.projectId}/tz-export?${qs}`;
-    const sendPath = `/projects/${state.projectId}/tz-send?${qs}`;
-    showSendHint("Готовим файл…");
+    const base = kind === "estimate" ? "estimate" : "tz";
+    const exportPath = `/projects/${state.projectId}/${base}-export?${qs}`;
+    const sendPath = `/projects/${state.projectId}/${base}-send?${qs}`;
+    hideExportFallback();
+    showSendHint("Отправляем файл в чат бота…");
 
-    if (inTelegramWebView()) {
-      try {
-        const sent = await api(sendPath, { method: "POST" });
-        const name = (sent && sent.filename) || `tz.${fmt}`;
-        showSendHint(`Файл «${name}» отправлен в чат с ботом ASF.`);
-        return;
-      } catch (_) {
-        /* bot send unavailable — try in-app / external download */
+    try {
+      const sent = await api(sendPath, { method: "POST" });
+      if (!sent || sent.sent !== true || !sent.message_id) {
+        throw new Error("Бот не подтвердил отправку файла в личку.");
       }
-      const abs = `${window.location.origin}${exportPath}`;
-      if (tg && typeof tg.downloadFile === "function") {
-        const ok = await new Promise((resolve) => {
-          try {
-            tg.downloadFile({ url: abs, file_name: `tz.${fmt}` }, (done) => resolve(Boolean(done)));
-          } catch (_) {
-            resolve(false);
-          }
-        });
-        if (ok) {
-          showSendHint("Файл сохранён.");
-          return;
-        }
-      }
-      if (tg && typeof tg.openLink === "function") {
-        tg.openLink(abs);
-        showSendHint("Откройте ссылку и сохраните файл.");
-        return;
-      }
+      showSendHint("Файл в личке с ботом. Закройте Mini App — его нет в этой ленте.");
+      openCustomerBotChat(sent.bot_username);
+      return;
+    } catch (err) {
+      showExportFallback(err && err.message, kind, fmt, exportPath);
+      xp("error");
     }
-
-    const res = await fetch(exportPath);
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || res.statusText || "Не удалось скачать ТЗ");
-    }
-    const blob = await res.blob();
-    const cd = res.headers.get("Content-Disposition") || "";
-    const star = cd.match(/filename\*=UTF-8''([^;]+)/i);
-    const plain = cd.match(/filename="?([^";]+)"?/i);
-    const name = decodeURIComponent((star && star[1]) || (plain && plain[1]) || `tz.${fmt}`);
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = name;
-    a.rel = "noopener";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(a.href);
-    showSendHint("");
   }
 
-  document.querySelectorAll("[data-tz-fmt]").forEach((btn) => {
-    btn.addEventListener("click", async () => {
+  const exportRetryBtn = $("export-retry");
+  if (exportRetryBtn) {
+    exportRetryBtn.addEventListener("click", async () => {
+      const retry = state.exportRetry;
+      if (!retry) return;
+      await downloadExport(retry.kind, retry.fmt);
+    });
+  }
+  const exportOpenBtn = $("export-open");
+  if (exportOpenBtn) {
+    exportOpenBtn.addEventListener("click", (ev) => {
+      const retry = state.exportRetry;
+      const href = (retry && retry.exportPath) || exportOpenBtn.getAttribute("href") || "";
+      if (!href || href === "#") {
+        ev.preventDefault();
+        return;
+      }
+      if (openExportInBrowser(href)) {
+        ev.preventDefault();
+        showSendHint("Если файл не открылся — напишите боту /start и нажмите «Ещё раз в бота».");
+      }
+    });
+  }
+
+  const threadEl = $("thread");
+  if (threadEl) {
+    threadEl.addEventListener("click", async (ev) => {
+      const btn = ev.target && ev.target.closest ? ev.target.closest("[data-tz-fmt]") : null;
+      if (!btn || !threadEl.contains(btn)) return;
       try {
-        await downloadTz(btn.getAttribute("data-tz-fmt") || "md");
+        await downloadExport("tz", btn.getAttribute("data-tz-fmt") || "md");
       } catch (err) {
         xp("error");
-        alert(err.message || String(err));
+        showExportFallback(
+          err.message || String(err),
+          "tz",
+          btn.getAttribute("data-tz-fmt") || "md",
+          ""
+        );
+      }
+    });
+  }
+
+  document.querySelectorAll("[data-ce-fmt]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      try {
+        await downloadExport("estimate", btn.getAttribute("data-ce-fmt") || "md");
+      } catch (err) {
+        xp("error");
+        showExportFallback(
+          err.message || String(err),
+          "estimate",
+          btn.getAttribute("data-ce-fmt") || "md",
+          ""
+        );
       }
     });
   });
@@ -839,21 +1122,83 @@
     });
   }
 
+  function isWriteInChoice(choice) {
+    const blob = [choice && choice.label, choice && choice.id]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase()
+      .replace(/ё/g, "е");
+    return /сейчас\s+напишу|напишу\s+сам|свой\s+вариант/.test(blob);
+  }
+
+  function selectedChoices() {
+    return state.choiceItems.filter((c) => {
+      if (!state.selectedIds.has(c.id)) return false;
+      if (c.exclusive && !isWriteInChoice(c)) return false;
+      return true;
+    });
+  }
+
+  function formatSelectedLabels() {
+    const labels = selectedChoices()
+      .map((c) => String(c.label || "").trim() || c.id)
+      .filter(Boolean);
+    if (!labels.length) return "";
+    if (labels.length === 1) return labels[0];
+    if (labels.length === 2) return `${labels[0]} и ${labels[1]}`;
+    return `${labels.slice(0, -1).join(", ")} и ${labels[labels.length - 1]}`;
+  }
+
   function encodeSelectedPayload(extraText) {
     const extra = String(extraText || "").trim();
-    const selected = state.choiceItems.filter(
-      (c) => state.selectedIds.has(c.id) && !c.exclusive
+    const labels = formatSelectedLabels();
+    if (!labels) return extra;
+    return extra ? `${labels}\n${extra}` : labels;
+  }
+
+  function focusComposer() {
+    const box = $("composer-text");
+    if (!box) return;
+    try {
+      box.focus({ preventScroll: true });
+    } catch (_) {
+      try {
+        box.focus();
+      } catch (__) {
+        /* some WebViews */
+      }
+    }
+  }
+
+  function holdForWriteIn() {
+    closeChoicesModal();
+    paintSelectedChips();
+    const labels = formatSelectedLabels();
+    showSendHint(
+      labels
+        ? `Выбрано: ${labels}. Допишите текст и нажмите «Отправить».`
+        : "Допишите текст и нажмите «Отправить»."
     );
-    if (!selected.length) return extra;
-    const nums = selected
-      .map((c) => state.choiceItems.indexOf(c) + 1)
-      .filter((n) => n > 0)
-      .join(", ");
-    return extra ? `${nums}\n${extra}` : nums;
+    focusComposer();
   }
 
   async function onChoiceTap(choice) {
     if (!choice) return;
+    if (isWriteInChoice(choice)) {
+      if (state.allowMultiple) {
+        if (state.selectedIds.has(choice.id)) state.selectedIds.delete(choice.id);
+        else state.selectedIds.add(choice.id);
+      } else {
+        state.selectedIds = new Set([choice.id]);
+      }
+      if (state.selectedIds.has(choice.id)) {
+        holdForWriteIn();
+      } else {
+        paintSelectedChips();
+        showSendHint("");
+      }
+      return;
+    }
     if (choice.exclusive || !state.allowMultiple) {
       closeChoicesModal();
       await sendDiscoveryText(choice.label || choice.id);
@@ -893,6 +1238,16 @@
     state.sending = true;
     showSendHint("Отправка…");
     xp("thinking");
+    state.wsMessages = [
+      ...(state.wsMessages || []),
+      {
+        id: `local-${Date.now()}`,
+        role: "customer",
+        text: payload,
+        created_at: new Date().toISOString(),
+      },
+    ];
+    renderThread(state.wsMessages);
     showTypingBubble();
     try {
       const qs = `?customer_telegram_id=${encodeURIComponent(userId)}`;
@@ -945,7 +1300,16 @@
   const choicesApply = $("choices-apply");
   if (choicesApply) {
     choicesApply.addEventListener("click", async () => {
-      const payload = encodeSelectedPayload("");
+      const typed = ($("composer-text").value || "").trim();
+      if (!selectedChoices().length && !typed) {
+        showSendHint("Отметьте варианты или нажмите «Отмена».");
+        return;
+      }
+      if (selectedChoices().some(isWriteInChoice) && !typed) {
+        holdForWriteIn();
+        return;
+      }
+      const payload = encodeSelectedPayload(typed);
       if (!payload) {
         showSendHint("Отметьте варианты или нажмите «Отмена».");
         return;
@@ -1222,26 +1586,56 @@
     }
   }
 
-  async function startMediaDictation() {
+  function micStreamLive() {
+    const stream = state.micStream;
+    if (!stream || !stream.active) return false;
+    return stream.getAudioTracks().some((t) => t && t.readyState === "live");
+  }
+
+  function setMicTracksEnabled(on) {
+    const stream = state.micStream;
+    if (!stream) return;
+    stream.getAudioTracks().forEach((t) => {
+      try {
+        t.enabled = Boolean(on);
+      } catch (_) {
+        /* ignore */
+      }
+    });
+  }
+
+  async function ensureMicStream() {
+    if (micStreamLive()) {
+      setMicTracksEnabled(true);
+      return state.micStream;
+    }
     if (
       typeof MediaRecorder === "undefined" ||
       !navigator.mediaDevices ||
       !navigator.mediaDevices.getUserMedia
     ) {
-      alert(
-        "Голосовой ввод недоступен в этом клиенте Telegram. Разрешите микрофон для Telegram в настройках телефона или введите текст. Голосовые в чат бота тоже принимаются."
-      );
-      return;
+      const err = new Error("getUserMedia unavailable");
+      err.code = "no-media";
+      throw err;
     }
+    const preferred = state.micConstraints || {
+      audio: { echoCancellation: true, noiseSuppression: true },
+    };
+    let stream;
     try {
-      let stream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: true, noiseSuppression: true },
-        });
-      } catch (_) {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      }
+      stream = await navigator.mediaDevices.getUserMedia(preferred);
+      state.micConstraints = preferred;
+    } catch (_) {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      state.micConstraints = { audio: true };
+    }
+    state.micStream = stream;
+    return stream;
+  }
+
+  async function startMediaDictation() {
+    try {
+      const stream = await ensureMicStream();
       const picked = pickRecorderMime();
       state.chunks = [];
       state.recorderExt = picked.ext;
@@ -1254,7 +1648,7 @@
         if (ev.data && ev.data.size > 0) state.chunks.push(ev.data);
       };
       state.mediaRecorder.onerror = () => {
-        stream.getTracks().forEach((t) => t.stop());
+        setMicTracksEnabled(false);
         state.mediaRecorder = null;
         state.voiceMode = null;
         setVoiceUi(false, "");
@@ -1262,7 +1656,7 @@
         alert("Ошибка записи. Попробуйте ещё раз или введите текст.");
       };
       state.mediaRecorder.onstop = () => {
-        stream.getTracks().forEach((t) => t.stop());
+        setMicTracksEnabled(false);
         dictationViaServer();
       };
       try {
@@ -1275,6 +1669,12 @@
       state.voiceMode = null;
       setVoiceUi(false, "");
       xp("error");
+      if (err && err.code === "no-media") {
+        alert(
+          "Голосовой ввод недоступен в этом клиенте Telegram. Разрешите микрофон для Telegram в настройках телефона или введите текст. Голосовые в чат бота тоже принимаются."
+        );
+        return;
+      }
       const msg = String(err && err.message ? err.message : err);
       alert(
         "Не удалось получить доступ к микрофону. В Android: Настройки → приложения → Telegram → разрешения → Микрофон. Затем закройте Mini App и откройте снова. " +
@@ -1367,5 +1767,5 @@
     $("subtitle").textContent = "Откройте из Telegram-бота или добавьте ?uid=";
   }
 
-  show("home");
+  refreshHome();
 })();

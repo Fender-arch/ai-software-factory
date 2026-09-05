@@ -7,7 +7,7 @@ alwaysApply: false
 # Discovery & Knowledge Graph
 
 - KG is SoT: write `entity` / `relation` first; Markdown artifacts are derived
-- MVP entity types: Project, Message, Requirement, OpenQuestion, Decision, Task, Artifact, Risk
+- MVP entity types: Project, Message, Requirement, OpenQuestion, Decision, Task, Artifact, Risk, Feedback, Customer, Organization
 - MVP relations: derived_from, decides, implements, blocks, related_to
 - Modes must not freely scan the whole DB later — prefer a context builder
 - Discovery adapts the TZ outline to the task (spine + modules + optional subsections); one question at a time

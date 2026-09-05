@@ -647,6 +647,77 @@ def client_estimate_console_panel(
     return view
 
 
+_ESTIMATE_STATUS_RU = {
+    "pending": "ожидает подтверждения",
+    "confirmed": "подтверждена",
+    "discuss_requested": "запрошено обсуждение",
+}
+
+
+def compose_client_estimate_markdown(
+    project: Project,
+    estimate: ClientEstimate,
+    report: ClientEstimateReport | None = None,
+) -> str:
+    """Plain-language client estimate document (DEC-012), same MD pipeline as TZ."""
+    product = PRODUCT_TYPE_RU.get(
+        estimate.product_type or project.product_type or "",
+        estimate.product_type or project.product_type or "не указан",
+    )
+    status = _ESTIMATE_STATUS_RU.get(estimate.status, estimate.status or "—")
+    lines = [
+        f"# Смета — {project.name}",
+        "",
+        "## Ориентир",
+        "",
+        f"- Середина: {format_money(estimate.cost, estimate.currency)}",
+        f"- Вилка: {format_money(estimate.cost_low, estimate.currency)} – "
+        f"{format_money(estimate.cost_high, estimate.currency)}",
+        f"- Трудоёмкость: ~{format_hours(estimate.hours)} ч",
+        f"- Ставка (середина): {format_hours(estimate.hourly_rate_mid)} "
+        f"{estimate.currency}/ч",
+        f"- Тип продукта: {product}",
+        f"- Статус сметы: {status}",
+        f"- Метод: `{estimate.method}`",
+        "",
+    ]
+    if estimate.customer_budget_label:
+        lines.extend(
+            [
+                f"- Ориентир заказчика: {estimate.customer_budget_label}",
+                f"- Сходимость с бюджетом: {estimate.budget_fit or '—'}",
+                "",
+            ]
+        )
+    title = (report.title if report else "") or "Почему столько стоит"
+    body = (report.body if report else "") or ""
+    lines.extend([f"## {title}", "", body or "_Отчёт ещё не готов._", ""])
+    items = list(estimate.work_items or [])
+    if items:
+        lines.extend(["## Состав работ", ""])
+        for item in items:
+            name = str(item.get("name") or "позиция")
+            hours = item.get("hours")
+            hours_s = f" — {format_hours(float(hours))} ч" if hours is not None else ""
+            kind = item.get("kind") or item.get("priority") or ""
+            in_mvp = "в MVP" if item.get("in_mvp") else "вне MVP"
+            extra = f" ({kind}, {in_mvp})" if kind else f" ({in_mvp})"
+            lines.append(f"- {name}{hours_s}{extra}")
+        lines.append("")
+    sources = list(estimate.sources or [])
+    if sources:
+        lines.extend(["## Источники ставок", ""])
+        for src in sources:
+            name = src.get("name") or "источник"
+            kind = src.get("kind") or "config"
+            note = src.get("note") or ""
+            tail = f" — {note}" if note else ""
+            lines.append(f"- **{name}** · {kind}{tail}")
+        lines.append("")
+    lines.extend(["## Важно", "", estimate.disclaimer or DISCLAIMER_RU, ""])
+    return "\n".join(lines)
+
+
 def format_client_estimate_ready_message(
     *,
     name: str,

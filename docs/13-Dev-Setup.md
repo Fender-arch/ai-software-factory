@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.10 |
+| Version | 0.15 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -43,15 +43,24 @@ pytest
 | Variable | Purpose |
 |----------|---------|
 | `DATABASE_URL` | SQLAlchemy URL |
-| `TELEGRAM_BOT_TOKEN` | Bot polling |
+| `TELEGRAM_BOT_TOKEN` | Bot polling **and** Mini App `sendDocument`. Must be the same BotFather bot that opens the Mini App |
+| `HTTPS_PROXY` | Preferred outbound proxy (same hop Groq/OpenAI/STT httpx already use). Do not commit a real URL |
+| `HTTP_PROXY` / `ALL_PROXY` / `LLM_HTTP_PROXY` | Aliases for that hop. Telegram fallback: `TELEGRAM_PROXY` → `HTTPS_PROXY` → `HTTP_PROXY` → `ALL_PROXY` → `LLM_HTTP_PROXY` |
+| `TELEGRAM_PROXY` | Only if Bot API must use a different proxy than AI |
+| `ASF_TELEGRAM_IP` | `auto` (prefer IPv4) \| `4` \| `6` |
 | `GROQ_API_KEY` | Groq Whisper STT (recommended server fallback) |
 | `OPENAI_API_KEY` | OpenAI Whisper if `STT_PROVIDER=whisper` (+ future LLM) |
 | `STT_PROVIDER` | `stub` \| `groq` \| `whisper` |
 | `STT_MODEL` | e.g. `whisper-large-v3-turbo` (Groq) or `whisper-1` (OpenAI) |
-| `LLM_PROVIDER` | `stub` \| `groq` (JSON outline, LLM interview turns, TZ polish) |
+| `LLM_PROVIDER` | `stub` \| `groq`. **Conversational Discovery (DEC-008/014) stays off on `stub`** — the customer gets the FSM fallback. Production: `groq` + `GROQ_API_KEY` |
 | `LLM_MODEL` | Groq chat model (default `llama-3.3-70b-versatile`; ignored for stub) |
-| `DISCOVERY_ENGINE` | `auto` \| `llm` \| `fsm` — DEC-008. `auto` = LLM-driven turns when `LLM_PROVIDER` is not `stub`; `fsm` forces the deterministic path |
+| `DISCOVERY_ENGINE` | `auto` \| `llm` \| `fsm` — DEC-008. `auto` = LLM-driven turns when `LLM_PROVIDER` is not `stub`; `fsm` forces the deterministic fallback (no catalog heading menu, DEC-014) |
 | `OWNER_TELEGRAM_ID` | HITL owner chat |
+| `STUDIO_NAME` | Studio name printed on the client TZ (optional) |
+| `OWNER_CONTACT_NAME` | Owner/studio person on the client TZ (optional) |
+| `OWNER_CONTACT_EMAIL` | Owner/studio email on the client TZ (optional) |
+| `OWNER_CONTACT_PHONE` | Owner/studio phone on the client TZ (optional) |
+| `OWNER_CONTACT_TELEGRAM` | Owner/studio Telegram handle on the client TZ (optional) |
 | `ASF_ESTIMATE_HOURLY_RATE` | Hourly rate for owner TZ cost estimate (default `3000`) |
 | `ASF_ESTIMATE_CURRENCY` | Currency code for that estimate (default `RUB`) |
 | `ASF_MARKET_RATES_URL` | Optional HTTPS JSON of public market bands (client estimate). Empty = builtin table |
@@ -90,7 +99,7 @@ Owner HITL (after draft TZ): `/review`, `/approve`, `/changes`, `/reject`, then 
 
 ## Smoke checks
 
-1. `GET /health` → `ok`
+1. `GET /health` → `ok`. Optional: `GET /health/telegram` → VPS egress + `getMe` username (no token)
 2. `GET /miniapp/` → Russian home UI
 3. `GET /console/` → owner TZ graph UI
 4. `POST /projects` → create

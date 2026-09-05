@@ -7,6 +7,11 @@ import os
 from pathlib import Path
 from urllib.parse import quote_plus
 
+from core.egress import (
+    existing_proxy_values,
+    resolve_outbound_proxy_url,
+)
+
 PLACEHOLDER = "SET_ME"
 
 # Keys written into the server `.env` (app + compose interpolation).
@@ -24,6 +29,11 @@ ENV_KEYS = (
     "LLM_MODEL",
     "DISCOVERY_ENGINE",
     "OWNER_TELEGRAM_ID",
+    "STUDIO_NAME",
+    "OWNER_CONTACT_NAME",
+    "OWNER_CONTACT_EMAIL",
+    "OWNER_CONTACT_PHONE",
+    "OWNER_CONTACT_TELEGRAM",
     "ASF_ESTIMATE_HOURLY_RATE",
     "ASF_ESTIMATE_CURRENCY",
     "ASF_MARKET_RATES_URL",
@@ -46,7 +56,10 @@ ENV_KEYS = (
     "HTTP_PROXY",
     "HTTPS_PROXY",
     "ALL_PROXY",
+    "TELEGRAM_PROXY",
+    "LLM_HTTP_PROXY",
     "NO_PROXY",
+    "ASF_TELEGRAM_IP",
 )
 
 
@@ -88,6 +101,25 @@ def database_url(password: str) -> str:
 
 def build_env_values(raw: dict[str, str] | None = None) -> dict[str, str]:
     src = {k: _clean(v) for k, v in (raw or os.environ).items()}
+    # Deploy from GitHub must not wipe an AI proxy that already lives in /opt/asf/.env.
+    if raw is None:
+        for key, value in existing_proxy_values().items():
+            if not src.get(key):
+                src[key] = value
+
+    egress_host = src.get("EGRESS_SSH_HOST") or ""
+    egress_user = src.get("EGRESS_SSH_USER") or "root"
+    if is_placeholder(egress_user):
+        egress_user = "root"
+    egress_port = src.get("EGRESS_SSH_PORT") or "22"
+    if not egress_port.isdigit() or not (1 <= int(egress_port) <= 65535):
+        egress_port = "22"
+    if egress_host:
+        tunnel = "http://egress:8888"
+        for key in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"):
+            if not src.get(key):
+                src[key] = tunnel
+    proxy = resolve_outbound_proxy_url(src)
 
     postgres = src.get("POSTGRES_PASSWORD") or src.get("ASF_POSTGRES_PASSWORD") or ""
     if is_placeholder(postgres):
@@ -115,24 +147,12 @@ def build_env_values(raw: dict[str, str] | None = None) -> dict[str, str]:
     if is_placeholder(console_token):
         raise ValueError("CONSOLE_TOKEN is required in production (replace GitHub secret SET_ME)")
 
-    egress_host = src.get("EGRESS_SSH_HOST") or ""
-    egress_user = src.get("EGRESS_SSH_USER") or "root"
-    if is_placeholder(egress_user):
-        egress_user = "root"
-    egress_port = src.get("EGRESS_SSH_PORT") or "22"
-    if not egress_port.isdigit() or not (1 <= int(egress_port) <= 65535):
-        egress_port = "22"
-    default_no_proxy = "localhost,127.0.0.1,db,egress"
-    if egress_host:
-        default_proxy = "http://egress:8888"
-        http_proxy = src.get("HTTP_PROXY") or default_proxy
-        https_proxy = src.get("HTTPS_PROXY") or default_proxy
-        all_proxy = src.get("ALL_PROXY") or default_proxy
-    else:
-        http_proxy = src.get("HTTP_PROXY") or ""
-        https_proxy = src.get("HTTPS_PROXY") or ""
-        all_proxy = src.get("ALL_PROXY") or ""
-    no_proxy = src.get("NO_PROXY") or default_no_proxy
+    ip_mode = (src.get("ASF_TELEGRAM_IP") or "auto").lower()
+    if ip_mode not in {"auto", "4", "6"}:
+        ip_mode = "auto"
+    no_proxy = src.get("NO_PROXY") or (
+        "localhost,127.0.0.1,db,egress" if egress_host else "localhost,127.0.0.1,db"
+    )
 
     values = {
         "ASF_ENV": src.get("ASF_ENV") or "production",
@@ -148,6 +168,11 @@ def build_env_values(raw: dict[str, str] | None = None) -> dict[str, str]:
         "LLM_MODEL": src.get("LLM_MODEL") or "",
         "DISCOVERY_ENGINE": discovery_engine,
         "OWNER_TELEGRAM_ID": src.get("OWNER_TELEGRAM_ID") or "",
+        "STUDIO_NAME": src.get("STUDIO_NAME") or "",
+        "OWNER_CONTACT_NAME": src.get("OWNER_CONTACT_NAME") or "",
+        "OWNER_CONTACT_EMAIL": src.get("OWNER_CONTACT_EMAIL") or "",
+        "OWNER_CONTACT_PHONE": src.get("OWNER_CONTACT_PHONE") or "",
+        "OWNER_CONTACT_TELEGRAM": src.get("OWNER_CONTACT_TELEGRAM") or "",
         "ASF_ESTIMATE_HOURLY_RATE": src.get("ASF_ESTIMATE_HOURLY_RATE") or "3000",
         "ASF_ESTIMATE_CURRENCY": src.get("ASF_ESTIMATE_CURRENCY") or "RUB",
         "ASF_MARKET_RATES_URL": src.get("ASF_MARKET_RATES_URL") or "",
@@ -167,10 +192,13 @@ def build_env_values(raw: dict[str, str] | None = None) -> dict[str, str]:
         "EGRESS_SSH_HOST": egress_host,
         "EGRESS_SSH_USER": egress_user,
         "EGRESS_SSH_PORT": egress_port,
-        "HTTP_PROXY": http_proxy,
-        "HTTPS_PROXY": https_proxy,
-        "ALL_PROXY": all_proxy,
+        "HTTP_PROXY": src.get("HTTP_PROXY") or proxy,
+        "HTTPS_PROXY": src.get("HTTPS_PROXY") or proxy,
+        "ALL_PROXY": src.get("ALL_PROXY") or "",
+        "TELEGRAM_PROXY": src.get("TELEGRAM_PROXY") or "",
+        "LLM_HTTP_PROXY": src.get("LLM_HTTP_PROXY") or "",
         "NO_PROXY": no_proxy,
+        "ASF_TELEGRAM_IP": ip_mode,
     }
     return values
 

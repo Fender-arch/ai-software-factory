@@ -85,12 +85,22 @@ if ! docker info >/dev/null 2>&1 && ! asf_sudo docker info >/dev/null 2>&1; then
   exit 1
 fi
 
+COMPOSE_FILES=(-f docker-compose.prod.yml)
+if [[ -f docker-compose.telegram-egress.yml ]]; then
+  COMPOSE_FILES+=(-f docker-compose.telegram-egress.yml)
+  echo "Using local telegram egress override (IPv4 extra_hosts)"
+fi
+PROFILE_ARGS=()
 if [[ "${COMPOSE_PROFILES:-}" == *egress* ]]; then
-  compose -f docker-compose.prod.yml --env-file .env --profile egress up -d --build egress
+  PROFILE_ARGS=(--profile egress)
+fi
+
+if [[ "${COMPOSE_PROFILES:-}" == *egress* ]]; then
+  compose "${COMPOSE_FILES[@]}" "${PROFILE_ARGS[@]}" --env-file .env up -d --build egress
   echo "Waiting for egress tunnel on :8888"
   ready=0
   for _ in $(seq 1 36); do
-    if compose -f docker-compose.prod.yml --env-file .env --profile egress exec -T egress \
+    if compose "${COMPOSE_FILES[@]}" "${PROFILE_ARGS[@]}" --env-file .env exec -T egress \
       nc -z 127.0.0.1 8888 2>/dev/null; then
       ready=1
       break
@@ -99,19 +109,13 @@ if [[ "${COMPOSE_PROFILES:-}" == *egress* ]]; then
   done
   if [[ "$ready" -ne 1 ]]; then
     echo "egress tunnel did not become ready; API/Telegram may fail geo checks" >&2
-    compose -f docker-compose.prod.yml --env-file .env --profile egress logs --tail 50 egress || true
+    compose "${COMPOSE_FILES[@]}" "${PROFILE_ARGS[@]}" --env-file .env logs --tail 50 egress || true
   fi
-  compose -f docker-compose.prod.yml --env-file .env --profile egress up -d --build
-else
-  compose -f docker-compose.prod.yml --env-file .env up -d --build
 fi
+compose "${COMPOSE_FILES[@]}" "${PROFILE_ARGS[@]}" --env-file .env up -d --build
 
 echo "ASF listening on 127.0.0.1:${ASF_HOST_PORT} (not 80/443)"
-if [[ "${COMPOSE_PROFILES:-}" == *egress* ]]; then
-  compose -f docker-compose.prod.yml --env-file .env --profile egress ps
-else
-  compose -f docker-compose.prod.yml --env-file .env ps
-fi
+compose "${COMPOSE_FILES[@]}" "${PROFILE_ARGS[@]}" --env-file .env ps
 
 chmod +x "${DEPLOY_PATH}/deploy/"*.sh 2>/dev/null || true
 DOMAIN_MINIAPP="${DOMAIN_MINIAPP}" \
@@ -121,4 +125,7 @@ LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-}" \
 VPS_PASSWORD="${VPS_PASSWORD:-}" \
 bash "${DEPLOY_PATH}/deploy/setup_proxy.sh"
 
+echo "Probing VPS → https://api.telegram.org (sendDocument goes from this host, not from Mini App)..."
+bash "${DEPLOY_PATH}/deploy/diagnose_telegram_egress.sh" || true
+echo "TELEGRAM_BOT_TOKEN must be the same BotFather bot that opens the Mini App."
 echo "Deploy finished. Existing default website was not modified."

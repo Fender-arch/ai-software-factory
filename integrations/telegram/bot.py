@@ -13,7 +13,6 @@ import asyncio
 import logging
 
 from aiogram import Bot, Dispatcher, F
-from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.filters import Command, CommandObject
 from aiogram.types import (
     CallbackQuery,
@@ -25,6 +24,7 @@ from aiogram.types import (
 )
 
 from core.config import get_settings
+from core.egress import resolve_outbound_proxy_url
 from core.db import SessionLocal
 from core.estimate import format_estimate_review_block
 from core.export import ExportError
@@ -45,7 +45,6 @@ from core.services import (
     send_project_mvp_to_client,
     submit_hitl_decision,
 )
-from integrations.outbound_proxy import http_proxy_url
 
 logger = logging.getLogger(__name__)
 
@@ -508,8 +507,12 @@ async def run_bot() -> None:
         raise SystemExit("TELEGRAM_BOT_TOKEN is empty")
 
     logging.basicConfig(level=logging.INFO)
-    proxy = http_proxy_url()
-    session = AiohttpSession(proxy=proxy) if proxy else None
+    proxy = resolve_outbound_proxy_url()
+    session = None
+    if proxy:
+        from aiogram.client.session.aiohttp import AiohttpSession
+
+        session = AiohttpSession(proxy=proxy)
     bot = Bot(token=settings.telegram_bot_token, session=session)
     dp = Dispatcher()
     dp.message.register(cmd_start, Command("start"))
@@ -542,9 +545,18 @@ async def run_bot() -> None:
         except Exception:  # noqa: BLE001 — menu button is best-effort
             logger.exception("Failed to set Mini App menu button")
 
-    logger.info("Starting ASF Telegram bot")
-    if proxy:
-        logger.info("Telegram Bot API uses outbound HTTP proxy")
+    try:
+        me = await bot.get_me()
+        logger.info(
+            "Starting ASF Telegram bot username=%s id=%s "
+            "(TELEGRAM_BOT_TOKEN must be this same bot as the Mini App in BotFather)",
+            me.username,
+            me.id,
+        )
+        if proxy:
+            logger.info("Telegram Bot API uses outbound HTTP proxy")
+    except Exception:  # noqa: BLE001 — still try to poll; do not log token
+        logger.exception("Telegram getMe failed at bot start")
     await dp.start_polling(bot)
 
 

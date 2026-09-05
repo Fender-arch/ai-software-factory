@@ -13,8 +13,17 @@
 # Required for a working production stack:
 #   POSTGRES_PASSWORD   Strong password (not asf/asf). Alphanumeric recommended
 #   CONSOLE_TOKEN       Shared token for /console/ (X-Console-Token)
-#   TELEGRAM_BOT_TOKEN  From @BotFather
+#   TELEGRAM_BOT_TOKEN  From @BotFather — MUST be the same bot that has the Mini App URL
+#                       (sendDocument uses this token from the VPS, not from the WebView)
+#   HTTPS_PROXY         Preferred. Same outbound hop Groq/OpenAI/STT already use
+#                       (httpx trust_env). Put the existing AI/foreign-channel
+#                       proxy URL here — do not invent a second secret. Never commit.
+#   HTTP_PROXY / ALL_PROXY / LLM_HTTP_PROXY  Aliases; write_env copies the first
+#                       non-empty value into HTTPS_PROXY/HTTP_PROXY for api+bot.
+#   TELEGRAM_PROXY      Only if Telegram must use a different hop than AI.
+#   ASF_TELEGRAM_IP     auto (default, prefer IPv4) | 4 | 6
 #   OWNER_TELEGRAM_ID   Owner Telegram numeric id (HITL)
+#   STUDIO_NAME / OWNER_CONTACT_*  Optional studio contacts printed on the client TZ
 #   GROQ_API_KEY        Server STT (and optional LLM)
 #   LETSENCRYPT_EMAIL   For certbot HTTPS on the two ASF domains only
 #
@@ -25,7 +34,8 @@
 #   OPENAI_API_KEY      Only if STT_PROVIDER=whisper
 #   STT_PROVIDER        Default groq
 #   STT_MODEL           Default whisper-large-v3-turbo
-#   LLM_PROVIDER        Default stub (set groq to enable LLM-driven Discovery)
+#   LLM_PROVIDER        Default stub. MUST be groq (or another non-stub) for
+#                       conversational Discovery; stub/fsm = coverage-only fallback
 #   LLM_MODEL
 #   DISCOVERY_ENGINE    auto | llm | fsm (default auto = llm when LLM_PROVIDER is not stub)
 #   ASF_ESTIMATE_HOURLY_RATE  Owner TZ cost heuristic (default 3000)

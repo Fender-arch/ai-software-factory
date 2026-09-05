@@ -19,6 +19,7 @@ from apps.api.schemas import (
     FeedbackRequest,
     FeedbackResponse,
     HealthResponse,
+    TelegramHealthResponse,
     HitlRequest,
     HitlResponse,
     MessageCreate,
@@ -42,7 +43,8 @@ from core.hitl import HitlError
 from core.models import TZ_DOWNLOAD_STATUSES
 from core.planner import PlannerError
 from core.project_files import FileError
-from core.tz_document import TzExportError, export_tz_file
+from core.tz_document import TzExportError, export_client_estimate_file, export_tz_file
+from core.miniapp_home import attach_mvp_review_flags, project_has_mvp_review
 from core.services import (
     assert_project_owner,
     create_project,
@@ -57,6 +59,7 @@ from core.services import (
     list_projects_for_customer,
     run_project_discovery,
     run_project_planner,
+    send_customer_estimate_file,
     send_customer_tz_file,
     submit_client_estimate_decision,
     submit_hitl_decision,
@@ -95,6 +98,14 @@ def health() -> HealthResponse:
     return HealthResponse()
 
 
+@app.get("/health/telegram", response_model=TelegramHealthResponse)
+def health_telegram() -> TelegramHealthResponse:
+    """Ops: VPS egress to Bot API + getMe username (no token). Not used by Docker healthcheck."""
+    from integrations.telegram.notify import diagnose_telegram_bot_api
+
+    return TelegramHealthResponse(**diagnose_telegram_bot_api())
+
+
 @app.post("/stt/transcribe", response_model=TranscribeResponse)
 async def api_transcribe(file: UploadFile = File(...)) -> TranscribeResponse:
     """Speech-to-text only — does not create project messages (Mini App dictation)."""
@@ -127,13 +138,20 @@ async def api_transcribe(file: UploadFile = File(...)) -> TranscribeResponse:
     )
 
 
+def _project_read(project, *, mvp_review_sent: bool = False) -> ProjectRead:
+    return ProjectRead.model_validate(project).model_copy(
+        update={"mvp_review_sent": bool(mvp_review_sent)}
+    )
+
+
 @app.get("/projects", response_model=list[ProjectRead])
 def api_list_projects(
     customer_telegram_id: str = Query(min_length=1),
     db: Session = Depends(get_db),
 ) -> list[ProjectRead]:
     projects = list_projects_for_customer(db, customer_telegram_id)
-    return [ProjectRead.model_validate(p) for p in projects]
+    flags = attach_mvp_review_flags(db, projects)
+    return [_project_read(p, mvp_review_sent=flags.get(p.id, False)) for p in projects]
 
 
 @app.post("/projects", response_model=ProjectRead, status_code=201)
@@ -144,7 +162,7 @@ def api_create_project(body: ProjectCreate, db: Session = Depends(get_db)) -> Pr
         customer_telegram_id=body.customer_telegram_id,
         product_type=body.product_type,
     )
-    return ProjectRead.model_validate(project)
+    return _project_read(project, mvp_review_sent=False)
 
 
 @app.get("/projects/{project_id}", response_model=ProjectRead)
@@ -152,7 +170,9 @@ def api_get_project(project_id: uuid.UUID, db: Session = Depends(get_db)) -> Pro
     project = get_project(db, project_id)
     if project is None:
         raise HTTPException(status_code=404, detail="project not found")
-    return ProjectRead.model_validate(project)
+    return _project_read(
+        project, mvp_review_sent=project_has_mvp_review(db, project.id)
+    )
 
 
 @app.delete("/projects/{project_id}", status_code=204)
@@ -214,6 +234,7 @@ def api_project_workspace(
         allow_multiple=bool(ws.get("allow_multiple")),
         tz_available=bool(ws.get("tz_available")),
         discovery_progress=ws.get("discovery_progress"),
+        customer_hud=ws.get("customer_hud"),
         client_estimate=ws.get("client_estimate"),
     )
 
@@ -430,6 +451,46 @@ def api_get_draft_tz(project_id: uuid.UUID, db: Session = Depends(get_db)) -> di
     }
 
 
+def _attachment_response(payload: bytes, media: str, filename: str, ascii_name: str) -> Response:
+    encoded = quote(filename)
+    return Response(
+        content=payload,
+        media_type=media,
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{ascii_name}"; filename*=UTF-8\'\'{encoded}'
+            )
+        },
+    )
+
+
+def _customer_send_file(send_fn, project_id, fmt, customer_telegram_id, db) -> dict:
+    try:
+        return send_fn(
+            db,
+            project_id,
+            fmt,
+            customer_telegram_id=customer_telegram_id,
+        )
+    except PermissionError as exc:
+        detail = str(exc)
+        if "not owned" in detail:
+            detail = "это не ваш проект — откройте Mini App из своего Telegram"
+        raise HTTPException(status_code=403, detail=detail) from exc
+    except TzSendError as exc:
+        detail = str(exc)
+        clientish = (
+            "not ready" in detail
+            or "нет chat_id" in detail
+            or "/start" in detail
+            or "не удалось собрать" in detail
+        )
+        status = 409 if clientish else 502
+        raise HTTPException(status_code=status, detail=detail) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 @app.get("/projects/{project_id}/tz-export")
 def api_customer_tz_export(
     project_id: uuid.UUID,
@@ -450,17 +511,7 @@ def api_customer_tz_export(
         payload, media, filename = export_tz_file(db, project, format)
     except TzExportError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    ascii_name = f"tz.{format}"
-    encoded = quote(filename)
-    return Response(
-        content=payload,
-        media_type=media,
-        headers={
-            "Content-Disposition": (
-                f'attachment; filename="{ascii_name}"; filename*=UTF-8\'\'{encoded}'
-            )
-        },
-    )
+    return _attachment_response(payload, media, filename, f"tz.{format}")
 
 
 @app.post("/projects/{project_id}/tz-send")
@@ -471,21 +522,45 @@ def api_customer_tz_send(
     db: Session = Depends(get_db),
 ) -> dict:
     """Deliver the draft TZ as a Telegram document (Mini App download in WebView)."""
+    return _customer_send_file(
+        send_customer_tz_file, project_id, format, customer_telegram_id, db
+    )
+
+
+@app.get("/projects/{project_id}/estimate-export")
+def api_customer_estimate_export(
+    project_id: uuid.UUID,
+    format: Literal["md", "pdf", "docx"] = Query(default="md"),
+    customer_telegram_id: str | None = None,
+    db: Session = Depends(get_db),
+) -> Response:
+    project = get_project(db, project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="project not found")
     try:
-        return send_customer_tz_file(
-            db,
-            project_id,
-            format,
-            customer_telegram_id=customer_telegram_id,
-        )
+        assert_project_owner(project, customer_telegram_id)
     except PermissionError as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
-    except TzSendError as exc:
+    try:
+        payload, media, filename = export_client_estimate_file(db, project, format)
+    except TzExportError as exc:
         detail = str(exc)
-        status = 409 if "not ready" in detail else 502
+        status = 409 if "not ready" in detail else 400
         raise HTTPException(status_code=status, detail=detail) from exc
-    except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return _attachment_response(payload, media, filename, f"smeta.{format}")
+
+
+@app.post("/projects/{project_id}/estimate-send")
+def api_customer_estimate_send(
+    project_id: uuid.UUID,
+    format: Literal["md", "pdf", "docx"] = Query(default="md"),
+    customer_telegram_id: str | None = None,
+    db: Session = Depends(get_db),
+) -> dict:
+    """Deliver the client estimate as a Telegram document (Mini App download)."""
+    return _customer_send_file(
+        send_customer_estimate_file, project_id, format, customer_telegram_id, db
+    )
 
 
 @app.get("/projects/{project_id}/hitl/review")

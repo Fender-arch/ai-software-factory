@@ -56,7 +56,13 @@ services:
       HTTP_PROXY: ${HTTP_PROXY:-}
       HTTPS_PROXY: ${HTTPS_PROXY:-}
       ALL_PROXY: ${ALL_PROXY:-}
+      TELEGRAM_PROXY: ${TELEGRAM_PROXY:-}
+      LLM_HTTP_PROXY: ${LLM_HTTP_PROXY:-}
       NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1,db,egress}
+      ASF_TELEGRAM_IP: ${ASF_TELEGRAM_IP:-auto}
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     ports:
       - "127.0.0.1:${ASF_HOST_PORT:-18000}:8000"
     volumes:
@@ -95,7 +101,13 @@ services:
       HTTP_PROXY: ${HTTP_PROXY:-}
       HTTPS_PROXY: ${HTTPS_PROXY:-}
       ALL_PROXY: ${ALL_PROXY:-}
+      TELEGRAM_PROXY: ${TELEGRAM_PROXY:-}
+      LLM_HTTP_PROXY: ${LLM_HTTP_PROXY:-}
       NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1,db,egress}
+      ASF_TELEGRAM_IP: ${ASF_TELEGRAM_IP:-auto}
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     depends_on:
       api:
         condition: service_healthy

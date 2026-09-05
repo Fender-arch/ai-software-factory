@@ -18,7 +18,7 @@
     got_answer: "Понял",
     got_voice: "Голос есть",
     got_file: "Файл есть",
-    draft_ready: "Черновик ТЗ готов",
+    draft_ready: "ТЗ на столе",
     error: "Что-то пошло не так",
   };
   const RIVE_CDNS = [

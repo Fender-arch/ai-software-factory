@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Done |
-| Version | 0.10 |
+| Version | 0.12 |
 
 ## Goal
 
@@ -31,6 +31,14 @@ Since DEC-008 the LLM interviewer drives customer-facing turns when
 writes, the coverage gate, the quality floor, and pause/ready intents, and any
 LLM failure falls back to the FSM path. Outline adaptation is heuristic +
 optional Groq JSON (`LLM_PROVIDER=groq`).
+
+## v0.12 — Intro first + brief merge (DEC-015)
+
+- [x] `CUSTOMER_INTRO` before technique: name, contacts, company or individual, industry, role
+- [x] KG `Customer` + `Organization`; TZ header via `compose_tz_markdown`
+- [x] After intro: ready brief? File/paste → merge into outline; overflow → `custom:` topics
+- [x] Empty leftovers asked next; no echo of the whole file
+- [x] Tests: order, ingest→entities/topics, empty follow-up, overflow
 
 ## v0.11 — LLM-driven interview (DEC-008)
 

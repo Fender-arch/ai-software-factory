@@ -8,7 +8,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from core.models import Entity, Project
+from core.models import Entity, Project, ProjectStatus
 from discovery.tz_outline import topic_by_id
 from knowledge.history import list_entity_history, record_entity_event
 from knowledge.repository import KnowledgeRepository
@@ -481,3 +481,45 @@ def serialize_project(project: Project) -> dict[str, Any]:
         "product_type": project.product_type,
         "created_at": project.created_at.isoformat() if project.created_at else None,
     }
+
+
+def set_console_project_status(
+    db: Session,
+    project: Project,
+    status: str,
+    *,
+    reason: str | None = None,
+    actor: str = "console",
+) -> dict[str, Any]:
+    """Owner override of ``projects.status``. Allows any known ProjectStatus."""
+    target = (status or "").strip()
+    try:
+        new_status = ProjectStatus(target)
+    except ValueError as exc:
+        raise ConsoleError(f"unsupported project status: {target}") from exc
+
+    previous = project.status
+    if previous == new_status:
+        return serialize_project(project)
+
+    project.status = new_status
+    kg = KnowledgeRepository(db)
+    entities = kg.list_entities(project.id, type_="Project")
+    if entities:
+        ent = entities[0]
+        payload = dict(ent.payload or {})
+        payload["status"] = new_status.value
+        kg.update_entity(ent, payload=payload)
+        record_entity_event(
+            db,
+            project_id=project.id,
+            entity_id=ent.id,
+            actor=actor,
+            action="status_change",
+            from_status=previous.value,
+            to_status=new_status.value,
+            reason=(reason or "").strip() or None,
+            payload={"kind": "project_status", "override": True},
+        )
+    db.flush()
+    return serialize_project(project)

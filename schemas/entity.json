@@ -18,7 +18,9 @@
         "Task",
         "Artifact",
         "Risk",
-        "Feedback"
+        "Feedback",
+        "Customer",
+        "Organization"
       ]
     },
     "name": { "type": "string", "minLength": 1 },

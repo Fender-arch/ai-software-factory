@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
@@ -61,12 +62,62 @@ def test_optional_set_me_becomes_empty():
     assert values["GROQ_API_KEY"] == ""
 
 
+def test_telegram_proxy_and_ip_mode_go_to_env():
+    values = build_env_values(
+        _base_raw(TELEGRAM_PROXY="http://127.0.0.1:8888", ASF_TELEGRAM_IP="4")
+    )
+    assert values["HTTPS_PROXY"] == "http://127.0.0.1:8888"
+    assert values["HTTP_PROXY"] == "http://127.0.0.1:8888"
+    assert values["TELEGRAM_PROXY"] == "http://127.0.0.1:8888"
+    assert values["ASF_TELEGRAM_IP"] == "4"
+    assert values["NO_PROXY"] == "localhost,127.0.0.1,db"
+    bad = build_env_values(_base_raw(ASF_TELEGRAM_IP="99"))
+    assert bad["ASF_TELEGRAM_IP"] == "auto"
+
+
+def test_llm_http_proxy_alias_fills_https_and_http_for_ai_and_telegram():
+    values = build_env_values(_base_raw(LLM_HTTP_PROXY="http://127.0.0.1:1080"))
+    assert values["HTTPS_PROXY"] == "http://127.0.0.1:1080"
+    assert values["HTTP_PROXY"] == "http://127.0.0.1:1080"
+    assert values["LLM_HTTP_PROXY"] == "http://127.0.0.1:1080"
+
+
+def test_https_proxy_alone_is_enough_no_second_secret():
+    values = build_env_values(_base_raw(HTTPS_PROXY="http://127.0.0.1:3128"))
+    assert values["HTTPS_PROXY"] == "http://127.0.0.1:3128"
+    assert values["HTTP_PROXY"] == "http://127.0.0.1:3128"
+    assert values["TELEGRAM_PROXY"] == ""
+
+
+def test_empty_github_secrets_keep_existing_vps_ai_proxy(tmp_path: Path, monkeypatch):
+    env_path = tmp_path / ".env"
+    env_path.write_text("HTTPS_PROXY=http://127.0.0.1:3128\n", encoding="utf-8")
+    monkeypatch.setenv("ASF_ENV_PATH", str(env_path))
+    for key in (
+        "TELEGRAM_PROXY",
+        "HTTPS_PROXY",
+        "HTTP_PROXY",
+        "ALL_PROXY",
+        "LLM_HTTP_PROXY",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv("POSTGRES_PASSWORD", "s3cret")
+    monkeypatch.setenv("DOMAIN_MINIAPP", "mini.example.com")
+    monkeypatch.setenv("CONSOLE_TOKEN", "owner-token")
+    values = build_env_values()
+    assert values["HTTPS_PROXY"] == "http://127.0.0.1:3128"
+    assert values["HTTP_PROXY"] == "http://127.0.0.1:3128"
+    assert os.environ.get("HTTPS_PROXY") in {None, ""}
+
+
 def test_render_env_file_contains_keys():
     text = render_env_file(build_env_values(_base_raw()))
     assert "ASF_ENV=production" in text
     assert "MINIAPP_URL=https://mini.example.com/miniapp/" in text
     assert "ASF_ESTIMATE_HOURLY_RATE=3000" in text
     assert "ASF_ESTIMATE_CURRENCY=RUB" in text
+    assert "STUDIO_NAME=" in text
+    assert "OWNER_CONTACT_NAME=" in text
     assert "ASF_INTERVENTION_TTL_HOURS=72" in text
     assert "CURSOR_CLOUD_API_URL=https://api.cursor.com" in text
     values = build_env_values(_base_raw())
@@ -129,3 +180,13 @@ def test_same_domain_emits_one_site_file(tmp_path: Path):
 
 def test_normalize_domain_strips_url():
     assert normalize_domain("https://TZ.Example.com/console/") == "tz.example.com"
+
+
+def test_telegram_egress_scripts_do_not_print_secrets():
+    diagnose = Path("deploy/diagnose_telegram_egress.sh").read_text(encoding="utf-8")
+    hotfix = Path("deploy/hotfix_telegram_ipv4.sh").read_text(encoding="utf-8")
+    assert "api.telegram.org" in diagnose
+    assert "VERDICT=" in diagnose
+    assert "TELEGRAM_BOT_TOKEN" not in diagnose
+    assert "TELEGRAM_BOT_TOKEN" not in hotfix
+    assert "extra_hosts" in hotfix

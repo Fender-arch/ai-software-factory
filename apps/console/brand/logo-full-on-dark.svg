@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 108" role="img" aria-labelledby="title desc">
+  <title id="title">Uni 4 IT</title>
+  <desc id="desc">Uni 4 IT lockup on dark: cream wordmark, gradient 4, tagline UNIVERSAL IT SOLUTIONS. Transparent.</desc>
+  <defs>
+    <linearGradient id="u4g" x1="6" y1="4" x2="68" y2="72" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#00D2FF"/>
+      <stop offset="1" stop-color="#9D50BB"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(2 0) scale(0.88)">
+    <g fill="url(#u4g)">
+      <rect x="6" y="3" width="7" height="7" rx="1.2"/>
+      <rect x="15" y="1" width="6" height="6" rx="1.1"/>
+      <rect x="14" y="9" width="5" height="5" rx="1"/>
+      <rect x="4" y="11" width="4" height="4" rx="0.8"/>
+      <path d="M16 22c0-5.2 3.6-8.4 8.6-8.4h5.2c2.2 0 3.8 1.4 3.8 3.4v8.2H22.2v28.6c0 6.2 4.2 10.2 10.6 10.2h6.4c6.4 0 10.6-4 10.6-10.2V42h11.4v16.4c0 12.2-8.8 20.6-22 20.6h-6.4C20.6 79 12 70.6 12 58.4V22h4z"/>
+      <path d="M40.2 16.2h12.2v18.4h16.6v11.2H40.2V16.2z"/>
+    </g>
+  </g>
+  <text x="78" y="46" fill="#F4EFE6"
+        font-family="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif"
+        font-size="36" font-weight="800">Uni</text>
+  <text x="148" y="46" fill="url(#u4g)"
+        font-family="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif"
+        font-size="38" font-weight="800">4</text>
+  <text x="176" y="46" fill="#F4EFE6"
+        font-family="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif"
+        font-size="36" font-weight="800">IT</text>
+  <text x="80" y="78" fill="#C9D4E0"
+        font-family="Segoe UI, SF Pro Text, Helvetica Neue, Arial, sans-serif"
+        font-size="9.2" font-weight="500" letter-spacing="0.28em">UNIVERSAL IT SOLUTIONS</text>
+</svg>

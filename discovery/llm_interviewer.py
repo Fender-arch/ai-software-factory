@@ -27,6 +27,7 @@ from core.models import (
     TZ_DOWNLOAD_STATUSES,
 )
 from discovery.adapt import ADAPT_AFTER_TOPIC_IDS
+from discovery.customer_copy import coverage_continue_reply, sanitize_customer_reply
 from discovery.fsm import DiscoveryStage, parse_stage, stage_after_project_created
 from discovery.literacy import ITLiteracy, infer_literacy
 from discovery.quality import (
@@ -34,7 +35,7 @@ from discovery.quality import (
     is_underspecified,
     quality_floor_messages,
 )
-from discovery.rephrase import apply_choice_overrides, topic_title
+from discovery.rephrase import apply_choice_overrides, extract_task_brief, topic_title
 from discovery.tz_outline import (
     DISCUSS_WITH_DEVELOPER_ID,
     Choice,
@@ -345,12 +346,21 @@ def run_llm_turn(
         llm_json=llm_json if not plan.adapted else None,
     )
 
+    done_now = set(answered) | set(escalated)
+    if "customer_intro" not in done_now:
+        interview_phase = "intro"
+    elif "have_brief" not in done_now:
+        interview_phase = "brief_gate"
+    else:
+        interview_phase = "discovery"
+
     context = {
         "task_brief": plan.task_brief,
         "product_type": project.product_type,
         "task_shape": task_shape,
         "it_literacy": literacy.value,
         "stage": stage.value,
+        "interview_phase": interview_phase,
         "transcript": _transcript(db, project.id),
         "topics": _topic_checklist(
             kg,
@@ -407,6 +417,31 @@ def run_llm_turn(
             extracted_ids.append(req.id)
             answered.append(topic.id)
             done.add(topic.id)
+            if topic.id == "customer_intro":
+                from discovery.stakeholders import (
+                    merge_facts,
+                    parse_stakeholder_text,
+                    upsert_stakeholders,
+                )
+
+                facts = merge_facts(
+                    parse_stakeholder_text(text),
+                    parse_stakeholder_text(item.summary_en),
+                )
+                upsert_stakeholders(kg, project, facts)
+                if facts.has_contact() and "contacts" not in done:
+                    contact = _record_requirement(
+                        kg,
+                        project=project,
+                        stage=topic.stage,
+                        text=facts.contact_line_ru() or facts.summary_en(),
+                        product_type=project.product_type,
+                        source_message_id=source_message_id,
+                        topic_id="contacts",
+                    )
+                    extracted_ids.append(contact.id)
+                    answered.append("contacts")
+                    done.add("contacts")
             if topic.id == "risks" and _looks_like_risk(item.summary_en):
                 risk = kg.create_entity(
                     project_id=project.id,
@@ -450,7 +485,10 @@ def run_llm_turn(
         done.add(topic_id)
 
     captured_ids = {c.topic_id for c in turn.captured}
-    if captured_ids & set(ADAPT_AFTER_TOPIC_IDS):
+    incoming_brief = extract_task_brief([text])
+    if captured_ids & set(ADAPT_AFTER_TOPIC_IDS) or (
+        incoming_brief and incoming_brief != plan.task_brief
+    ):
         plan = _refresh_outline_plan(
             kg,
             project,
@@ -471,7 +509,7 @@ def run_llm_turn(
     paused = False
     artifact_id: uuid.UUID | None = None
     notify_owner = False
-    reply = turn.reply
+    reply = sanitize_customer_reply(turn.reply) or turn.reply
     action = turn.next_action
 
     if action == "pause":
@@ -505,11 +543,8 @@ def run_llm_turn(
             choices = _with_ready_chip(with_discuss(turn.chips))
     else:
         if action in {"ready_for_owner", "review"} and leftover:
-            names = "; ".join(topic_title(t, plan) for t in leftover[:8])
-            reply = (
-                f"{reply}\n\nЧтобы закрыть черновик, осталось пройти разделы: "
-                f"{names}."
-            )
+            # Coverage gate stays (DEC-008); titles stay internal (DEC-014).
+            reply = coverage_continue_reply(reply)
         if leftover and project.status not in POST_TZ_HOLD_STATUSES:
             stage = leftover[0].stage
         choices = with_discuss(turn.chips)

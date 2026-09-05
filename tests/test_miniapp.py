@@ -26,24 +26,78 @@ def test_miniapp_static_served(client):
     assert "renderProgress" in js.text
     assert "renderClientEstimate" in js.text
     assert "discovery_progress" in js.text
-    assert "20260905-xpce" in res.text
+    assert "Ещё пара уточнений" in js.text
+    assert "Сбор требований: ${percent}%" in js.text
+    assert "из ${total}" not in js.text
+    assert "20260906-brandv2" in res.text
+    assert "logo-full-on-dark.svg" in res.text
+    assert "mascot-bust.png" in res.text
+    assert "Uni 4 IT" in res.text
+    assert "УНИВЕРСАЛЬНЫЕ РЕШЕНИЯ ДЛЯ IT" not in res.text
+    brand_full = client.get("/miniapp/brand/logo-full.svg")
+    assert brand_full.status_code == 200
+    assert "#00D2FF" in brand_full.text
+    assert "#9D50BB" in brand_full.text
+    assert "UNIVERSAL IT SOLUTIONS" in brand_full.text
+    assert "УНИВЕРСАЛЬНЫЕ РЕШЕНИЯ ДЛЯ IT" not in brand_full.text
+    assert "#222B45" not in brand_full.text
+    mark = client.get("/miniapp/brand/logo-mark.svg")
+    assert mark.status_code == 200
+    assert "#00D2FF" in mark.text
+    bust = client.get("/miniapp/brand/mascot-bust.png")
+    assert bust.status_code == 200
+    assert bust.headers.get("content-type", "").startswith("image/png")
+    assert bust.content[:8] == b"\x89PNG\r\n\x1a\n"
+    assert len(bust.content) > 80_000
+    assert "customerWorkspaceHud" in js.text
+    assert "customer_hud" in js.text
+    assert "ждём ваш ответ" in js.text
+    assert "уточняем идею" in js.text
+    assert "на ревью у владельца" in js.text
+    assert "в работе" in js.text
+    assert "NON_FUNCTIONAL" in js.text
+    assert "isWriteInChoice" in js.text
+    assert "сейчас\\s+напишу" in js.text
+    assert "напишу\\s+сам" in js.text
+    assert "свой\\s+вариант" in js.text
+    assert "formatSelectedLabels" in js.text
+    assert "holdForWriteIn" in js.text
+    assert "indexOf(c) + 1" not in js.text
+    assert "${ws.status} · ${ws.mode}" not in js.text
+    assert "ensureMicStream" in js.text
+    assert "micStreamLive" in js.text
+    assert "sortThreadMessages" in js.text
+    assert "setMicTracksEnabled" in js.text
     assert "experience.js" in res.text
     assert "client-estimate" in res.text
     assert "Подтверждаю" in res.text
     assert "Нужно обсудить" in res.text
+    assert "Получить смету в чат бота" in res.text
+    assert "data-ce-fmt" in res.text
     assert "ws-progress" in res.text
     assert "foundry-field" in res.text
-    assert "tz-download" in res.text
+    assert "tz-download-row" in res.text
+    assert 'id="tz-download"' not in res.text
     assert "Поехали" in res.text
     assert "Варианты ответа" in res.text
     assert "welcome-modal" in res.text
     assert "choices-modal" in res.text
     css = client.get("/miniapp/styles.css")
     assert css.status_code == 200
+    assert ".bubble.tz-card" in css.text
+    assert "position: sticky" not in css.text
     assert ".ws-progress-track" in css.text
     assert "#2ecc71" in css.text
     assert "#5c5c5c" in css.text
     assert "--app-vh" in css.text
+    assert "--brand-navy" in css.text
+    assert "--brand-cyan" in css.text
+    assert "--brand-purple" in css.text
+    assert "--brand-grad" in css.text
+    assert "--brand-lavender" not in css.text
+    assert "asf-mascot-wave" in css.text
+    assert "rotateY" in css.text
+    assert "--tg-theme-bg-color" in css.text
     assert "flex: 0 0 24%" in css.text
     assert "microphone=(self)" in (res.headers.get("permissions-policy") or "")
     assert res.headers.get("cache-control") == "no-store"
@@ -55,15 +109,50 @@ def test_miniapp_js_uses_telegram_fullscreen_and_groq_voice(client):
     assert "requestFullscreen" in js.text
     assert "disableVerticalSwipes" in js.text
     assert "inTelegramWebView" in js.text
-    assert "tz-send" in js.text
-    assert "downloadFile" in js.text
+    assert "${base}-send" in js.text
+    assert "${base}-export" in js.text
+    assert 'kind === "estimate"' in js.text
     assert "openLink" in js.text
+    assert "showExportFallback" in js.text
+    assert "openCustomerBotChat" in js.text
+    assert "sent !== true" in js.text
+    assert "message_id" in js.text
+    assert "triggerBlobDownload" not in js.text
+    assert "fallbackDeviceExport" not in js.text
+    assert "Скачиваем файл сюда" not in js.text
+    assert "Файл скачан на устройство" not in js.text
+    assert "isTzDownloadMessage" in js.text
+    assert "renderTzCard" in js.text
+    assert "Кинуть в чат бота" in js.text
+    assert "ТЗ готово" in js.text
+    assert "ТЗ обновилось" in js.text
+    assert "Черновик ТЗ готов. Получить" not in js.text
+    assert "Файл в личке с ботом" in js.text
+    assert "Закройте Mini App" in js.text
+    assert "Отправляем файл в чат бота" in js.text
+    assert "humanizeTelegramSendError" in js.text
+    assert "Telegram Bot API" in js.text
+    assert "не ваш интернет" in js.text
+    html = client.get("/miniapp/").text
+    assert "Ещё раз в бота" in html
+    assert 'id="export-fallback"' in html
+    assert 'id="export-fallback-text"' in html
+    assert "dismissExportHint" not in js.text
+    export_fn = js.text.split("async function downloadExport")[1]
+    send_at = export_fn.find("await api(sendPath")
+    fallback_at = export_fn.find("showExportFallback")
+    assert send_at != -1 and fallback_at != -1 and send_at < fallback_at
+    assert "1400" not in export_fn
+    assert "setTimeout(() => showSendHint" not in js.text
+    assert "renderTzDownload(false)" not in js.text
     assert "if (inTelegramWebView()) return false" in js.text
     assert "pickRecorderMime" in js.text
     assert "visualViewport" in js.text
     assert "contentSafeAreaInset" in js.text
     assert "applyWelcomeGate" in js.text
     assert "openChoicesModal" in js.text
+    assert "homeActionsFromProjects" in js.text
+    assert "refreshHome" in js.text
 
 
 def test_miniapp_experience_layer_slot_and_calm_mode(client):
@@ -71,6 +160,10 @@ def test_miniapp_experience_layer_slot_and_calm_mode(client):
     assert res.status_code == 200
     assert "mascot-slot" in res.text
     assert "mascot-status" in res.text
+    assert "mascot-bust.png" in res.text
+    assert "mascot-photo" in res.text
+    assert "mascot-wave" in res.text
+    assert "Компаньон интервью Uni 4 IT" in res.text
     assert "Спокойный режим" in res.text
     assert "data-calm-toggle" in res.text
     assert "experience.js" in res.text
@@ -104,6 +197,9 @@ def test_miniapp_experience_layer_slot_and_calm_mode(client):
     css = client.get("/miniapp/styles.css")
     assert "asf-calm" in css.text
     assert ".mascot-slot" in css.text
+    assert ".mascot-photo" in css.text
+    assert "asf-mascot-success" in css.text
+    assert "asf-mascot-wave" in css.text
     assert "prefers-reduced-motion" in css.text
 
     foundry = client.get("/miniapp/foundry.js")
@@ -135,7 +231,13 @@ def test_create_project_welcome_and_russian_question(client):
     assert any(ch.isalpha() and ord(ch) > 127 for ch in first_q)
     assert "выберите вариант" not in first_q.lower()
     assert ws.json().get("discovery_choices")
-    assert ws.json().get("allow_multiple") is True
+    assert ws.json().get("topic_id") == "customer_intro"
+    hud = ws.json().get("customer_hud") or ""
+    assert hud
+    assert "waiting" not in hud.lower()
+    assert "create" not in hud.lower()
+    assert "_" not in hud
+    assert any(ch.isalpha() and ord(ch) > 127 for ch in hud)
 
     msg = client.post(
         f"/projects/{pid}/messages",
@@ -245,6 +347,9 @@ def test_workspace_and_message(client):
     )
     assert forbidden.status_code == 403
 
+    from tests.test_discovery import _complete_intro
+
+    _complete_intro(client, pid)
     msg = client.post(
         f"/projects/{pid}/messages",
         params={"customer_telegram_id": "2002"},
@@ -390,3 +495,84 @@ def test_workspace_progress_grows_when_outline_adapts(client):
     assert after["percent"] == int(round((after["done"] / after["total"]) * 100))
     assert after["percent"] < 100
     assert after["phase"] == "interview"
+
+
+def test_workspace_messages_keep_conversational_order(client):
+    created = client.post(
+        "/projects",
+        json={"name": "OrderChat", "customer_telegram_id": "8801"},
+    )
+    pid = created.json()["id"]
+    first = "Нужен сайт-визитка для пекарни с формой заявки."
+    second = "Сайт, лендинг с заявками — этого достаточно для v1."
+    client.post(
+        f"/projects/{pid}/messages",
+        params={"customer_telegram_id": "8801"},
+        json={"text": first},
+    )
+    client.post(
+        f"/projects/{pid}/messages",
+        params={"customer_telegram_id": "8801"},
+        json={"text": second},
+    )
+    ws = client.get(
+        f"/projects/{pid}/workspace",
+        params={"customer_telegram_id": "8801", "mode": "create"},
+    )
+    assert ws.status_code == 200
+    rows = ws.json()["messages"]
+    texts = [m["text"] for m in rows]
+    i1 = texts.index(first)
+    i2 = texts.index(second)
+    assert i1 < i2
+    assert rows[i1]["role"] == "customer"
+    assert rows[i1 + 1]["role"] == "assistant"
+    assert rows[i2]["role"] == "customer"
+    assert i2 + 1 < len(rows) and rows[i2 + 1]["role"] == "assistant"
+    t_cust = rows[i1]["created_at"]
+    t_bot = rows[i1 + 1]["created_at"]
+    assert t_cust <= t_bot
+
+
+def test_workspace_tz_download_is_a_thread_message(client):
+    from tests.test_discovery import _drive_discovery_to_owner
+
+    created = client.post(
+        "/projects",
+        json={
+            "name": "TzCard",
+            "product_type": "website",
+            "customer_telegram_id": "8802",
+        },
+    )
+    pid = created.json()["id"]
+    last = _drive_discovery_to_owner(client, pid)
+    assert last.json()["project_status"] == "WAITING_OWNER"
+    assert last.json().get("tz_available") is True
+
+    ws = client.get(
+        f"/projects/{pid}/workspace",
+        params={"customer_telegram_id": "8802", "mode": "change"},
+    )
+    assert ws.status_code == 200
+    body = ws.json()
+    assert body["tz_available"] is True
+    kinds = [m.get("meta_kind") for m in body["messages"]]
+    assert "tz_download" in kinds
+
+    added = client.post(
+        f"/projects/{pid}/messages",
+        params={"customer_telegram_id": "8802"},
+        json={"text": "Ещё нужна тёмная тема на главной."},
+    )
+    assert added.status_code == 201
+    ws2 = client.get(
+        f"/projects/{pid}/workspace",
+        params={"customer_telegram_id": "8802", "mode": "change"},
+    )
+    kinds2 = [m.get("meta_kind") for m in ws2.json()["messages"]]
+    assert "tz_download" in kinds2
+    assert "tz_updated" in kinds2
+    first = kinds2.index("tz_download")
+    later = kinds2.index("tz_updated")
+    assert first < later
