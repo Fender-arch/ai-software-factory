@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.12 |
+| Version | 0.13 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -43,7 +43,7 @@ pytest
 | Variable | Purpose |
 |----------|---------|
 | `DATABASE_URL` | SQLAlchemy URL |
-| `TELEGRAM_BOT_TOKEN` | Bot polling |
+| `TELEGRAM_BOT_TOKEN` | Bot polling **and** Mini App `sendDocument`. Must be the same BotFather bot that opens the Mini App |
 | `GROQ_API_KEY` | Groq Whisper STT (recommended server fallback) |
 | `OPENAI_API_KEY` | OpenAI Whisper if `STT_PROVIDER=whisper` (+ future LLM) |
 | `STT_PROVIDER` | `stub` \| `groq` \| `whisper` |
@@ -95,7 +95,7 @@ Owner HITL (after draft TZ): `/review`, `/approve`, `/changes`, `/reject`, then 
 
 ## Smoke checks
 
-1. `GET /health` → `ok`
+1. `GET /health` → `ok`. Optional: `GET /health/telegram` → VPS egress + `getMe` username (no token)
 2. `GET /miniapp/` → Russian home UI
 3. `GET /console/` → owner TZ graph UI
 4. `POST /projects` → create

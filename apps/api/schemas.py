@@ -12,6 +12,18 @@ class HealthResponse(BaseModel):
     version: str = "0.1.0"
 
 
+class TelegramHealthResponse(BaseModel):
+    """VPS → api.telegram.org + getMe. Never includes the bot token."""
+
+    egress_ok: bool
+    egress_http_status: int | None = None
+    egress_error: str | None = None
+    bot_ok: bool
+    bot_username: str | None = None
+    bot_http_status: int | None = None
+    bot_description: str | None = None
+
+
 class ProjectCreate(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     customer_telegram_id: str | None = None

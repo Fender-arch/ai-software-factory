@@ -5,7 +5,7 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.12 |
+| Version | 0.13 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -45,7 +45,7 @@ pytest
 | Переменная | Назначение |
 |------------|------------|
 | `DATABASE_URL` | URL SQLAlchemy |
-| `TELEGRAM_BOT_TOKEN` | Polling бота |
+| `TELEGRAM_BOT_TOKEN` | Polling бота **и** Mini App `sendDocument`. Должен быть тем же ботом BotFather, что открывает Mini App |
 | `GROQ_API_KEY` | Groq Whisper STT (рекомендуемый серверный fallback) |
 | `OPENAI_API_KEY` | OpenAI Whisper при `STT_PROVIDER=whisper` (+ будущий LLM) |
 | `STT_PROVIDER` | `stub` \| `groq` \| `whisper` |
@@ -97,7 +97,7 @@ HITL владельца (после draft TZ): `/review`, `/approve`, `/changes`
 
 ## Smoke-проверки
 
-1. `GET /health` → `ok`
+1. `GET /health` → `ok`. Опционально: `GET /health/telegram` → исходящий доступ VPS + username `getMe` (без токена)
 2. `GET /miniapp/` → home UI на русском
 3. `GET /console/` → UI графа ТЗ владельца
 4. `POST /projects` → создать

@@ -813,8 +813,21 @@
     state.exportRetry = null;
   }
 
+  function humanizeTelegramSendError(raw) {
+    const text = String(raw || "").trim();
+    const low = text.toLowerCase();
+    if (
+      low.includes("сеть до telegram недоступна") ||
+      low.includes("telegram_bot_api_unreachable")
+    ) {
+      return "Сервер не смог связаться с Telegram Bot API (не ваш интернет). Попробуйте ещё раз.";
+    }
+    return text;
+  }
+
   function showExportFallback(reason, kind, fmt, exportPath) {
-    const why = String(reason || "").trim() || "Не удалось отправить файл в чат бота.";
+    const why =
+      humanizeTelegramSendError(reason) || "Не удалось отправить файл в чат бота.";
     const box = $("export-fallback");
     const textEl = $("export-fallback-text");
     const open = $("export-open");

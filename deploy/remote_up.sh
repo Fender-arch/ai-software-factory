@@ -88,4 +88,12 @@ LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-}" \
 VPS_PASSWORD="${VPS_PASSWORD:-}" \
 bash "${DEPLOY_PATH}/deploy/setup_proxy.sh"
 
+echo "Probing VPS → https://api.telegram.org (sendDocument goes from this host, not from Mini App)..."
+if compose -f docker-compose.prod.yml --env-file .env exec -T api \
+  python -c "from integrations.telegram.notify import diagnose_telegram_bot_api; import json; print(json.dumps(diagnose_telegram_bot_api(), ensure_ascii=False))"; then
+  :
+else
+  echo "WARN: could not run Telegram Bot API diagnostic inside api container"
+fi
+echo "TELEGRAM_BOT_TOKEN must be the same BotFather bot that opens the Mini App."
 echo "Deploy finished. Existing default website was not modified."

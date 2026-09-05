@@ -20,7 +20,16 @@ from core.models import Project
 logger = logging.getLogger(__name__)
 
 _TELEGRAM_API = "https://api.telegram.org/bot{token}/sendMessage"
+_TELEGRAM_ORIGIN = "https://api.telegram.org"
 _TIMEOUT_S = 5.0
+
+# Stable codes — Mini App / services map these; never put the bot token here.
+TELEGRAM_UNREACHABLE = "telegram_bot_api_unreachable"
+MSG_TELEGRAM_UNREACHABLE = (
+    "Сервер не смог связаться с Telegram Bot API (не ваш интернет). Попробуйте ещё раз."
+)
+MSG_TELEGRAM_START_REQUIRED = "Напишите боту /start в личке и нажмите снова"
+MSG_TELEGRAM_BAD_TOKEN = "бот на сервере настроен неверно"
 
 
 def send_owner_telegram(
@@ -254,6 +263,106 @@ def reset_telegram_identity_cache() -> None:
     _bot_identity = None
 
 
+def probe_telegram_bot_api() -> dict:
+    """VPS egress to api.telegram.org (no bot token). Used by deploy/ops."""
+    try:
+        with httpx.Client(timeout=_TIMEOUT_S) as client:
+            response = client.get(_TELEGRAM_ORIGIN)
+        return {"ok": True, "http_status": response.status_code, "error": None}
+    except httpx.RequestError as exc:
+        logger.warning(
+            "Telegram Bot API egress probe failed error=%s",
+            type(exc).__name__,
+        )
+        return {"ok": False, "http_status": None, "error": type(exc).__name__}
+
+
+def diagnose_telegram_bot_api() -> dict:
+    """Egress + getMe. Never returns or logs the bot token / token URL."""
+    egress = probe_telegram_bot_api()
+    result = {
+        "egress_ok": bool(egress.get("ok")),
+        "egress_http_status": egress.get("http_status"),
+        "egress_error": egress.get("error"),
+        "bot_ok": False,
+        "bot_username": None,
+        "bot_http_status": None,
+        "bot_description": None,
+    }
+    token = (get_settings().telegram_bot_token or "").strip()
+    if not token or token == "SET_ME":
+        result["bot_description"] = "token_missing"
+        return result
+    try:
+        with httpx.Client(timeout=_TIMEOUT_S) as client:
+            response = client.post(f"{_TELEGRAM_ORIGIN}/bot{token}/getMe")
+    except httpx.RequestError as exc:
+        logger.warning("Telegram getMe transport failed error=%s", type(exc).__name__)
+        result["bot_description"] = type(exc).__name__
+        return result
+    try:
+        body = response.json()
+    except Exception:  # noqa: BLE001
+        result["bot_http_status"] = response.status_code
+        result["bot_description"] = "non_json"
+        return result
+    result["bot_http_status"] = response.status_code
+    if isinstance(body, dict) and body.get("ok"):
+        username = str((body.get("result") or {}).get("username") or "").strip() or None
+        result["bot_ok"] = True
+        result["bot_username"] = username
+        return result
+    desc = (
+        (body.get("description") if isinstance(body, dict) else None) or "getMe_failed"
+    )
+    result["bot_description"] = desc
+    logger.warning(
+        "Telegram getMe rejected http=%s description=%s",
+        response.status_code,
+        desc,
+    )
+    return result
+
+
+def classify_telegram_document_error(
+    description: str,
+    *,
+    error_kind: str | None = None,
+    http_status: int | None = None,
+) -> str:
+    """Russian Mini App copy. Never mention the user's Telegram network."""
+    low = (description or "").lower()
+    kind = (error_kind or "").lower()
+    if (
+        kind == "transport"
+        or TELEGRAM_UNREACHABLE in low
+        or "сеть до telegram недоступна" in low
+    ):
+        return MSG_TELEGRAM_UNREACHABLE
+    if (
+        kind == "unauthorized"
+        or http_status == 401
+        or "unauthorized" in low
+        or "invalid token" in low
+        or "token_missing" in low
+        or "бот не настроен" in low
+    ):
+        return MSG_TELEGRAM_BAD_TOKEN
+    if kind == "start_required" or any(
+        token in low
+        for token in (
+            "can't initiate",
+            "cannot initiate",
+            "chat not found",
+            "bot was blocked",
+            "forbidden",
+            "have no access",
+        )
+    ):
+        return MSG_TELEGRAM_START_REQUIRED
+    return description or "не удалось отправить файл в чат бота"
+
+
 def telegram_bot_username() -> str | None:
     """Cached @username from getMe. Never logs token or API URL."""
     global _bot_identity
@@ -265,10 +374,10 @@ def telegram_bot_username() -> str | None:
         return None
     try:
         with httpx.Client(timeout=_TIMEOUT_S) as client:
-            response = client.post(f"https://api.telegram.org/bot{token}/getMe")
+            response = client.post(f"{_TELEGRAM_ORIGIN}/bot{token}/getMe")
         body = response.json()
-    except Exception:  # noqa: BLE001 — identity is optional for send
-        logger.warning("Telegram getMe failed")
+    except Exception as exc:  # noqa: BLE001 — identity is optional for send
+        logger.warning("Telegram getMe failed error=%s", type(exc).__name__)
         _bot_identity = {}
         return None
     if not isinstance(body, dict) or not body.get("ok"):
@@ -301,7 +410,11 @@ def send_customer_telegram_document(
     token = (settings.telegram_bot_token or "").strip()
     dest = _private_user_chat_id(chat_id)
     if not token:
-        return {"ok": False, "description": "бот не настроен"}
+        return {
+            "ok": False,
+            "error_kind": "unauthorized",
+            "description": "token_missing",
+        }
     if not dest:
         return {
             "ok": False,
@@ -316,13 +429,22 @@ def send_customer_telegram_document(
     try:
         with httpx.Client(timeout=30.0) as client:
             response = client.post(
-                f"https://api.telegram.org/bot{token}/sendDocument",
+                f"{_TELEGRAM_ORIGIN}/bot{token}/sendDocument",
                 data=payload,
                 files={"document": (ascii_name, data, mime)},
             )
-    except httpx.RequestError:
-        logger.warning("Telegram sendDocument transport failed chat_id=%s", dest)
-        return {"ok": False, "chat_id": dest, "description": "сеть до Telegram недоступна"}
+    except httpx.RequestError as exc:
+        logger.warning(
+            "Telegram sendDocument transport failed chat_id=%s error=%s",
+            dest,
+            type(exc).__name__,
+        )
+        return {
+            "ok": False,
+            "chat_id": dest,
+            "error_kind": "transport",
+            "description": TELEGRAM_UNREACHABLE,
+        }
     try:
         body = response.json()
     except Exception:  # noqa: BLE001
@@ -334,6 +456,8 @@ def send_customer_telegram_document(
         return {
             "ok": False,
             "chat_id": dest,
+            "error_kind": "telegram",
+            "http_status": response.status_code,
             "description": f"Telegram вернул не JSON (http={response.status_code})",
         }
     if not isinstance(body, dict) or not body.get("ok"):
@@ -341,13 +465,37 @@ def send_customer_telegram_document(
             (body.get("description") if isinstance(body, dict) else None)
             or f"Telegram отклонил файл (http={response.status_code})"
         )
+        low = desc.lower()
+        http_status = response.status_code
+        if http_status == 401 or "unauthorized" in low or "invalid token" in low:
+            error_kind = "unauthorized"
+        elif any(
+            token in low
+            for token in (
+                "can't initiate",
+                "cannot initiate",
+                "chat not found",
+                "bot was blocked",
+                "forbidden",
+                "have no access",
+            )
+        ):
+            error_kind = "start_required"
+        else:
+            error_kind = "telegram"
         logger.warning(
             "Telegram sendDocument rejected chat_id=%s http=%s description=%s",
             dest,
-            response.status_code,
+            http_status,
             desc,
         )
-        return {"ok": False, "chat_id": dest, "description": desc}
+        return {
+            "ok": False,
+            "chat_id": dest,
+            "error_kind": error_kind,
+            "http_status": http_status,
+            "description": desc,
+        }
     result = body.get("result") or {}
     message_id = result.get("message_id")
     result_chat = _private_user_chat_id((result.get("chat") or {}).get("id"))
