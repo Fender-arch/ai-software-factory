@@ -92,8 +92,9 @@ def test_miniapp_experience_layer_slot_and_calm_mode(client):
     js = client.get("/miniapp/app.js")
     assert "ASFExperience" in js.text
     assert 'xp("got_voice")' in js.text
-    assert 'xp("got_file")' in js.text
-    assert 'xp("got_answer")' in js.text
+    assert '"got_file"' in js.text
+    assert '"got_answer"' in js.text
+    assert "afterEvent" in js.text
 
     css = client.get("/miniapp/styles.css")
     assert "asf-calm" in css.text
