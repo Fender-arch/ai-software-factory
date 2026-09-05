@@ -464,13 +464,18 @@ def _customer_send_file(send_fn, project_id, fmt, customer_telegram_id, db) -> d
             customer_telegram_id=customer_telegram_id,
         )
     except PermissionError as exc:
-        raise HTTPException(status_code=403, detail=str(exc)) from exc
+        detail = str(exc)
+        if "not owned" in detail:
+            detail = "это не ваш проект — откройте Mini App из своего Telegram"
+        raise HTTPException(status_code=403, detail=detail) from exc
     except TzSendError as exc:
         detail = str(exc)
         clientish = (
             "not ready" in detail
             or "нет chat_id" in detail
             or "бот не настроен" in detail
+            or "/start" in detail
+            or "не удалось собрать" in detail
         )
         status = 409 if clientish else 502
         raise HTTPException(status_code=status, detail=detail) from exc
