@@ -29,21 +29,26 @@ def test_miniapp_static_served(client):
     assert "Ещё пара уточнений" in js.text
     assert "Сбор требований: ${percent}%" in js.text
     assert "из ${total}" not in js.text
-    assert "20260906-tzapierr" in res.text
+    assert "20260906-brandv2" in res.text
     assert "logo-full-on-dark.svg" in res.text
     assert "mascot-bust.png" in res.text
-    assert "UNI4IT" in res.text
+    assert "Uni 4 IT" in res.text
+    assert "УНИВЕРСАЛЬНЫЕ РЕШЕНИЯ ДЛЯ IT" not in res.text
     brand_full = client.get("/miniapp/brand/logo-full.svg")
     assert brand_full.status_code == 200
-    assert "#222B45" in brand_full.text
-    assert "#9B98E1" in brand_full.text
-    assert "УНИВЕРСАЛЬНЫЕ РЕШЕНИЯ ДЛЯ IT" in brand_full.text
+    assert "#00D2FF" in brand_full.text
+    assert "#9D50BB" in brand_full.text
+    assert "UNIVERSAL IT SOLUTIONS" in brand_full.text
+    assert "УНИВЕРСАЛЬНЫЕ РЕШЕНИЯ ДЛЯ IT" not in brand_full.text
+    assert "#222B45" not in brand_full.text
     mark = client.get("/miniapp/brand/logo-mark.svg")
     assert mark.status_code == 200
+    assert "#00D2FF" in mark.text
     bust = client.get("/miniapp/brand/mascot-bust.png")
     assert bust.status_code == 200
     assert bust.headers.get("content-type", "").startswith("image/png")
     assert bust.content[:8] == b"\x89PNG\r\n\x1a\n"
+    assert len(bust.content) > 80_000
     assert "customerWorkspaceHud" in js.text
     assert "customer_hud" in js.text
     assert "ждём ваш ответ" in js.text
@@ -86,7 +91,12 @@ def test_miniapp_static_served(client):
     assert "#5c5c5c" in css.text
     assert "--app-vh" in css.text
     assert "--brand-navy" in css.text
-    assert "--brand-lavender" in css.text
+    assert "--brand-cyan" in css.text
+    assert "--brand-purple" in css.text
+    assert "--brand-grad" in css.text
+    assert "--brand-lavender" not in css.text
+    assert "asf-mascot-wave" in css.text
+    assert "rotateY" in css.text
     assert "--tg-theme-bg-color" in css.text
     assert "flex: 0 0 24%" in css.text
     assert "microphone=(self)" in (res.headers.get("permissions-policy") or "")
@@ -113,7 +123,10 @@ def test_miniapp_js_uses_telegram_fullscreen_and_groq_voice(client):
     assert "Файл скачан на устройство" not in js.text
     assert "isTzDownloadMessage" in js.text
     assert "renderTzCard" in js.text
-    assert "Получить в чат бота" in js.text
+    assert "Кинуть в чат бота" in js.text
+    assert "ТЗ готово" in js.text
+    assert "ТЗ обновилось" in js.text
+    assert "Черновик ТЗ готов. Получить" not in js.text
     assert "Файл в личке с ботом" in js.text
     assert "Закройте Mini App" in js.text
     assert "Отправляем файл в чат бота" in js.text
@@ -149,7 +162,8 @@ def test_miniapp_experience_layer_slot_and_calm_mode(client):
     assert "mascot-status" in res.text
     assert "mascot-bust.png" in res.text
     assert "mascot-photo" in res.text
-    assert "Компаньон интервью UNI4IT" in res.text
+    assert "mascot-wave" in res.text
+    assert "Компаньон интервью Uni 4 IT" in res.text
     assert "Спокойный режим" in res.text
     assert "data-calm-toggle" in res.text
     assert "experience.js" in res.text
@@ -185,6 +199,7 @@ def test_miniapp_experience_layer_slot_and_calm_mode(client):
     assert ".mascot-slot" in css.text
     assert ".mascot-photo" in css.text
     assert "asf-mascot-success" in css.text
+    assert "asf-mascot-wave" in css.text
     assert "prefers-reduced-motion" in css.text
 
     foundry = client.get("/miniapp/foundry.js")

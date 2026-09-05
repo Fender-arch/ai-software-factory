@@ -19,9 +19,11 @@
   --superseded: #8b7bb8;
   --struct: #4b5a6a;
   --dep: #e4a23c;
-  --brand-navy: #222b45;
-  --brand-lavender: #9b98e1;
-  --brand-lavender-deep: #6f6cb8;
+  --brand-cyan: #00d2ff;
+  --brand-purple: #9d50bb;
+  --brand-purple-deep: #6b2d8a;
+  --brand-navy: #0b1220;
+  --brand-grad: linear-gradient(135deg, #00d2ff 0%, #9d50bb 100%);
   color-scheme: dark;
   font-family: "Segoe UI", "SF Pro Text", system-ui, sans-serif;
 }
@@ -31,8 +33,9 @@
 html, body {
   margin: 0;
   background:
-    radial-gradient(circle at 18% -10%, rgba(255, 107, 44, 0.18), transparent 36%),
-    radial-gradient(circle at 92% 110%, rgba(92, 225, 230, 0.1), transparent 42%),
+    radial-gradient(circle at 18% -10%, rgba(255, 107, 44, 0.16), transparent 36%),
+    radial-gradient(circle at 8% 12%, rgba(0, 210, 255, 0.12), transparent 34%),
+    radial-gradient(circle at 92% 110%, rgba(157, 80, 187, 0.14), transparent 42%),
     var(--bg);
   color: var(--text);
   height: 100%;
@@ -106,7 +109,7 @@ html, body {
   font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.22em;
-  color: var(--brand-lavender);
+  color: var(--accent);
 }
 .sub { color: var(--muted); font-size: 0.92rem; margin-top: 2px; }
 

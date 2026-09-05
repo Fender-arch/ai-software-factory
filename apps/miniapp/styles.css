@@ -12,9 +12,11 @@
   --danger: #ffb4b0;
   --ember: #ff6b2c;
   --cyan: #5ce1e6;
-  --brand-navy: #222b45;
-  --brand-lavender: #9b98e1;
-  --brand-lavender-deep: #6f6cb8;
+  --brand-cyan: #00d2ff;
+  --brand-purple: #9d50bb;
+  --brand-purple-deep: #6b2d8a;
+  --brand-navy: #0b1220;
+  --brand-grad: linear-gradient(135deg, #00d2ff 0%, #9d50bb 100%);
   /* Telegram injects --tg-theme-* on html; consume, never overwrite those names */
   --tg-bg: var(--tg-theme-bg-color, var(--bg));
   --tg-text: var(--tg-theme-text-color, var(--text));
@@ -44,8 +46,9 @@ html, body {
 
 body {
   background:
-    radial-gradient(circle at 50% -10%, rgba(255, 107, 44, 0.22), transparent 42%),
-    radial-gradient(circle at 80% 110%, rgba(92, 225, 230, 0.12), transparent 46%),
+    radial-gradient(circle at 50% -10%, rgba(255, 107, 44, 0.2), transparent 42%),
+    radial-gradient(circle at 12% 8%, rgba(0, 210, 255, 0.14), transparent 38%),
+    radial-gradient(circle at 88% 110%, rgba(157, 80, 187, 0.16), transparent 46%),
     var(--bg);
   color: var(--text);
   min-height: 100%;
@@ -235,10 +238,10 @@ html.asf-workspace body {
 }
 .ws-brand-mark {
   display: block;
-  height: 28px;
+  height: 30px;
   width: auto;
   flex: 0 0 auto;
-  filter: drop-shadow(0 0 8px rgba(155, 152, 225, 0.28));
+  filter: drop-shadow(0 0 8px rgba(0, 210, 255, 0.32));
 }
 .ws-stage {
   display: flex;
@@ -278,8 +281,8 @@ html.asf-workspace body {
 .ws-chrome-top .calm-toggle { margin-left: 0; }
 
 .mascot-slot {
-  flex: 0 0 72px;
-  width: 72px;
+  flex: 0 0 86px;
+  width: 86px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -288,24 +291,38 @@ html.asf-workspace body {
 }
 .mascot-rive,
 .mascot-fallback {
-  width: 72px;
-  height: 72px;
+  width: 86px;
+  height: 110px;
 }
 .mascot-rive { display: block; }
-.mascot-fallback { display: grid; place-items: center; }
+.mascot-fallback {
+  display: grid;
+  place-items: end center;
+  perspective: 420px;
+}
+.mascot-rig {
+  width: 86px;
+  height: 110px;
+  transform-style: preserve-3d;
+}
 .mascot-photo {
-  width: 72px;
-  height: 72px;
+  display: block;
+  width: 86px;
+  height: 110px;
   object-fit: contain;
-  object-position: center top;
-  filter: drop-shadow(0 4px 10px rgba(155, 152, 225, 0.28));
+  object-position: center bottom;
+  filter: drop-shadow(0 4px 10px rgba(0, 210, 255, 0.28));
 }
 .mascot-body {
-  transform-origin: 50% 70%;
+  transform-origin: 50% 88%;
+  transform-style: preserve-3d;
+}
+.mascot-wave {
+  transform-origin: 22% 42%;
 }
 .mascot-status {
   margin: 0;
-  max-width: 64px;
+  max-width: 80px;
   font-size: 0.6rem;
   line-height: 1.2;
   letter-spacing: 0.02em;
@@ -313,36 +330,52 @@ html.asf-workspace body {
   text-align: center;
 }
 .mascot-slot[data-state="listening"] .mascot-status,
-.mascot-slot[data-state="thinking"] .mascot-status { color: var(--cyan); }
+.mascot-slot[data-state="thinking"] .mascot-status { color: var(--brand-cyan); }
 .mascot-slot[data-state="draft_ready"] .mascot-status { color: var(--accent); }
 .mascot-slot[data-state="got_answer"] .mascot-status,
 .mascot-slot[data-state="got_voice"] .mascot-status,
-.mascot-slot[data-state="got_file"] .mascot-status { color: var(--brand-lavender); }
+.mascot-slot[data-state="got_file"] .mascot-status { color: var(--brand-purple); }
 .mascot-slot[data-state="error"] .mascot-status { color: var(--ember); }
 
 .mascot-slot[data-state="idle"] .mascot-body {
   animation: asf-mascot-breathe 3.6s var(--ease) infinite;
 }
+.mascot-slot[data-state="idle"] .mascot-wave {
+  animation: asf-mascot-wave 7.2s var(--ease) infinite;
+}
 .mascot-slot[data-state="listening"] .mascot-body {
-  animation: asf-mascot-listen 0.9s ease-in-out infinite;
+  animation: asf-mascot-listen 0.85s ease-in-out infinite;
+}
+.mascot-slot[data-state="listening"] .mascot-wave {
+  animation: asf-mascot-wave 1.6s ease-in-out infinite;
 }
 .mascot-slot[data-state="listening"] .mascot-photo {
-  filter: drop-shadow(0 0 10px rgba(92, 225, 230, 0.72));
+  filter: drop-shadow(0 0 12px rgba(0, 210, 255, 0.78));
 }
 .mascot-slot[data-state="thinking"] .mascot-body {
-  animation: asf-mascot-think 1.4s ease-in-out infinite;
+  animation: asf-mascot-think 1.6s ease-in-out infinite;
+}
+.mascot-slot[data-state="thinking"] .mascot-wave {
+  animation: asf-mascot-wave 3.2s ease-in-out infinite;
 }
 .mascot-slot[data-state="got_answer"] .mascot-body,
 .mascot-slot[data-state="got_voice"] .mascot-body,
-.mascot-slot[data-state="got_file"] .mascot-body {
-  animation: asf-mascot-success 0.7s var(--ease) 1;
+.mascot-slot[data-state="got_file"] .mascot-body,
+.mascot-slot[data-state="draft_ready"] .mascot-body {
+  animation: asf-mascot-success 0.75s var(--ease) 1;
+}
+.mascot-slot[data-state="got_answer"] .mascot-wave,
+.mascot-slot[data-state="got_voice"] .mascot-wave,
+.mascot-slot[data-state="got_file"] .mascot-wave,
+.mascot-slot[data-state="draft_ready"] .mascot-wave {
+  animation: asf-mascot-wave-burst 0.8s var(--ease) 1;
 }
 .mascot-slot[data-state="got_answer"] .mascot-photo,
 .mascot-slot[data-state="got_file"] .mascot-photo {
-  filter: drop-shadow(0 0 10px rgba(155, 152, 225, 0.8));
+  filter: drop-shadow(0 0 12px rgba(157, 80, 187, 0.82));
 }
 .mascot-slot[data-state="got_voice"] .mascot-photo {
-  filter: drop-shadow(0 0 10px rgba(92, 225, 230, 0.75));
+  filter: drop-shadow(0 0 12px rgba(0, 210, 255, 0.8));
 }
 .mascot-slot[data-state="draft_ready"] .mascot-photo {
   filter: drop-shadow(0 0 12px rgba(232, 195, 106, 0.7));
@@ -355,35 +388,50 @@ html.asf-workspace body {
 }
 
 @keyframes asf-mascot-breathe {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
+  0%, 100% { transform: translateY(0) rotateY(-6deg) scale(1); }
+  50% { transform: translateY(-4px) rotateY(8deg) scale(1.03); }
+}
+@keyframes asf-mascot-wave {
+  0%, 72%, 100% { transform: rotate(0deg); }
+  78% { transform: rotate(-16deg); }
+  84% { transform: rotate(12deg); }
+  90% { transform: rotate(-8deg); }
+  95% { transform: rotate(4deg); }
+}
+@keyframes asf-mascot-wave-burst {
+  0% { transform: rotate(0deg); }
+  30% { transform: rotate(-18deg); }
+  60% { transform: rotate(14deg); }
+  100% { transform: rotate(0deg); }
 }
 @keyframes asf-mascot-listen {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.06); }
+  0%, 100% { transform: translateY(0) rotateY(-4deg) scale(1); }
+  50% { transform: translateY(-3px) rotateY(6deg) scale(1.07); }
 }
 @keyframes asf-mascot-think {
-  0%, 100% { transform: rotate(-5deg); }
-  50% { transform: rotate(5deg); }
+  0%, 100% { transform: rotateY(-16deg) rotate(-3deg); }
+  50% { transform: rotateY(18deg) rotate(4deg); }
 }
 @keyframes asf-mascot-success {
-  0% { transform: translateY(0) scale(1); }
-  40% { transform: translateY(-5px) scale(1.08); }
-  100% { transform: translateY(0) scale(1); }
+  0% { transform: translateY(0) scale(1) rotateY(0deg); }
+  35% { transform: translateY(-8px) scale(1.08) rotateY(10deg); }
+  100% { transform: translateY(0) scale(1) rotateY(0deg); }
 }
 @keyframes asf-mascot-error {
   0%, 100% { transform: translateX(0); }
-  35% { transform: translateX(-2px); }
-  70% { transform: translateX(2px); }
+  35% { transform: translateX(-3px) rotate(-2deg); }
+  70% { transform: translateX(3px) rotate(2deg); }
 }
 
 html.asf-calm .mascot-slot.is-frozen .mascot-body,
-html.asf-reduced .mascot-slot .mascot-body {
+html.asf-calm .mascot-slot.is-frozen .mascot-wave,
+html.asf-reduced .mascot-slot .mascot-body,
+html.asf-reduced .mascot-slot .mascot-wave {
   animation: none !important;
 }
 html.asf-calm .mascot-slot.is-frozen .mascot-photo,
 html.asf-reduced .mascot-slot .mascot-photo {
-  filter: drop-shadow(0 3px 6px rgba(155, 152, 225, 0.2));
+  filter: drop-shadow(0 3px 6px rgba(0, 210, 255, 0.18));
 }
 html.asf-calm .mascot-rive,
 html.asf-reduced .mascot-rive { display: none !important; }
@@ -919,8 +967,8 @@ h1 { font-size: 1.05rem; margin: 4px 0 8px; }
   .brand-logo-full { display: none; }
   .brand-logo-wordmark { display: block; height: 28px; max-width: 140px; }
   .btn { min-height: 40px; padding: 8px 10px; }
-  .mascot-rive, .mascot-fallback, .mascot-photo { width: 48px; height: 48px; }
-  .mascot-slot { flex-basis: 50px; width: 50px; }
+  .mascot-rive, .mascot-fallback, .mascot-rig, .mascot-photo { width: 56px; height: 72px; }
+  .mascot-slot { flex-basis: 58px; width: 58px; }
   .ws-brand-mark { height: 22px; }
 }
 
@@ -937,6 +985,6 @@ h1 { font-size: 1.05rem; margin: 4px 0 8px; }
   }
   .btn:active { transform: none; }
   .mascot-rive { display: none !important; }
-  .mascot-body { animation: none !important; }
-  .mascot-photo { filter: drop-shadow(0 3px 6px rgba(155, 152, 225, 0.2)); }
+  .mascot-body, .mascot-wave { animation: none !important; }
+  .mascot-photo { filter: drop-shadow(0 3px 6px rgba(0, 210, 255, 0.18)); }
 }
