@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.9 |
+| Version | 0.10 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -43,6 +43,8 @@ The sheet is a directory: group cards list children; tapping a child focuses it 
 Section nodes use a vendored [Lucide](https://lucide.dev/) (ISC) pictogram set in `apps/console/icons/`. The node **is** the pictogram (no extra circle); a soft glow uses the stage colour. Product hub icon follows type (`website` / `telegram_bot` / `rest_service` / `ai_automation` / `mobile_native`). Mapping: `apps/console/icons/map.json`.
 
 The project sheet has **Export full TZ**: Markdown, Word (`docx`), PDF — generated live from the KG (`GET /console/api/projects/{id}/tz-export?format=md|docx|pdf`). Clicking the **project hub** (graph center) also shows **two estimates**: the owner HITL heuristic (`payload.estimate` / live `core/estimate.py`) and, after approve, the **client market estimate** + report (`payload.client_estimate`, DEC-012) with sources and confirmation status. They stay side by side; the heuristic is never the customer price. The client estimate has the same file buttons (MD / Word / PDF) via `GET /console/api/projects/{id}/estimate-export?format=md|docx|pdf` — same Markdown→file pipeline as TZ (`core/tz_document.export_markdown_file`). The right-hand sheet is ~760px on a wide viewport (`min(760px, 100% − 28px)`), and still full-width / stacked under 900px.
+
+The project sheet can **change project status**: dropdown with Russian labels, **Сохранить статус**. Values stored are the English `ProjectStatus` enum (`NEW`, `INTERVIEW`, `ANALYZING`, `WAITING_CUSTOMER`, `WAITING_OWNER`, `WAITING_CLIENT_ESTIMATE`, `READY`, `ARCHIVED`). This is an explicit owner override (`PATCH /console/api/projects/{id}` with console token). Backward moves (e.g. `READY` → earlier) are allowed after a confirm in the UI. Audit: `entity_history` on the KG `Project` row (`status_change`) plus `payload.status` on that entity. Discovery / factory keep reading `projects.status`.
 
 The same sheet has **MVP Factory** (DEC-013): **Создать MVP** after owner approve **and** client estimate confirm (`READY`), Intervention Queue answers (text / secret; secrets are not shown back), build status, and **Отправить клиенту на review**. APIs: `GET/POST /console/api/projects/{id}/mvp`, `POST .../mvp/send-to-client`, `GET .../interventions`, `POST /console/api/interventions/{id}/resolve`.
 

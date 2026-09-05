@@ -64,9 +64,9 @@ def test_miniapp_js_uses_telegram_fullscreen_and_groq_voice(client):
     assert "requestFullscreen" in js.text
     assert "disableVerticalSwipes" in js.text
     assert "inTelegramWebView" in js.text
-    assert "tz-send" in js.text
-    assert "estimate-export" in js.text
-    assert "estimate-send" in js.text
+    assert "${base}-send" in js.text
+    assert "${base}-export" in js.text
+    assert 'kind === "estimate"' in js.text
     assert "downloadFile" in js.text
     assert "openLink" in js.text
     assert "triggerBlobDownload" in js.text

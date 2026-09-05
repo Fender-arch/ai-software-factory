@@ -29,6 +29,7 @@ from core.requirement_console import (
     list_console_projects,
     requirement_card,
     serialize_project,
+    set_console_project_status,
     set_requirement_status,
     update_requirement,
 )
@@ -79,6 +80,11 @@ def require_console_auth(
         raise HTTPException(status_code=401, detail="invalid console token")
 
 
+class ProjectStatusPatch(BaseModel):
+    status: str = Field(min_length=1)
+    reason: str | None = None
+
+
 class RequirementStatusPatch(BaseModel):
     status: str | None = None
     reason: str | None = None
@@ -119,6 +125,25 @@ def console_list_projects(
     _: None = Depends(require_console_auth),
 ) -> list[dict]:
     return [serialize_project(p) for p in list_console_projects(db)]
+
+
+@router.patch("/projects/{project_id}")
+def console_patch_project_status(
+    project_id: uuid.UUID,
+    body: ProjectStatusPatch,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_console_auth),
+) -> dict:
+    """Owner override of project.status (any known ProjectStatus)."""
+    project = _project_or_404(project_id, db)
+    try:
+        result = set_console_project_status(
+            db, project, body.status, reason=body.reason
+        )
+    except ConsoleError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    db.commit()
+    return result
 
 
 @router.get("/projects/{project_id}/tz-graph")
