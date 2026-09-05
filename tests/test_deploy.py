@@ -75,6 +75,8 @@ def test_nginx_vhost_is_not_default_server():
     assert "listen 80 default_server" not in block
     assert "server_name mini.example.com;" in block
     assert "proxy_pass http://127.0.0.1:18000;" in block
+    assert "proxy_set_header X-Console-Token $http_x_console_token;" in block
+    assert "proxy_set_header Authorization $http_authorization;" in block
     assert "Permissions-Policy" in block
     assert "microphone=(self)" in block
     assert "listen 80;" in block

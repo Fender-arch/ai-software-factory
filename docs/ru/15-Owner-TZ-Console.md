@@ -5,7 +5,7 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.6 |
+| Version | 0.7 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -18,8 +18,9 @@ ADR: [DEC-007](../../decisions/DEC-007-Owner-TZ-Console.md).
 ## Доступ
 
 - URL: `/console/` (статика), API под `/console/api/`
-- Заголовок: `X-Console-Token`, совпадающий с `CONSOLE_TOKEN`
+- Заголовок: `X-Console-Token`, совпадающий с `CONSOLE_TOKEN` (UI также шлёт `Authorization: Bearer …`)
 - Пустой токен разрешён только при `ASF_ENV=local` и `ASF_DEBUG=true`
+- На проде вставьте **значение** секрета GitHub `CONSOLE_TOKEN` с **последнего успешного деплоя VPS**, затем нажмите **Сохранить**. Смена секрета в GitHub не действует, пока не будет новый деплой.
 
 ## Представление графа
 
