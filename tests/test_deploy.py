@@ -208,6 +208,14 @@ def test_asf_sudo_uses_env_so_apt_prefixes_work():
         assert 'env "$@"' in text, rel
 
 
+def test_egress_exit_config_keeps_systemd_pidfile():
+    text = Path("deploy/setup_egress_exit.sh").read_text(encoding="utf-8")
+    assert 'PidFile "/run/tinyproxy/tinyproxy.pid"' in text
+    assert 'LogFile "/var/log/tinyproxy/tinyproxy.log"' in text
+    assert "127.0.0.1:8888" in text
+    assert "systemctl enable --now tinyproxy" not in text
+
+
 def test_asf_sudo_env_prefix_is_not_executed_as_command():
     script = r"""
     set -euo pipefail

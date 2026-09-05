@@ -36,6 +36,10 @@ if [[ -z "$CONF" ]]; then
   exit 1
 fi
 
+# Ubuntu's tinyproxy.service is Type=forking and waits on this PidFile.
+# A config without it makes `systemctl restart` sit until TimeoutStartSec (~90s).
+asf_sudo mkdir -p /run/tinyproxy /var/log/tinyproxy
+asf_sudo chown tinyproxy:tinyproxy /run/tinyproxy /var/log/tinyproxy 2>/dev/null || true
 TMP="$(mktemp)"
 cat > "$TMP" <<'EOF'
 User tinyproxy
@@ -45,6 +49,8 @@ Listen 127.0.0.1
 Timeout 600
 DefaultErrorFile "/usr/share/tinyproxy/default.html"
 StatFile "/usr/share/tinyproxy/stats.html"
+LogFile "/var/log/tinyproxy/tinyproxy.log"
+PidFile "/run/tinyproxy/tinyproxy.pid"
 LogLevel Info
 MaxClients 100
 MinSpareServers 5
@@ -59,12 +65,25 @@ EOF
 asf_sudo cp "$TMP" "$CONF"
 rm -f "$TMP"
 
-if asf_sudo systemctl enable --now tinyproxy 2>/dev/null; then
-  asf_sudo systemctl restart tinyproxy
-elif asf_sudo service tinyproxy restart 2>/dev/null; then
-  true
-else
-  echo "tinyproxy installed but service restart failed" >&2
+asf_sudo systemctl enable tinyproxy 2>/dev/null || true
+if ! asf_sudo systemctl restart tinyproxy 2>/dev/null; then
+  asf_sudo service tinyproxy restart || true
+fi
+ready=0
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+  if command -v nc >/dev/null 2>&1 && nc -z 127.0.0.1 8888 2>/dev/null; then
+    ready=1
+    break
+  fi
+  if command -v ss >/dev/null 2>&1 && ss -lnt | grep -q ':8888'; then
+    ready=1
+    break
+  fi
+  sleep 1
+done
+if [[ "$ready" -ne 1 ]]; then
+  echo "tinyproxy is not listening on 127.0.0.1:8888" >&2
+  asf_sudo systemctl status tinyproxy --no-pager -l 2>/dev/null || true
   exit 1
 fi
 
