@@ -32,6 +32,11 @@ APIs: `GET /projects?customer_telegram_id=`, `GET /projects/{id}/workspace`, `PO
 
 Verified: `pytest` covers workspace progress growth after Mini App outline adapt.
 
+## v0.4 — TZ card in thread + sendDocument
+
+- [x] Draft TZ download UI is a thread message, not a sticky dock bar
+- [x] Format buttons send the file to the bot chat first (`tz-send` / `estimate-send` → `sendDocument`); device download is fallback only
+
 ## v0.3 — Experience Layer mascot (DEC-011)
 
 - [x] Client event bus + mascot slot in Mini App workspace (Rive CDN progressive, SVG fallback)

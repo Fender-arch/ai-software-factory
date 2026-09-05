@@ -292,5 +292,57 @@ def test_tz_send_posts_document_to_customer_chat(client, monkeypatch):
     assert delivered
     assert delivered[-1][0] == "88001"
     assert delivered[-1][3] > 0
+    assert "Черновик ТЗ" in (delivered[-1][2] or "")
 
+    hitl = client.post(f"/projects/{project_id}/hitl", json={"action": "approve"})
+    assert hitl.status_code == 200
+    again = client.post(
+        f"/projects/{project_id}/tz-send",
+        params={"format": "md", "customer_telegram_id": "88001"},
+    )
+    assert again.status_code == 200
+    assert again.json()["sent"] is True
+    assert "актуальная версия" in (delivered[-1][2] or "")
+
+    get_settings.cache_clear()
+
+
+def test_tz_send_without_chat_id_explains_fallback(client, monkeypatch):
+    import uuid
+
+    from apps.api.main import app
+    from core.db import get_db
+    from core.models import Project
+
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "test-token")
+    get_settings.cache_clear()
+
+    created = client.post(
+        "/projects",
+        json={
+            "name": "No Chat",
+            "product_type": "website",
+            "customer_telegram_id": "88009",
+        },
+    )
+    project_id = created.json()["id"]
+    last = _drive_discovery_to_owner(client, project_id)
+    assert last.json()["project_status"] == "WAITING_OWNER"
+
+    gen = app.dependency_overrides[get_db]()
+    db = next(gen)
+    try:
+        row = db.get(Project, uuid.UUID(project_id))
+        assert row is not None
+        row.customer_telegram_id = None
+        db.commit()
+    finally:
+        db.close()
+
+    sent = client.post(
+        f"/projects/{project_id}/tz-send",
+        params={"format": "md"},
+    )
+    assert sent.status_code == 409
+    assert "chat_id" in sent.json()["detail"]
     get_settings.cache_clear()

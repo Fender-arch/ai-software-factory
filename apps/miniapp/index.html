@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>ASF</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="./styles.css?v=20260905-hud" />
+  <link rel="stylesheet" href="./styles.css?v=20260905-tzcard" />
   <meta name="asf-mascot-riv" content="./mascot.riv" />
   <meta name="asf-mascot-sm" content="Mascot" />
 </head>
@@ -124,7 +124,7 @@
           <button type="button" id="ce-confirm" class="btn primary">Подтверждаю</button>
           <button type="button" id="ce-discuss" class="btn">Нужно обсудить</button>
         </div>
-        <p class="client-estimate-download-title">Скачать смету</p>
+        <p class="client-estimate-download-title">Получить смету в чат бота</p>
         <div id="ce-download" class="tz-download-row">
           <button type="button" class="btn" data-ce-fmt="md">Markdown</button>
           <button type="button" class="btn" data-ce-fmt="docx">Word</button>
@@ -134,14 +134,6 @@
       </section>
       <div id="ws-dock" class="ws-dock">
         <p id="send-hint" class="muted send-hint hidden"></p>
-        <div id="tz-download" class="tz-download hidden">
-          <p class="tz-download-title">Черновик ТЗ отправлен разработчику. Скачайте копию:</p>
-          <div class="tz-download-row">
-            <button type="button" class="btn" data-tz-fmt="md">Markdown</button>
-            <button type="button" class="btn" data-tz-fmt="docx">Word</button>
-            <button type="button" class="btn primary" data-tz-fmt="pdf">PDF</button>
-          </div>
-        </div>
         <form id="composer" class="composer">
           <textarea id="composer-text" rows="4" placeholder="Сообщение…"></textarea>
           <div class="composer-toolbar">
@@ -183,6 +175,6 @@
   </div>
   <script src="./foundry.js?v=20260905-xp"></script>
   <script src="./experience.js?v=20260905-xp"></script>
-  <script src="./app.js?v=20260905-hud"></script>
+  <script src="./app.js?v=20260905-tzcard"></script>
 </body>
 </html>

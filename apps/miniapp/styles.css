@@ -643,6 +643,16 @@ h1 { font-size: 1.05rem; margin: 4px 0 8px; }
   align-self: flex-start;
   border-bottom-left-radius: 6px;
 }
+.bubble.tz-card {
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-color: rgba(232, 195, 106, 0.35);
+  background:
+    linear-gradient(180deg, rgba(255, 107, 44, 0.1), transparent 48%),
+    var(--bubble-in);
+}
 .bubble.assistant.typing {
   color: var(--muted);
   font-style: italic;
@@ -872,17 +882,23 @@ h1 { font-size: 1.05rem; margin: 4px 0 8px; }
 }
 
 .tz-download {
-  margin: 0 0 8px;
-  padding: 8px 10px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--panel);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 .tz-download-title {
   margin: 0 0 6px;
   font-size: 0.8rem;
   line-height: 1.35;
   color: var(--text);
+}
+.tz-download-lead {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.3;
+  color: var(--accent);
+  letter-spacing: 0.02em;
 }
 .tz-download-row {
   display: flex;

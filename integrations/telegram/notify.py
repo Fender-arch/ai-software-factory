@@ -228,6 +228,12 @@ def send_customer_telegram_document(
             )
             response.raise_for_status()
         return True
+    except httpx.HTTPStatusError as exc:
+        logger.warning(
+            "Telegram sendDocument failed with status %s",
+            exc.response.status_code,
+        )
+        return False
     except Exception:  # noqa: BLE001 — customer download must not crash Mini App
         logger.exception("Failed to send customer Telegram document")
         return False

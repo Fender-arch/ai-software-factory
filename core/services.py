@@ -929,21 +929,24 @@ def _store_assistant_reply(
     from datetime import datetime
 
     stamp = message_time(after if isinstance(after, datetime) else None)
+    meta = {
+        "discovery_stage": turn.stage.value,
+        "it_literacy": turn.literacy.value,
+        "artifact_id": str(turn.artifact_id) if turn.artifact_id else None,
+        "topic_id": turn.topic_id,
+        "choices": turn.choices,
+        "paused": turn.paused,
+        "allow_multiple": turn.allow_multiple,
+    }
+    if turn.artifact_id and turn.tz_available:
+        meta["kind"] = "tz_download" if turn.notify_owner else "tz_updated"
     assistant = Message(
         project_id=project.id,
         kind=MessageKind.SYSTEM,
         role="assistant",
         text=turn.reply_to_customer,
         created_at=stamp,
-        meta={
-            "discovery_stage": turn.stage.value,
-            "it_literacy": turn.literacy.value,
-            "artifact_id": str(turn.artifact_id) if turn.artifact_id else None,
-            "topic_id": turn.topic_id,
-            "choices": turn.choices,
-            "paused": turn.paused,
-            "allow_multiple": turn.allow_multiple,
-        },
+        meta=meta,
     )
     db.add(assistant)
     db.flush()
@@ -1006,9 +1009,16 @@ def _deliver_customer_document(
     filename: str,
     caption: str,
 ) -> dict:
+    from core.config import get_settings
     from integrations.telegram.notify import send_customer_telegram_document
 
     chat_id = (project.customer_telegram_id or customer_telegram_id or "").strip()
+    if not chat_id:
+        raise TzSendError(
+            "нет chat_id — откройте Mini App из Telegram, чтобы получить файл в чат бота"
+        )
+    if not (get_settings().telegram_bot_token or "").strip():
+        raise TzSendError("бот не настроен — скачайте файл здесь")
     ok = send_customer_telegram_document(
         chat_id,
         data=payload,
@@ -1016,7 +1026,7 @@ def _deliver_customer_document(
         caption=caption,
     )
     if not ok:
-        raise TzSendError("не удалось отправить файл в Telegram")
+        raise TzSendError("не удалось отправить файл в чат бота")
     return {"sent": True, "filename": filename}
 
 
@@ -1047,7 +1057,11 @@ def send_customer_tz_file(
         customer_telegram_id=customer_telegram_id,
         payload=payload,
         filename=filename,
-        caption=f"Черновик ТЗ «{project.name}»",
+        caption=(
+            f"ТЗ «{project.name}» (актуальная версия)"
+            if project.status != ProjectStatus.WAITING_OWNER
+            else f"Черновик ТЗ «{project.name}»"
+        ),
     )
 
 
