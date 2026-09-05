@@ -24,8 +24,12 @@ def test_miniapp_static_served(client):
     assert "wsRequestId" in js.text
     assert "String(ws.project_id) !== pid" in js.text
     assert "renderProgress" in js.text
+    assert "renderClientEstimate" in js.text
     assert "discovery_progress" in js.text
-    assert "20260829-tz" in res.text
+    assert "20260905-ce" in res.text
+    assert "client-estimate" in res.text
+    assert "Подтверждаю" in res.text
+    assert "Нужно обсудить" in res.text
     assert "ws-progress" in res.text
     assert "foundry-field" in res.text
     assert "tz-download" in res.text

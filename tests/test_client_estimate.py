@@ -196,7 +196,11 @@ def test_approve_persists_client_estimate_and_confirm_unlocks_ready(client, monk
 
     hitl = client.post(
         f"/projects/{project_id}/hitl",
-        json={"action": "approve", "note": "Ок для сметы"},
+        json={
+            "action": "approve",
+            "note": "Ок для сметы",
+            "actor_telegram_id": "4242",
+        },
     )
     assert hitl.status_code == 200
     assert hitl.json()["project_status"] == "WAITING_CLIENT_ESTIMATE"
