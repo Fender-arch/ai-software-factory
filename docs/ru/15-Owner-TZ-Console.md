@@ -5,7 +5,7 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.10 |
+| Version | 0.11 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -44,7 +44,7 @@ Requirement --conflicts_with--> Requirement
 
 Узлы разделов — пиктограммы [Lucide](https://lucide.dev/) (ISC) в `apps/console/icons/`. Сам узел **и есть** пиктограмма (без дополнительного кружка); мягкое свечение — цвет этапа. Иконка центра зависит от типа продукта. Карта: `apps/console/icons/map.json`.
 
-В карточке проекта — **выгрузка полного ТЗ**: Markdown, Word (`docx`), PDF. Файл собирается из KG: `GET /console/api/projects/{id}/tz-export?format=md|docx|pdf`. Клик по **центру графа** (сам проект) показывает **две оценки**: эвристику HITL владельца (`payload.estimate` / `core/estimate.py`) и, после approve, **рыночную смету клиенту** + отчёт (`payload.client_estimate`, DEC-012) с источниками и статусом подтверждения. Они рядом; эвристика не является ценой заказчику. У клиентской сметы те же кнопки файла (MD / Word / PDF): `GET /console/api/projects/{id}/estimate-export?format=md|docx|pdf` — тот же конвейер Markdown→файл, что у ТЗ (`core/tz_document.export_markdown_file`). Правая панель на широком экране ≈760px (`min(760px, 100% − 28px)`), на узком (<900px) по-прежнему на всю ширину / снизу.
+В карточке проекта — **выгрузка полного ТЗ**: Markdown, Word (`docx`), PDF. Файл собирается из KG: `GET /console/api/projects/{id}/tz-export?format=md|docx|pdf`. Клиентский документ — `core/tz_document.compose_tz_markdown`: заголовок **Техническое задание** + имя проекта, мета (проект + контакты заказчика + контакты студии/владельца), оглавление со ссылками, пронумерованные разделы и коды требований `ТЗ-N.M`. Без Appendix и без заголовка «Draft TZ». Контакты исполнителя: `STUDIO_NAME` / `OWNER_CONTACT_*` или хук в KG `Project.payload.owner_contacts` (`{studio, name, email, phone, telegram, note}`). PDF/DOCX — тот же Markdown (ссылки оглавления становятся обычным нумерованным списком; в PDF заголовки попадают в outline, если экспортёр умеет). Клик по **центру графа** (сам проект) показывает **две оценки**: эвристику HITL владельца (`payload.estimate` / `core/estimate.py`) и, после approve, **рыночную смету клиенту** + отчёт (`payload.client_estimate`, DEC-012) с источниками и статусом подтверждения. Они рядом; эвристика не является ценой заказчику. У клиентской сметы те же кнопки файла (MD / Word / PDF): `GET /console/api/projects/{id}/estimate-export?format=md|docx|pdf` — тот же конвейер Markdown→файл, что у ТЗ (`core/tz_document.export_markdown_file`). Правая панель на широком экране ≈760px (`min(760px, 100% − 28px)`), на узком (<900px) по-прежнему на всю ширину / снизу.
 
 В карточке проекта можно **сменить статус проекта**: выпадающий список с русскими подписями и кнопка **Сохранить статус**. В БД остаются английские значения `ProjectStatus` (`NEW`, `INTERVIEW`, `ANALYZING`, `WAITING_CUSTOMER`, `WAITING_OWNER`, `WAITING_CLIENT_ESTIMATE`, `READY`, `ARCHIVED`). Это явный override владельца (`PATCH /console/api/projects/{id}`, токен консоли). Откат назад (например с `READY`) разрешён после confirm в UI. Аудит: `entity_history` на сущности KG `Project` (`status_change`) и `payload.status` этой сущности. Discovery / фабрика по-прежнему читают `projects.status`.
 

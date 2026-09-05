@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.22 |
+| Version | 0.23 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -88,7 +88,7 @@ keeps coverage but uses rephrased FSM questions (no catalog heading menu).
 
 After clarify, a short **closing wrap-up** (still `REVIEW`) asks: anything else to add; a specific budget figure if the customer wants one; and whether they already have a brief (file or paste from ChatGPT / another LLM). Attached text/markdown/docx is extracted into the TZ. «готово» skips leftover wrap-up and emits the draft.
 
-When the draft is sent, the customer can **download the same TZ** (Markdown, Word, PDF) in the Mini App. Inside Telegram the file is delivered to the bot chat (WebView does not allow a reliable `<a download>`).
+When the draft is sent, the customer gets a **thread card** in the Mini App (not a sticky bar). Format buttons **send the same TZ to the bot chat first** (`POST /projects/{id}/tz-send` → `sendDocument`). Device download is only a fallback. Owner-corrected TZ uses the same channel.
 
 ## TZ outline (start-of-build minimum)
 
@@ -192,7 +192,15 @@ Keyword section-coverage ≥ 0.4 does **not** replace this floor.
 
 ## Output artifacts
 
-Derived from Knowledge Graph:
+Derived from Knowledge Graph (presentation only; the KG stays the store):
+
+**Client TZ** (`core/tz_document.compose_tz_markdown`, Mini App / console MD·Word·PDF):
+
+- Title **Техническое задание** + project name (no “Draft TZ”, no Appendix)
+- Meta: project, customer contacts (Discovery `contacts` / `preferred_contact` + Telegram id), studio/owner contacts (`STUDIO_NAME` / `OWNER_CONTACT_*` or `Project.payload.owner_contacts`)
+- Table of contents with Markdown anchors; numbered sections; requirement codes `ТЗ-N.M`
+
+**Internal English draft** (`discovery.artifacts.render_draft_tz`, Artifact `kind=draft_tz`, HITL preview / Spec Kit):
 
 - Vision / problem statement
 - User stories with Given–When–Then for the primary path
@@ -207,6 +215,6 @@ Derived from Knowledge Graph:
 
 Owner receives a Telegram DM as soon as a **new** draft TZ is persisted (bot, Mini App, or API ingest): project name, id, **heuristic delivery estimate** (hours × `ASF_ESTIMATE_HOURLY_RATE`, default 3000 RUB/hour), a short Russian rationale (product type, must/should/could, open questions, risks; cap 80h for a simple MVP), the customer’s stated budget envelope from Discovery topic `budget` (flag if the estimate is above/below that range — the chip is **not** the quote), and `/review <id>`. Labelled as an owner HITL aid, not a customer price. The numeric estimate is deterministic (no LLM). Open questions and risks increase hours; they are not guessed away. The payload is stored on the draft TZ Artifact (`payload.estimate`) and shown again on `/review`. Owner `approve` computes a **separate client market estimate** (`payload.client_estimate` + `payload.client_estimate_report`, DEC-012) and moves the project to `WAITING_CLIENT_ESTIMATE`. The customer confirms or asks to discuss in the Mini App; Planner starts only after confirm (`READY`). “Нужно обсудить” returns `WAITING_CUSTOMER`. Implementation feedback that contradicts the approved TZ raises `HumanDecisionRequired`.
 
-While the draft is with the owner (`WAITING_OWNER`), the customer may still send additions. Those messages are always recorded as requirements and merged into the draft TZ; they do not skip the owner gate or start planning. The Mini App offers a download of the same TZ (Markdown / Word / PDF) that went to the owner; inside Telegram the copy is sent as a bot document.
+While the draft is with the owner (`WAITING_OWNER`), the customer may still send additions. Those messages are always recorded as requirements and merged into the draft TZ; they do not skip the owner gate or start planning. A new version card appears in the Mini App thread; «Получить в чат бота» sends the current TZ (Markdown / Word / PDF) as a bot document.
 
 If applicable TZ sections are still missing (for example the outline gained content topics after a draft was sent), Discovery **resumes those questions**. Opening the Mini App workspace or sending a message asks the next missing section; the project returns to `WAITING_CUSTOMER` until the gaps are captured or escalated, then the draft is refreshed for the owner.

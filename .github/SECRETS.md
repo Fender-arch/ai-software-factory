@@ -15,6 +15,7 @@
 #   CONSOLE_TOKEN       Shared token for /console/ (X-Console-Token)
 #   TELEGRAM_BOT_TOKEN  From @BotFather
 #   OWNER_TELEGRAM_ID   Owner Telegram numeric id (HITL)
+#   STUDIO_NAME / OWNER_CONTACT_*  Optional studio contacts printed on the client TZ
 #   GROQ_API_KEY        Server STT (and optional LLM)
 #   LETSENCRYPT_EMAIL   For certbot HTTPS on the two ASF domains only
 #

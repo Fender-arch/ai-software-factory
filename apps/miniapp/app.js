@@ -103,6 +103,7 @@
     recorderExt: "webm",
     recordingStartedAt: 0,
     welcomePending: false,
+    tzAvailable: false,
     wsMessages: [],
     micStream: null,
     micConstraints: null,
@@ -374,6 +375,7 @@
     showSendHint("");
     const box = $("composer-text");
     if (box) box.value = "";
+    state.tzAvailable = false;
     renderClientEstimate(null, "");
   }
 
@@ -538,6 +540,7 @@
         ws.customer_hud
       );
       renderProgress(ws.discovery_progress, mode !== "feedback");
+      state.tzAvailable = Boolean(ws.tz_available);
       applyWelcomeGate(ws.messages || [], mode);
       renderChoices(
         mode === "feedback" ? [] : ws.discovery_choices || [],
@@ -555,7 +558,6 @@
             ? "Можно добавить уточнение…"
             : "Ответьте текстом или откройте варианты…";
       $("composer-text").placeholder = placeholder;
-      renderTzDownload(Boolean(ws.tz_available));
       renderClientEstimate(ws.client_estimate, ws.status);
       if (ws.tz_available) xp("draft_ready");
       else if (afterEvent) xp(afterEvent);
@@ -682,18 +684,88 @@
     });
   }
 
+  function isTzDownloadMessage(m) {
+    if (!m) return false;
+    if (m.meta_kind === "tz_download" || m.meta_kind === "tz_updated") return true;
+    const t = String(m.text || "").toLowerCase();
+    if (!t.includes("черновик")) return false;
+    return (
+      t.includes("скачайте") ||
+      t.includes("скачать его можно") ||
+      t.includes("добавлено к материалам ревью") ||
+      t.includes("обновлён") ||
+      t.includes("обновлен") ||
+      /обновил[аи]?\s+черновик/.test(t)
+    );
+  }
+
+  function tzCardLead(m) {
+    if (m && m.meta_kind === "tz_updated") {
+      return "Черновик ТЗ обновлён. Получить новую версию в чат бота:";
+    }
+    return "Черновик ТЗ готов. Получить в чат бота:";
+  }
+
+  function appendTzFormatButtons(host) {
+    const row = document.createElement("div");
+    row.className = "tz-download-row";
+    [
+      ["md", "Markdown", false],
+      ["docx", "Word", false],
+      ["pdf", "PDF", true],
+    ].forEach(([fmt, label, primary]) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = primary ? "btn primary" : "btn";
+      btn.setAttribute("data-tz-fmt", fmt);
+      btn.textContent = label;
+      row.appendChild(btn);
+    });
+    host.appendChild(row);
+  }
+
+  function renderTzCard(thread, m, latest) {
+    const div = document.createElement("div");
+    div.className = "bubble assistant tz-card";
+    if (latest) div.classList.add("latest");
+    div.setAttribute("data-tz-card", m && m.id ? "message" : "synthetic");
+    if (m && m.id) div.setAttribute("data-tz-msg", String(m.id));
+    const title = document.createElement("p");
+    title.className = "tz-download-title";
+    title.textContent = (m && m.text) || tzCardLead(m);
+    div.appendChild(title);
+    if (m && m.text) {
+      const lead = document.createElement("p");
+      lead.className = "tz-download-lead";
+      lead.textContent = "Получить в чат бота";
+      div.appendChild(lead);
+    }
+    appendTzFormatButtons(div);
+    thread.appendChild(div);
+  }
+
   function renderThread(messages) {
     const thread = $("thread");
     thread.innerHTML = "";
     const rows = visibleThreadMessages(messages);
+    let cards = 0;
     rows.forEach((m, idx) => {
+      const latest = idx === rows.length - 1;
+      if (state.tzAvailable && isTzDownloadMessage(m)) {
+        cards += 1;
+        renderTzCard(thread, m, latest);
+        return;
+      }
       const div = document.createElement("div");
       const role = m.role === "customer" ? "customer" : "assistant";
       div.className = `bubble ${role}`;
-      if (idx === rows.length - 1) div.classList.add("latest");
+      if (latest) div.classList.add("latest");
       div.textContent = m.text;
       thread.appendChild(div);
     });
+    if (state.tzAvailable && cards === 0 && !state.welcomePending) {
+      renderTzCard(thread, { text: tzCardLead(null), meta_kind: "tz_download" }, true);
+    }
   }
 
   function scrollThreadToLatest() {
@@ -730,12 +802,6 @@
     }
     hint.classList.remove("hidden");
     hint.textContent = text;
-  }
-
-  function renderTzDownload(available) {
-    const bar = $("tz-download");
-    if (!bar) return;
-    bar.classList.toggle("hidden", !available);
   }
 
   function renderClientEstimate(est, projectStatus) {
@@ -898,22 +964,19 @@
   }
 
   function finishTzExportUi() {
-    renderTzDownload(false);
     dismissExportHint();
   }
 
-  async function downloadExport(kind, fmt) {
-    if (!state.projectId || !requireUser()) return;
-    const qs = new URLSearchParams({
-      format: fmt,
-      customer_telegram_id: userId,
-    });
-    const base = kind === "estimate" ? "estimate" : "tz";
-    const exportPath = `/projects/${state.projectId}/${base}-export?${qs}`;
-    const sendPath = `/projects/${state.projectId}/${base}-send?${qs}`;
-    const fallbackName = kind === "estimate" ? `smeta.${fmt}` : `tz.${fmt}`;
-    showSendHint("Готовим файл…");
+  function fallbackExportHint(reason, kind) {
+    const why = String(reason || "").trim() || "Не удалось отправить файл в чат бота.";
+    const suffix =
+      kind === "estimate"
+        ? " Скачиваем смету сюда."
+        : " Скачиваем файл сюда.";
+    showSendHint(why.endsWith(".") ? why + suffix : `${why}.${suffix}`);
+  }
 
+  async function fallbackDeviceExport(kind, fmt, exportPath, fallbackName) {
     const res = await fetch(exportPath);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -923,24 +986,12 @@
     const blob = await res.blob();
     const name = filenameFromDisposition(res.headers.get("Content-Disposition"), fallbackName);
     triggerBlobDownload(blob, name);
-
     if (inTelegramWebView()) {
-      try {
-        const sent = await api(sendPath, { method: "POST" });
-        const sentName = (sent && sent.filename) || name;
-        showSendHint(`Файл «${sentName}» отправлен в чат с ботом ASF.`);
-        if (kind === "tz") finishTzExportUi();
-        else dismissExportHint();
-        return;
-      } catch (_) {
-        /* bot send optional — file already fetched */
-      }
       const abs = `${window.location.origin}${exportPath}`;
       const saved = await withTimeout(tryTelegramDownloadFile(abs, name), 4000, false);
       if (saved) {
-        showSendHint("Файл сохранён.");
-        if (kind === "tz") finishTzExportUi();
-        else dismissExportHint();
+        showSendHint("В чат бота не ушло. Файл сохранён на устройство.");
+        dismissExportHint();
         return;
       }
       if (tg && typeof tg.openLink === "function") {
@@ -955,13 +1006,45 @@
         }
       }
     }
-    showSendHint(kind === "estimate" ? "Смета скачана." : "Файл скачан.");
-    if (kind === "tz") finishTzExportUi();
-    else dismissExportHint();
+    showSendHint(
+      kind === "estimate"
+        ? "В чат бота не ушло. Смета скачана на устройство."
+        : "В чат бота не ушло. Файл скачан на устройство."
+    );
+    dismissExportHint();
   }
 
-  document.querySelectorAll("[data-tz-fmt]").forEach((btn) => {
-    btn.addEventListener("click", async () => {
+  async function downloadExport(kind, fmt) {
+    if (!state.projectId || !requireUser()) return;
+    const qs = new URLSearchParams({
+      format: fmt,
+      customer_telegram_id: userId,
+    });
+    const base = kind === "estimate" ? "estimate" : "tz";
+    const exportPath = `/projects/${state.projectId}/${base}-export?${qs}`;
+    const sendPath = `/projects/${state.projectId}/${base}-send?${qs}`;
+    const fallbackName = kind === "estimate" ? `smeta.${fmt}` : `tz.${fmt}`;
+    showSendHint("Отправляем файл в чат бота…");
+
+    try {
+      const sent = await api(sendPath, { method: "POST" });
+      const sentName = (sent && sent.filename) || fallbackName;
+      showSendHint(`Файл «${sentName}» отправлен в чат с ботом.`);
+      if (kind === "tz") finishTzExportUi();
+      else dismissExportHint();
+      return;
+    } catch (err) {
+      fallbackExportHint(err && err.message, kind);
+    }
+
+    await fallbackDeviceExport(kind, fmt, exportPath, fallbackName);
+  }
+
+  const threadEl = $("thread");
+  if (threadEl) {
+    threadEl.addEventListener("click", async (ev) => {
+      const btn = ev.target && ev.target.closest ? ev.target.closest("[data-tz-fmt]") : null;
+      if (!btn || !threadEl.contains(btn)) return;
       try {
         await downloadExport("tz", btn.getAttribute("data-tz-fmt") || "md");
       } catch (err) {
@@ -970,7 +1053,7 @@
         alert(err.message || String(err));
       }
     });
-  });
+  }
 
   document.querySelectorAll("[data-ce-fmt]").forEach((btn) => {
     btn.addEventListener("click", async () => {

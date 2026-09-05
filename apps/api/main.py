@@ -467,7 +467,12 @@ def _customer_send_file(send_fn, project_id, fmt, customer_telegram_id, db) -> d
         raise HTTPException(status_code=403, detail=str(exc)) from exc
     except TzSendError as exc:
         detail = str(exc)
-        status = 409 if "not ready" in detail else 502
+        clientish = (
+            "not ready" in detail
+            or "нет chat_id" in detail
+            or "бот не настроен" in detail
+        )
+        status = 409 if clientish else 502
         raise HTTPException(status_code=status, detail=detail) from exc
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

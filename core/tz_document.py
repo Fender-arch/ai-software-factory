@@ -10,13 +10,11 @@ from typing import Literal
 
 from sqlalchemy.orm import Session
 
+from core.config import get_settings
 from core.models import Project
-from discovery.artifacts import render_draft_tz
-from discovery.fsm import DiscoveryStage
 from discovery.tz_outline import plan_from_state, resolve_active_topics
 from knowledge.repository import KnowledgeRepository
 from knowledge.types import normalize_requirement_status
-from knowledge.tz_graph import STAGE_LABELS_RU
 
 TzExportFormat = Literal["md", "pdf", "docx"]
 
@@ -37,6 +35,28 @@ PRODUCT_RU = {
     "mobile_native": "нативное приложение",
 }
 
+PROJECT_STATUS_RU = {
+    "NEW": "новый",
+    "INTERVIEW": "интервью",
+    "ANALYZING": "анализ",
+    "WAITING_CUSTOMER": "ждём заказчика",
+    "WAITING_OWNER": "ждём владельца",
+    "WAITING_CLIENT_ESTIMATE": "ждём смету клиента",
+    "READY": "готов",
+    "ARCHIVED": "в архиве",
+}
+
+CLIENT_TZ_TITLE = "Техническое задание"
+
+_EXTRA_TZ_SECTIONS_RU = (
+    ("closing_additions", "Дополнения заказчика"),
+    ("source_brief", "Исходная постановка (файл / нейросеть)"),
+    ("owner_review_supplement", "Дополнения после ревью"),
+)
+
+_MD_LINK_RE = re.compile(r"\[([^\]]+)\]\([^)]+\)")
+_MD_MARKUP_RE = re.compile(r"[*`]+")
+
 _FONT_CANDIDATES = (
     Path(__file__).resolve().parent / "fonts" / "DejaVuSans.ttf",
     Path(r"C:\Windows\Fonts\arial.ttf"),
@@ -56,8 +76,93 @@ def _project_state(kg: KnowledgeRepository, project: Project) -> dict:
     return dict(entities[0].payload or {})
 
 
+def heading_anchor(title: str) -> str:
+    """GitHub-style slug so Markdown TOC links resolve in common MD viewers."""
+    text = (title or "").strip().lower()
+    text = re.sub(r"[^\w\s\-а-яё]", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s+", "-", text)
+    return text.strip("-") or "section"
+
+
+def plain_markdown_line(line: str) -> str:
+    """Drop link markup and emphasis for PDF/DOCX (exporters are line-oriented)."""
+    text = _MD_LINK_RE.sub(r"\1", line)
+    return _MD_MARKUP_RE.sub("", text)
+
+
+def resolve_owner_contacts(state: dict) -> dict[str, str]:
+    """Studio/owner contacts: Project payload.owner_contacts overrides env settings.
+
+    Hook (no new table): KG ``Project`` entity ``payload.owner_contacts``
+    ``{studio, name, email, phone, telegram, note}``. Env fallback:
+    ``STUDIO_NAME``, ``OWNER_CONTACT_NAME``, ``OWNER_CONTACT_EMAIL``,
+    ``OWNER_CONTACT_PHONE``, ``OWNER_CONTACT_TELEGRAM``.
+    ``OWNER_TELEGRAM_ID`` stays HITL-only and is not printed.
+    """
+    hook = state.get("owner_contacts")
+    if not isinstance(hook, dict):
+        hook = {}
+    settings = get_settings()
+    return {
+        "studio": str(
+            hook.get("studio") or hook.get("studio_name") or settings.studio_name or ""
+        ).strip(),
+        "name": str(
+            hook.get("name") or hook.get("owner_name") or settings.owner_contact_name or ""
+        ).strip(),
+        "email": str(hook.get("email") or settings.owner_contact_email or "").strip(),
+        "phone": str(hook.get("phone") or settings.owner_contact_phone or "").strip(),
+        "telegram": str(
+            hook.get("telegram") or settings.owner_contact_telegram or ""
+        ).strip(),
+        "note": str(hook.get("note") or "").strip(),
+    }
+
+
+def _contact_lines_from_entities(entities: list) -> list[str]:
+    lines: list[str] = []
+    for ent in entities:
+        payload = getattr(ent, "payload", None) or {}
+        desc = str(payload.get("description") or getattr(ent, "name", "") or "").strip()
+        if desc:
+            lines.append(desc)
+    return lines
+
+
+def _format_owner_contact_lines(contacts: dict[str, str]) -> list[str]:
+    labels = (
+        ("studio", "Студия"),
+        ("name", "Имя"),
+        ("email", "Email"),
+        ("phone", "Телефон"),
+        ("telegram", "Telegram"),
+        ("note", "Комментарий"),
+    )
+    lines = [f"- {label}: {contacts[key]}" for key, label in labels if contacts.get(key)]
+    if not lines:
+        return ["- _Не указаны._"]
+    return lines
+
+
+def _req_code(section_no: int, item_no: int) -> str:
+    return f"ТЗ-{section_no}.{item_no}"
+
+
+def _requirement_line(section_no: int, item_no: int, ent) -> str:
+    payload = ent.payload or {}
+    desc = payload.get("description") or ent.name
+    status = STATUS_RU.get(normalize_requirement_status(ent.status), ent.status or "")
+    priority = payload.get("priority") or "should"
+    code = _req_code(section_no, item_no)
+    return f"- **{code}** [{status}] ({priority}) {desc}"
+
+
+def _plain_item_line(section_no: int, item_no: int, text: str) -> str:
+    return f"- **{_req_code(section_no, item_no)}** {text}"
+
+
 def compose_tz_markdown(db: Session, project: Project) -> str:
-    """Full TZ in Russian, derived from current KG (not a competing store)."""
+    """Client TZ in Russian, derived from current KG (presentation only)."""
     kg = KnowledgeRepository(db)
     state = _project_state(kg, project)
     requirements = [
@@ -83,109 +188,120 @@ def compose_tz_markdown(db: Session, project: Project) -> str:
             unscoped.append(ent)
 
     product = PRODUCT_RU.get(project.product_type or "", project.product_type or "не задан")
+    status_key = project.status.value
+    status_ru = PROJECT_STATUS_RU.get(status_key, status_key)
+    owner = resolve_owner_contacts(state)
+    customer_lines = _contact_lines_from_entities(req_by_topic.get("contacts") or [])
+    preferred = _contact_lines_from_entities(req_by_topic.get("preferred_contact") or [])
+    if project.customer_telegram_id:
+        customer_lines.insert(0, f"Telegram заказчика: `{project.customer_telegram_id}`")
+    for line in preferred:
+        customer_lines.append(f"Предпочтительный канал: {line}")
+    if not customer_lines:
+        customer_lines = ["_Не указаны._"]
+
     lines = [
-        f"# Техническое задание — {project.name}",
+        f"# {CLIENT_TZ_TITLE} — {project.name}",
         "",
         "## Мета",
         "",
-        f"- Идентификатор: `{project.id}`",
-        f"- Тип продукта: {product} (`{project.product_type or 'unspecified'}`)",
-        f"- Форма задачи: `{task_shape or '—'}`",
-        f"- Статус проекта: `{project.status.value}`",
-        f"- Этап Discovery: `{state.get('stage') or '—'}`",
+        f"- **Проект:** {project.name}",
+        f"- **Идентификатор:** `{project.id}`",
+        f"- **Тип продукта:** {product} (`{project.product_type or 'unspecified'}`)",
+        f"- **Форма задачи:** `{task_shape or '—'}`",
+        f"- **Статус проекта:** {status_ru} (`{status_key}`)",
+        "",
+        "### Контакты заказчика",
+        "",
+        *[
+            item if item.startswith("- ") or item.startswith("_") else f"- {item}"
+            for item in customer_lines
+        ],
+        "",
+        "### Контакты исполнителя",
+        "",
+        *_format_owner_contact_lines(owner),
         "",
     ]
 
-    current_stage = None
-    for topic in outline:
-        stage_key = topic.stage.value
-        if stage_key != current_stage:
-            current_stage = stage_key
-            label = STAGE_LABELS_RU.get(stage_key, stage_key)
-            lines.extend([f"## {label}", ""])
-        lines.append(f"### {topic.title_ru}")
-        lines.append("")
-        ents = req_by_topic.get(topic.id) or []
-        if not ents:
-            lines.append("_Пока не зафиксировано._")
-            lines.append("")
-            continue
-        for ent in ents:
-            payload = ent.payload or {}
-            desc = payload.get("description") or ent.name
-            status = STATUS_RU.get(
-                normalize_requirement_status(ent.status), ent.status or ""
-            )
-            priority = payload.get("priority") or "should"
-            lines.append(f"- **[{status}]** ({priority}) {desc}")
-        lines.append("")
+    sections: list[tuple[int, str, list[str]]] = []
+    extra_ids = {tid for tid, _ in _EXTRA_TZ_SECTIONS_RU}
+    outline_ids = {topic.id for topic in outline}
 
-    extra_ru = (
-        ("closing_additions", "Дополнения заказчика"),
-        ("source_brief", "Исходная постановка (файл / нейросеть)"),
-    )
-    extra_ids = {tid for tid, _ in extra_ru}
-    for extra_id, extra_title in extra_ru:
+    for topic in outline:
+        section_no = len(sections) + 1
+        ents = req_by_topic.get(topic.id) or []
+        body: list[str] = []
+        if not ents:
+            body.append("_Пока не зафиксировано._")
+        else:
+            for idx, ent in enumerate(ents, start=1):
+                body.append(_requirement_line(section_no, idx, ent))
+        sections.append((section_no, topic.title_ru, body))
+
+    for extra_id, extra_title in _EXTRA_TZ_SECTIONS_RU:
         ents = req_by_topic.get(extra_id) or []
         if not ents:
             continue
-        lines.extend([f"## {extra_title}", ""])
-        for ent in ents:
-            payload = ent.payload or {}
-            desc = payload.get("description") or ent.name
-            status = STATUS_RU.get(
-                normalize_requirement_status(ent.status), ent.status or ""
-            )
-            priority = payload.get("priority") or "should"
-            lines.append(f"- **[{status}]** ({priority}) {desc}")
-        lines.append("")
+        section_no = len(sections) + 1
+        body = [_requirement_line(section_no, idx, ent) for idx, ent in enumerate(ents, start=1)]
+        sections.append((section_no, extra_title, body))
 
-    unscoped = [e for e in unscoped if str((e.payload or {}).get("topic_id") or "") not in extra_ids]
+    leftover_unscoped = [
+        e
+        for e in unscoped
+        if str((e.payload or {}).get("topic_id") or "") not in extra_ids
+        and str((e.payload or {}).get("topic_id") or "") not in outline_ids
+    ]
+    if leftover_unscoped:
+        section_no = len(sections) + 1
+        body = [
+            _requirement_line(section_no, idx, ent)
+            for idx, ent in enumerate(leftover_unscoped, start=1)
+        ]
+        sections.append((section_no, "Прочие требования", body))
 
-    if unscoped:
-        lines.extend(["## Прочие требования", ""])
-        for ent in unscoped:
-            payload = ent.payload or {}
-            desc = payload.get("description") or ent.name
-            status = STATUS_RU.get(
-                normalize_requirement_status(ent.status), ent.status or ""
-            )
-            lines.append(f"- **[{status}]** {desc}")
-        lines.append("")
-
-    lines.extend(["## Открытые вопросы", ""])
     open_active = [e for e in open_questions if e.status == "open"]
+    section_no = len(sections) + 1
     if not open_active:
-        lines.append("_Нет._")
+        q_body = ["_Нет._"]
     else:
-        for ent in open_active:
-            q = (ent.payload or {}).get("question") or ent.name
-            lines.append(f"- {q}")
-    lines.append("")
+        q_body = [
+            _plain_item_line(
+                section_no,
+                idx,
+                str((ent.payload or {}).get("question") or ent.name),
+            )
+            for idx, ent in enumerate(open_active, start=1)
+        ]
+    sections.append((section_no, "Открытые вопросы", q_body))
 
-    lines.extend(["## Риски", ""])
+    section_no = len(sections) + 1
     if not risks:
-        lines.append("_Не записаны._")
+        risk_body = ["_Не записаны._"]
     else:
-        for ent in risks:
-            desc = (ent.payload or {}).get("description") or ent.name
-            lines.append(f"- {desc}")
+        risk_body = [
+            _plain_item_line(
+                section_no,
+                idx,
+                str((ent.payload or {}).get("description") or ent.name),
+            )
+            for idx, ent in enumerate(risks, start=1)
+        ]
+    sections.append((section_no, "Риски", risk_body))
+
+    lines.extend(["## Оглавление", ""])
+    for number, title, _body in sections:
+        heading = f"{number}. {title}"
+        lines.append(f"{number}. [{title}](#{heading_anchor(heading)})")
     lines.append("")
 
-    # Keep a machine-readable English draft appendix for Cursor/HITL compatibility.
-    appendix = render_draft_tz(
-        project,
-        requirements=requirements,
-        open_questions=open_questions,
-        risks=risks,
-        literacy=str(state.get("it_literacy") or "low"),
-        discovery_stage=str(state.get("stage") or DiscoveryStage.READY_FOR_OWNER.value),
-        answered_topics=list(state.get("answered_topics") or []),
-        escalated_topics=list(state.get("escalated_topics") or []),
-        task_shape=task_shape,
-        plan=plan,
-    )
-    lines.extend(["---", "", "## Appendix: draft TZ (EN)", "", appendix, ""])
+    for number, title, body in sections:
+        heading = f"{number}. {title}"
+        lines.extend([f"## {heading}", ""])
+        lines.extend(body)
+        lines.append("")
+
     return "\n".join(lines)
 
 
@@ -214,7 +330,7 @@ def markdown_to_docx(markdown: str) -> bytes:
     style.font.name = "Calibri"
     style.font.size = Pt(11)
     for raw in markdown.splitlines():
-        line = raw.rstrip()
+        line = plain_markdown_line(raw.rstrip())
         if not line:
             continue
         if line.startswith("# "):
@@ -258,18 +374,27 @@ def markdown_to_pdf(markdown: str) -> bytes:
         )
 
     for raw in markdown.splitlines():
-        line = raw.replace("\t", "  ")
+        line = plain_markdown_line(raw.replace("\t", "  "))
         if not line.strip():
             pdf.ln(3)
             continue
         if line.startswith("# "):
-            write(line[2:].strip(), 18, 9)
+            title = line[2:].strip()
+            if hasattr(pdf, "start_section"):
+                pdf.start_section(title, level=0)
+            write(title, 18, 9)
             pdf.ln(2)
         elif line.startswith("## "):
-            write(line[3:].strip(), 14, 8)
+            title = line[3:].strip()
+            if hasattr(pdf, "start_section"):
+                pdf.start_section(title, level=1)
+            write(title, 14, 8)
             pdf.ln(1)
         elif line.startswith("### "):
-            write(line[4:].strip(), 12, 7)
+            title = line[4:].strip()
+            if hasattr(pdf, "start_section"):
+                pdf.start_section(title, level=2)
+            write(title, 12, 7)
         elif line.startswith("- "):
             write(f"- {line[2:].strip()}", 11, 6)
         else:
