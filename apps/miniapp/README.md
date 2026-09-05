@@ -14,9 +14,13 @@
 
 Эмитит `app.js` из уже существующих действий (отправка, голос, файл, черновик ТЗ, ошибка). Не серверный event bus.
 
-## Заменить placeholder на бренд-маскота
+## Маскот UNI4IT
 
-По умолчанию рисуется SVG/CSS-компаньон (foundry: золото / cyan / ember). Rive подключается прогрессивно.
+По умолчанию в слоте — робот-единорог (`brand/mascot-bust.png`): белый корпус, лавандовые грива/рог, headset, **ASF** на груди. Реакции интервью — CSS (`idle` дыхание, `listening` пульс, `thinking` наклон, `got_*` подпрыгивание). Rive по-прежнему опционален.
+
+Логотип и цвета: `apps/miniapp/brand/` и `docs/17-Brand-Assets.md`.
+
+## Опциональный Rive
 
 1. Положите файл **`apps/miniapp/mascot.riv`** рядом с `index.html` (тот же URL: `/miniapp/mascot.riv`).
 2. В Rive Editor заведите state machine с именем **`Mascot`**.
@@ -32,7 +36,7 @@
 
 или до скриптов: `window.ASF_MASCOT = { src: "./mascot.riv", stateMachine: "YourStateMachine" }`.
 
-Рантайм: `@rive-app/canvas@2.31.2` с jsDelivr, запасной unpkg. Если `.riv` нет, CDN не грузится — остаётся SVG. Это нормально для Telegram WebView.
+Рантайм: `@rive-app/canvas@2.31.2` с jsDelivr, запасной unpkg. Если `.riv` нет, CDN не грузится — остаётся PNG-единорожка. Это нормально для Telegram WebView.
 
 **Не в этом слайсе:** lip-sync / TTS-рот маскота.
 

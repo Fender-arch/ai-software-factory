@@ -13,7 +13,8 @@
 # Required for a working production stack:
 #   POSTGRES_PASSWORD   Strong password (not asf/asf). Alphanumeric recommended
 #   CONSOLE_TOKEN       Shared token for /console/ (X-Console-Token)
-#   TELEGRAM_BOT_TOKEN  From @BotFather
+#   TELEGRAM_BOT_TOKEN  From @BotFather — MUST be the same bot that has the Mini App URL
+#                       (sendDocument uses this token from the VPS, not from the WebView)
 #   OWNER_TELEGRAM_ID   Owner Telegram numeric id (HITL)
 #   STUDIO_NAME / OWNER_CONTACT_*  Optional studio contacts printed on the client TZ
 #   GROQ_API_KEY        Server STT (and optional LLM)

@@ -36,3 +36,4 @@
 | [14-Telegram-Customer-UX.md](../14-Telegram-Customer-UX.md) | [14-Telegram-Customer-UX.md](14-Telegram-Customer-UX.md) |
 | [15-Owner-TZ-Console.md](../15-Owner-TZ-Console.md) | [15-Owner-TZ-Console.md](15-Owner-TZ-Console.md) |
 | [16-VPS-Deploy.md](../16-VPS-Deploy.md) | [16-VPS-Deploy.md](16-VPS-Deploy.md) |
+| [17-Brand-Assets.md](../17-Brand-Assets.md) | [17-Brand-Assets.md](17-Brand-Assets.md) |

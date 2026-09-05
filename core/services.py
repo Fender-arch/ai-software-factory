@@ -1014,21 +1014,19 @@ class TzSendError(ValueError):
     """Customer TZ / estimate file could not be sent to Telegram."""
 
 
-def _humanize_telegram_send_error(description: str) -> str:
-    low = (description or "").lower()
-    if any(
-        token in low
-        for token in (
-            "can't initiate",
-            "cannot initiate",
-            "chat not found",
-            "bot was blocked",
-            "forbidden",
-            "have no access",
-        )
-    ):
-        return "напишите боту /start и нажмите снова"
-    return description or "не удалось отправить файл в чат бота"
+def _humanize_telegram_send_error(
+    description: str,
+    *,
+    error_kind: str | None = None,
+    http_status: int | None = None,
+) -> str:
+    from integrations.telegram.notify import classify_telegram_document_error
+
+    return classify_telegram_document_error(
+        description,
+        error_kind=error_kind,
+        http_status=http_status,
+    )
 
 
 def _humanize_export_error(detail: str, fmt: str) -> str:
@@ -1064,7 +1062,7 @@ def _deliver_customer_document(
             "нет chat_id — откройте Mini App из Telegram и нажмите /start"
         )
     if not (settings.telegram_bot_token or "").strip():
-        raise TzSendError("бот не настроен — напишите боту /start и повторите позже")
+        raise TzSendError("бот на сервере настроен неверно")
     result = send_customer_telegram_document(
         chat_id,
         data=payload,
@@ -1073,7 +1071,11 @@ def _deliver_customer_document(
     )
     if not result or not result.get("ok") or not result.get("message_id"):
         raise TzSendError(
-            _humanize_telegram_send_error((result or {}).get("description") or "")
+            _humanize_telegram_send_error(
+                (result or {}).get("description") or "",
+                error_kind=(result or {}).get("error_kind"),
+                http_status=(result or {}).get("http_status"),
+            )
         )
     if str(result.get("chat_id") or "") != str(chat_id):
         raise TzSendError("файл ушёл не в чат заказчика")

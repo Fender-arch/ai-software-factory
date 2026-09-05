@@ -19,6 +19,7 @@ from apps.api.schemas import (
     FeedbackRequest,
     FeedbackResponse,
     HealthResponse,
+    TelegramHealthResponse,
     HitlRequest,
     HitlResponse,
     MessageCreate,
@@ -95,6 +96,14 @@ _CONSOLE_DIR = Path(__file__).resolve().parents[1] / "console"
 @app.get("/health", response_model=HealthResponse)
 def health() -> HealthResponse:
     return HealthResponse()
+
+
+@app.get("/health/telegram", response_model=TelegramHealthResponse)
+def health_telegram() -> TelegramHealthResponse:
+    """Ops: VPS egress to Bot API + getMe username (no token). Not used by Docker healthcheck."""
+    from integrations.telegram.notify import diagnose_telegram_bot_api
+
+    return TelegramHealthResponse(**diagnose_telegram_bot_api())
 
 
 @app.post("/stt/transcribe", response_model=TranscribeResponse)
@@ -473,7 +482,6 @@ def _customer_send_file(send_fn, project_id, fmt, customer_telegram_id, db) -> d
         clientish = (
             "not ready" in detail
             or "нет chat_id" in detail
-            or "бот не настроен" in detail
             or "/start" in detail
             or "не удалось собрать" in detail
         )
