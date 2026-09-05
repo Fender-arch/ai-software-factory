@@ -8,8 +8,9 @@ Sources tailored for ASF simple MVPs (not a full GOST/IEEE document):
   data, constraints, verification
 - Practical PRD: explicit non-goals, scenarios, AI HITL/guardrails
 
-Product types stay DEC-003: website | telegram_bot | rest_service | ai_automation.
-Customer "shapes" (AI agent, database+admin, integrations) map onto those types.
+Product types: website | telegram_bot | rest_service | ai_automation | mobile_native
+(DEC-003 + DEC-010). Customer "shapes" (AI agent, database+admin, integrations)
+map onto those types.
 """
 
 from __future__ import annotations
@@ -36,6 +37,10 @@ SHAPE_TO_PRODUCT_TYPE: dict[str, str] = {
     "shape_integration": "rest_service",
     "shape_ai": "ai_automation",
     "shape_agent": "ai_automation",
+    "shape_mobile": "mobile_native",
+    "ctx:shape_android": "mobile_native",
+    "ctx:shape_ios": "mobile_native",
+    "ctx:shape_mobile": "mobile_native",
 }
 
 SHAPE_TO_TASK_SHAPE: dict[str, str] = {
@@ -47,6 +52,10 @@ SHAPE_TO_TASK_SHAPE: dict[str, str] = {
     "shape_bot": "telegram_bot",
     "shape_miniapp": "telegram_miniapp",
     "shape_api": "rest_service",
+    "shape_mobile": "mobile_native",
+    "ctx:shape_android": "mobile_native",
+    "ctx:shape_ios": "mobile_native",
+    "ctx:shape_mobile": "mobile_native",
 }
 
 SURF_TO_TASK_SHAPE: dict[str, str] = {
@@ -164,20 +173,22 @@ TZ_TOPICS: tuple[TzTopic, ...] = (
             ),
             _Q.HIGH: (
                 "Зафиксируйте тип поставки: website | telegram_bot | rest_service | "
-                "ai_automation (агент, автоматизация, интеграция, админка данных)."
+                "ai_automation | mobile_native (агент, автоматизация, интеграция, "
+                "админка данных, нативное приложение)."
             ),
         },
         options=(
             Choice("shape_website", "Сайт / лендинг / витрина"),
             Choice("shape_bot", "Telegram-бот"),
             Choice("shape_miniapp", "Telegram Mini App / лендинг в Telegram"),
+            Choice("shape_mobile", "Нативное приложение (Android / iOS)"),
             Choice("shape_agent", "ИИ-агент (диалог + действия)"),
             Choice("shape_ai", "Автоматизация процесса с ИИ"),
             Choice("shape_db", "База данных и инструмент её ведения"),
             Choice("shape_integration", "Интеграция / обмен между системами"),
             Choice("shape_api", "REST API / сервис для других программ"),
         ),
-        keywords=("website", "bot", "api", "сайт", "бот", "агент", "интеграц"),
+        keywords=("website", "bot", "api", "сайт", "бот", "агент", "интеграц", "ios", "android", "нативн", "мобильн"),
     ),
     TzTopic(
         id="as_is_process",
@@ -348,7 +359,7 @@ TZ_TOPICS: tuple[TzTopic, ...] = (
         stage=DiscoveryStage.BUSINESS_CONTEXT,
         title_ru="Продвижение продукта",
         title_en="Promotion and acquisition",
-        applies_to=frozenset({"website", "telegram_bot"}),
+        applies_to=frozenset({"website", "telegram_bot", "mobile_native"}),
         also_task_shapes=frozenset({"telegram_miniapp"}),
         questions={
             _Q.LOW: (
@@ -538,11 +549,47 @@ TZ_TOPICS: tuple[TzTopic, ...] = (
         keywords=("command", "кнопк", "free-text", "голос", "voice"),
     ),
     TzTopic(
+        id="native_platforms",
+        stage=DiscoveryStage.FUNCTIONAL,
+        title_ru="Платформы приложения",
+        title_en="Native platforms",
+        applies_to=frozenset({"mobile_native"}),
+        questions={
+            _Q.LOW: "Приложение нужно на Android, на iPhone, или сразу на обоих? Оба обычно дороже.",
+            _Q.MEDIUM: "Платформы v1: Android, iOS или оба. Второй магазин — отдельная оценка.",
+            _Q.HIGH: "Locked platforms for v1: android | ios | both (both raises estimate).",
+        },
+        options=(
+            Choice("plat_android", "Сначала Android"),
+            Choice("plat_ios", "Сначала iOS"),
+            Choice("plat_both", "Android и iOS в первой версии"),
+        ),
+        keywords=("android", "ios", "iphone", "платформ", "store"),
+    ),
+    TzTopic(
+        id="store_distribution",
+        stage=DiscoveryStage.FUNCTIONAL,
+        title_ru="Как ставят приложение",
+        title_en="Store distribution",
+        applies_to=frozenset({"mobile_native"}),
+        questions={
+            _Q.LOW: "В первой версии достаточно сборки для проверки, или сразу публикация в магазинах?",
+            _Q.MEDIUM: "Дистрибуция v1: внутренний тест (TestFlight / APK), внутренний канал магазина, или публичные сторы.",
+            _Q.HIGH: "Distribution: internal build vs TestFlight/Play internal vs public stores in v1.",
+        },
+        options=(
+            Choice("store_internal", "Только сборка для проверки (APK / TestFlight)", recommended=True),
+            Choice("store_channel", "Внутренний канал магазина, без витрины"),
+            Choice("store_public", "Публикация в магазинах в v1"),
+        ),
+        keywords=("store", "testflight", "публик", "магазин", "apk"),
+    ),
+    TzTopic(
         id="public_identity",
         stage=DiscoveryStage.FUNCTIONAL,
         title_ru="Имя и подпись для посетителя",
         title_en="Public identity",
-        applies_to=frozenset({"website", "telegram_bot"}),
+        applies_to=frozenset({"website", "telegram_bot", "mobile_native"}),
         needs_substance=True,
         questions={
             _Q.LOW: (
@@ -586,7 +633,7 @@ TZ_TOPICS: tuple[TzTopic, ...] = (
         stage=DiscoveryStage.FUNCTIONAL,
         title_ru="Услуги и портфолио",
         title_en="Offer catalog",
-        applies_to=frozenset({"website", "telegram_bot"}),
+        applies_to=frozenset({"website", "telegram_bot", "mobile_native"}),
         needs_substance=True,
         multi=True,
         questions={
@@ -629,7 +676,7 @@ TZ_TOPICS: tuple[TzTopic, ...] = (
         stage=DiscoveryStage.FUNCTIONAL,
         title_ru="Как посетитель связывается",
         title_en="Visitor CTA and leads",
-        applies_to=frozenset({"website", "telegram_bot"}),
+        applies_to=frozenset({"website", "telegram_bot", "mobile_native"}),
         needs_substance=True,
         multi=True,
         questions={
@@ -779,6 +826,9 @@ TZ_TOPICS: tuple[TzTopic, ...] = (
             "website": {
                 _Q.LOW: "Язык сайта, мобильная версия и есть ли логотип/фото или делаем просто?",
             },
+            "mobile_native": {
+                _Q.LOW: "Язык приложения и нужен ли сразу тёмный/светлый вид как в телефоне?",
+            },
         },
         options=(
             Choice("ux_ru", "Только русский, удобно с телефона", recommended=True),
@@ -794,7 +844,7 @@ TZ_TOPICS: tuple[TzTopic, ...] = (
         stage=DiscoveryStage.NON_FUNCTIONAL,
         title_ru="Логотип и оформление",
         title_en="Brand assets",
-        applies_to=frozenset({"website", "telegram_bot"}),
+        applies_to=frozenset({"website", "telegram_bot", "mobile_native"}),
         needs_substance=True,
         questions={
             _Q.LOW: (
@@ -836,7 +886,7 @@ TZ_TOPICS: tuple[TzTopic, ...] = (
         stage=DiscoveryStage.NON_FUNCTIONAL,
         title_ru="Референсы",
         title_en="Design references",
-        applies_to=frozenset({"website", "telegram_bot"}),
+        applies_to=frozenset({"website", "telegram_bot", "mobile_native"}),
         also_task_shapes=frozenset({"telegram_miniapp"}),
         needs_substance=True,
         questions={
@@ -882,7 +932,7 @@ TZ_TOPICS: tuple[TzTopic, ...] = (
         stage=DiscoveryStage.NON_FUNCTIONAL,
         title_ru="Какой дизайн хотите",
         title_en="Design direction",
-        applies_to=frozenset({"website", "telegram_bot"}),
+        applies_to=frozenset({"website", "telegram_bot", "mobile_native"}),
         also_task_shapes=frozenset({"telegram_miniapp"}),
         needs_substance=True,
         questions={

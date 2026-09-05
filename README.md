@@ -43,7 +43,7 @@ Customer (Telegram Mini App text|voice)
   →    Owner review (HITL, bot) + TZ graph console (`/console/`)
   → Planner / tasks
   → Cursor executor
-  → Simple MVP (website | bot | service | automation)
+  → Simple MVP (website | bot | service | automation | native mobile)
 ```
 
 Customer home actions: create project · change project · implementation feedback — see [docs/14-Telegram-Customer-UX.md](docs/14-Telegram-Customer-UX.md).
@@ -51,8 +51,8 @@ Customer home actions: create project · change project · implementation feedba
 
 | Entry | Purpose |
 |-------|---------|
-| [AGENTS.md](AGENTS.md) | How to work in this repo |
-| [docs/12-Agent-Toolkit.md](docs/12-Agent-Toolkit.md) | Rules, skills, docs map |
+| [AGENTS.md](AGENTS.md) | Agent router (skills on demand) |
+| [docs/12-Agent-Toolkit.md](docs/12-Agent-Toolkit.md) | Rules, skills, token economy, customer pack |
 | [docs/13-Dev-Setup.md](docs/13-Dev-Setup.md) | Run / test / env |
 | [docs/16-VPS-Deploy.md](docs/16-VPS-Deploy.md) | VPS deploy next to an existing website |
 | [.cursor/skills/asf-mvp](.cursor/skills/asf-mvp/SKILL.md) | MVP implementation skill |

@@ -14,5 +14,5 @@ alwaysApply: false
 - Do not emit draft TZ until applicable TZ outline topics are captured or escalated, unless the customer pauses (no TZ) or hands remaining sections to the developer
 - Voice transcripts are normal Messages (`kind=VOICE`) after STT
 - Canonical English in stored knowledge; customer replies may be localized
-- Product type hints live in `templates/`; do not invent new product types ad hoc
+- Product type hints live in `templates/`; types are website | telegram_bot | rest_service | ai_automation | mobile_native (DEC-010) — do not invent others ad hoc
 - Blocking ambiguity → `WAITING_OWNER` / HumanDecisionRequired, not silent defaults

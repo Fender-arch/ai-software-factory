@@ -5,8 +5,8 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.5 |
-| Updated | 2026-08-28 |
+| Version | 0.6 |
+| Updated | 2026-09-05 |
 | Owner | ASF Core |
 
 ```
@@ -26,10 +26,10 @@ ai-software-factory/
 ├── tasks/                # Эпики поставки
 ├── prompts/              # Промпты режимов
 ├── schemas/              # JSON-схемы
-├── templates/            # Подсказки по типам продуктов
+├── templates/            # Подсказки по типам, DESIGN.md, AGENTS заказчика, заготовки Spec Kit
 ├── .cursor/
-│   ├── rules/            # Постоянные правила Cursor
-│   └── skills/asf-mvp/   # Skill реализации проекта
+│   ├── rules/            # Тонкий always-on + правила по glob
+│   └── skills/           # Skills по требованию (asf-mvp + interview/design/security/…)
 ├── apps/
 │   ├── api/              # Точка входа FastAPI
 │   ├── miniapp/          # Фронтенд Telegram Mini App (UI заказчика)

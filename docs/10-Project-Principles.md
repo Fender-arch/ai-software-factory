@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.1 |
-| Updated | 2026-07-30 |
+| Version | 0.2 |
+| Updated | 2026-09-05 |
 | Owner | ASF Core |
 
 1. **Process over org chart** — roles exist because stages exist.
@@ -16,4 +16,4 @@
 7. **MVP freeze** — new ideas → filter → Future backlog.
 8. **Docs are executable** — schemas, prompts, decisions constrain the system.
 9. **Cursor is a tool** — not the center of orchestration.
-10. **Simple product types first** — website, bot, service, automation.
+10. **Simple product types first** — website, bot, service, automation, native mobile.

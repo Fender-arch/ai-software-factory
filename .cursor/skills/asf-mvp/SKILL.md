@@ -3,9 +3,8 @@ name: asf-mvp
 description: >-
   Implement AI Software Factory (ASF) MVP epics in this repo: Telegram Discovery,
   Whisper STT, PostgreSQL knowledge graph, AI Coordinator modes, HITL TZ gate,
-  Cursor task export, and Telegram Mini App. Use when coding ASF features,
-  advancing EPIC-01..06, touching discovery/knowledge/integrations/miniapp/console,
-  or deciding MVP vs Future scope.
+  Cursor task export, Telegram Mini App, and owner TZ console. Use when coding
+  ASF features, advancing EPIC-01..06, or deciding MVP vs Future scope.
 ---
 
 # ASF MVP Implementation Skill
@@ -13,12 +12,12 @@ description: >-
 ## When to use
 
 - Implementing or reviewing work against `tasks/EPIC-*.md`
-- Changing Discovery, KG, Telegram, STT, Coordinator, or planner export
+- Changing Discovery, KG, Telegram, STT, Coordinator, planner export, Mini App, console
 - Unsure whether a feature belongs in MVP or `backlog/Future.md`
 
 ## Mandatory reads (short)
 
-1. `AGENTS.md`
+1. `AGENTS.md` (router — do not paste other skills here)
 2. Active epic in `tasks/`
 3. `docs/01-MVP-Scope.md`, `docs/02-Architecture.md`
 4. Relevant ADR in `decisions/`
@@ -40,9 +39,22 @@ description: >-
 
 ## MVP allow / deny
 
-**Allow:** Telegram text+voice, Whisper STT, Coordinator modes, entity/relation KG, draft TZ artifacts, owner review, task breakdown/export, product templates, owner TZ graph console (DEC-007).
+**Allow:** Telegram text+voice, Whisper STT, Coordinator modes, entity/relation KG, draft TZ artifacts, owner review, task breakdown/export, product templates (`website`, `telegram_bot`, `rest_service`, `ai_automation`, `mobile_native`), owner TZ graph console (DEC-007).
 
-**Deny without new ADR:** Redis, Neo4j, event sourcing, multi-agent OS processes, customer web review portal, sales/finance agents, second template repo.
+**Deny without new ADR:** Redis, Neo4j, event sourcing, multi-agent OS processes, customer web review portal, sales/finance agents, second template repo, vendoring Spec Kit or giant external agent packs.
+
+## Companion skills (load only if needed)
+
+| Need | Skill |
+|------|--------|
+| Interview tone | `human-interview` |
+| UI look | `anti-slop-design` |
+| Context budget | `token-economy` |
+| Learned sections | `project-memory` |
+| Docs/RU sync | `autodoc` |
+| Auth / Telegram / secrets | `security-review` |
+| Customer repo stamp | `mvp-customer-pack` |
+| Spec Kit files | `mvp-speckit-export` |
 
 ## Mode map (Coordinator)
 

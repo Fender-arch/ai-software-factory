@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.3 |
-| Updated | 2026-08-16 |
+| Version | 0.4 |
+| Updated | 2026-09-05 |
 | Owner | ASF Core |
 
 ## Goal of MVP
@@ -33,7 +33,7 @@ Definition of done for the *platform* MVP: Telegram Mini App → quality TZ → 
 | AI | One **AI Coordinator** with modes (not many OS processes) |
 | HITL | Spec review in owner bot path; `HumanDecisionRequired` on forks |
 | Owner TZ console | Internal graph of requirements (`/console/`); [DEC-007](../decisions/DEC-007-Owner-TZ-Console.md), [15-Owner-TZ-Console.md](15-Owner-TZ-Console.md) |
-| Product types | `website`, `telegram_bot`, `rest_service`, `ai_automation` |
+| Product types | `website`, `telegram_bot`, `rest_service`, `ai_automation`, `mobile_native` ([DEC-010](../decisions/DEC-010-Mobile-Native.md)) |
 | Delivery | Task export + Cursor rules; human/Cursor execution |
 | Stack | FastAPI, PostgreSQL, Alembic, Docker Compose, Mini App frontend, owner console |
 | Transitional | Command-bot customer paths (`/new`, `/use`, …) until Mini App ships |
@@ -63,4 +63,4 @@ If no → `backlog/Future.md`.
 
 ## Target product complexity
 
-MVP factory targets **simple** specs: brochure sites, bots, small APIs, light automations — not multi-tenant SaaS or complex distributed systems.
+MVP factory targets **simple** specs: brochure sites, bots, small APIs, light automations, one-platform native apps — not multi-tenant SaaS or complex distributed systems.

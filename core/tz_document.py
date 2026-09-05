@@ -34,6 +34,7 @@ PRODUCT_RU = {
     "telegram_bot": "Telegram-бот",
     "rest_service": "REST-сервис",
     "ai_automation": "AI-автоматизация",
+    "mobile_native": "нативное приложение",
 }
 
 _FONT_CANDIDATES = (

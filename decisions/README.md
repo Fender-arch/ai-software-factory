@@ -12,3 +12,5 @@ Short ADRs. Status: `Proposed` | `Accepted` | `Deprecated`.
 | DEC-006 | Telegram Mini App as customer UI | Accepted |
 | DEC-007 | Owner TZ graph console | Accepted |
 | DEC-008 | LLM-driven Discovery interview | Accepted |
+| DEC-009 | Agent toolkit reuse (patterns, not wholesale vendors) | Accepted |
+| DEC-010 | Product type `mobile_native` in scope | Accepted |

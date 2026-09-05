@@ -1,0 +1,15 @@
+---
+description: Security basics for API, core, and integrations
+globs: "{apps/api,core,integrations,knowledge}/**/*.{py,js}"
+alwaysApply: false
+---
+
+# Security basics
+
+- Parameterized SQL only; no string-built queries.
+- Never log bot tokens, API keys, raw initData, or voice bytes.
+- Validate Telegram Mini App initData on the server for privileged routes; `?uid=` is smoke-only.
+- Do not fetch customer-supplied URLs server-side without allowlisting (SSRF).
+- Escape customer/TZ text in HTML; no `innerHTML` of untrusted strings.
+- Uploads stay under `UPLOAD_DIR`; no user path segments.
+- Full checklist: `.cursor/skills/security-review/SKILL.md`.

@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.2 |
-| Updated | 2026-07-31 |
+| Version | 0.3 |
+| Updated | 2026-09-05 |
 | Owner | ASF Core |
 
 ## Purpose
@@ -25,6 +25,7 @@ Within a short Discovery cycle they get a solid specification. After owner appro
 - Telegram bot
 - REST service / internal tool
 - light AI automation
+- native mobile (`mobile_native`, DEC-010)
 
 Customer home actions: create a project, change an existing project, or file implementation feedback after reviewing a delivered MVP. See [14-Telegram-Customer-UX.md](14-Telegram-Customer-UX.md).
 

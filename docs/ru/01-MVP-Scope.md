@@ -5,8 +5,8 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.3 |
-| Updated | 2026-08-16 |
+| Version | 0.4 |
+| Updated | 2026-09-05 |
 | Owner | ASF Core |
 
 ## Цель MVP
@@ -35,7 +35,7 @@ Definition of done для *платформенного* MVP: Telegram Mini App 
 | AI | Один **AI Coordinator** с режимами (не множество OS-процессов) |
 | HITL | Ревью спецификации в боте владельца; `HumanDecisionRequired` на развилках |
 | Консоль ТЗ владельца | Внутренний граф требований (`/console/`); [DEC-007](../../decisions/DEC-007-Owner-TZ-Console.md), [15-Owner-TZ-Console.md](15-Owner-TZ-Console.md) |
-| Типы продуктов | `website`, `telegram_bot`, `rest_service`, `ai_automation` |
+| Типы продуктов | `website`, `telegram_bot`, `rest_service`, `ai_automation`, `mobile_native` ([DEC-010](../../decisions/DEC-010-Mobile-Native.md)) |
 | Поставка | Экспорт задач + правила Cursor; исполнение человеком/Cursor |
 | Стек | FastAPI, PostgreSQL, Alembic, Docker Compose, фронтенд Mini App, консоль владельца |
 | Переходный режим | Командный бот (`/new`, `/use`, …) до поставки Mini App |
@@ -65,4 +65,4 @@ Definition of done для *платформенного* MVP: Telegram Mini App 
 
 ## Целевая сложность продукта
 
-MVP-фабрика нацелена на **простые** спецификации: визитки, боты, небольшие API, лёгкие автоматизации — не multi-tenant SaaS и не сложные распределённые системы.
+MVP-фабрика нацелена на **простые** спецификации: визитки, боты, небольшие API, лёгкие автоматизации, нативные приложения на одной платформе — не multi-tenant SaaS и не сложные распределённые системы.

@@ -5,13 +5,14 @@ alwaysApply: true
 
 # ASF Cursor Rules
 
-- Start from `AGENTS.md` and the active `tasks/EPIC-*.md`.
+- Start from `AGENTS.md` (router) and the active `tasks/EPIC-*.md`. Load one matching skill — do not dump the toolkit.
 - Treat `docs/` and `decisions/` as source of truth. Do not contradict Accepted ADRs.
-- Use project skill `.cursor/skills/asf-mvp` when implementing MVP work.
-- MVP stack: FastAPI, PostgreSQL, Telegram, Whisper STT. No Redis, no Neo4j, no microservices.
+- Use `.cursor/skills/asf-mvp` when implementing MVP work.
+- MVP stack: FastAPI, PostgreSQL, Telegram, Whisper STT. No Redis, no Neo4j, no microservices, no agent swarm.
 - Keep modular monolith package boundaries (`apps`, `core`, `knowledge`, `discovery`, `integrations`). Owner TZ console lives in `apps/console` + `/console/api` (DEC-007).
 - Prefer stubs/interfaces for LLM and STT; inject real providers via settings.
-- Do not invent scope beyond product types: website, telegram_bot, rest_service, ai_automation.
+- Product types: website, telegram_bot, rest_service, ai_automation, mobile_native (DEC-010). Do not invent others.
 - Raise human review instead of guessing on blocking product decisions.
 - New platform features must pass the MVP filter or go to `backlog/Future.md`.
 - Write tests for new behavior; keep handlers thin.
+- Never put secrets in `AGENTS.md` Learned sections.

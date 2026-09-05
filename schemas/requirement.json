@@ -14,7 +14,7 @@
     },
     "product_type": {
       "type": "string",
-      "enum": ["website", "telegram_bot", "rest_service", "ai_automation"]
+      "enum": ["website", "telegram_bot", "rest_service", "ai_automation", "mobile_native"]
     }
   },
   "additionalProperties": true

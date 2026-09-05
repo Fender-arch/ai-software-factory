@@ -19,6 +19,7 @@ BASE_HOURS: dict[str, float] = {
     "telegram_bot": 20,
     "rest_service": 24,
     "ai_automation": 24,
+    "mobile_native": 32,
 }
 UNKNOWN_BASE_HOURS = 20.0
 SIMPLE_MVP_HOUR_CAP = 80.0
@@ -45,6 +46,7 @@ PRODUCT_TYPE_RU = {
     "telegram_bot": "Telegram-бот",
     "rest_service": "REST-сервис",
     "ai_automation": "AI-автоматизация",
+    "mobile_native": "нативное приложение",
 }
 
 METHOD = "heuristic_v1"

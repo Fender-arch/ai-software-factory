@@ -336,7 +336,13 @@ def test_console_icons_cover_tz_topics():
     icons = root / "apps/console/icons"
     missing_files = [name for name in used if not (icons / f"{name}.svg").is_file()]
     assert missing_files == [], missing_files
-    for key in ("website", "telegram_bot", "rest_service", "ai_automation"):
+    for key in (
+        "website",
+        "telegram_bot",
+        "rest_service",
+        "ai_automation",
+        "mobile_native",
+    ):
         assert key in mapping["products"]
 
 
