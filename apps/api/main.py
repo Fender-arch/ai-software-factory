@@ -42,7 +42,7 @@ from core.hitl import HitlError
 from core.models import TZ_DOWNLOAD_STATUSES
 from core.planner import PlannerError
 from core.project_files import FileError
-from core.tz_document import TzExportError, export_tz_file
+from core.tz_document import TzExportError, export_client_estimate_file, export_tz_file
 from core.services import (
     assert_project_owner,
     create_project,
@@ -57,6 +57,7 @@ from core.services import (
     list_projects_for_customer,
     run_project_discovery,
     run_project_planner,
+    send_customer_estimate_file,
     send_customer_tz_file,
     submit_client_estimate_decision,
     submit_hitl_decision,
@@ -430,6 +431,37 @@ def api_get_draft_tz(project_id: uuid.UUID, db: Session = Depends(get_db)) -> di
     }
 
 
+def _attachment_response(payload: bytes, media: str, filename: str, ascii_name: str) -> Response:
+    encoded = quote(filename)
+    return Response(
+        content=payload,
+        media_type=media,
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{ascii_name}"; filename*=UTF-8\'\'{encoded}'
+            )
+        },
+    )
+
+
+def _customer_send_file(send_fn, project_id, fmt, customer_telegram_id, db) -> dict:
+    try:
+        return send_fn(
+            db,
+            project_id,
+            fmt,
+            customer_telegram_id=customer_telegram_id,
+        )
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except TzSendError as exc:
+        detail = str(exc)
+        status = 409 if "not ready" in detail else 502
+        raise HTTPException(status_code=status, detail=detail) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 @app.get("/projects/{project_id}/tz-export")
 def api_customer_tz_export(
     project_id: uuid.UUID,
@@ -450,17 +482,7 @@ def api_customer_tz_export(
         payload, media, filename = export_tz_file(db, project, format)
     except TzExportError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    ascii_name = f"tz.{format}"
-    encoded = quote(filename)
-    return Response(
-        content=payload,
-        media_type=media,
-        headers={
-            "Content-Disposition": (
-                f'attachment; filename="{ascii_name}"; filename*=UTF-8\'\'{encoded}'
-            )
-        },
-    )
+    return _attachment_response(payload, media, filename, f"tz.{format}")
 
 
 @app.post("/projects/{project_id}/tz-send")
@@ -471,21 +493,45 @@ def api_customer_tz_send(
     db: Session = Depends(get_db),
 ) -> dict:
     """Deliver the draft TZ as a Telegram document (Mini App download in WebView)."""
+    return _customer_send_file(
+        send_customer_tz_file, project_id, format, customer_telegram_id, db
+    )
+
+
+@app.get("/projects/{project_id}/estimate-export")
+def api_customer_estimate_export(
+    project_id: uuid.UUID,
+    format: Literal["md", "pdf", "docx"] = Query(default="md"),
+    customer_telegram_id: str | None = None,
+    db: Session = Depends(get_db),
+) -> Response:
+    project = get_project(db, project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="project not found")
     try:
-        return send_customer_tz_file(
-            db,
-            project_id,
-            format,
-            customer_telegram_id=customer_telegram_id,
-        )
+        assert_project_owner(project, customer_telegram_id)
     except PermissionError as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
-    except TzSendError as exc:
+    try:
+        payload, media, filename = export_client_estimate_file(db, project, format)
+    except TzExportError as exc:
         detail = str(exc)
-        status = 409 if "not ready" in detail else 502
+        status = 409 if "not ready" in detail else 400
         raise HTTPException(status_code=status, detail=detail) from exc
-    except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return _attachment_response(payload, media, filename, f"smeta.{format}")
+
+
+@app.post("/projects/{project_id}/estimate-send")
+def api_customer_estimate_send(
+    project_id: uuid.UUID,
+    format: Literal["md", "pdf", "docx"] = Query(default="md"),
+    customer_telegram_id: str | None = None,
+    db: Session = Depends(get_db),
+) -> dict:
+    """Deliver the client estimate as a Telegram document (Mini App download)."""
+    return _customer_send_file(
+        send_customer_estimate_file, project_id, format, customer_telegram_id, db
+    )
 
 
 @app.get("/projects/{project_id}/hitl/review")

@@ -53,6 +53,12 @@ def test_console_static_served(client):
     assert "clientEstimateHtml" in js.text
     assert "Оценка стоимости" in js.text
     assert "Смета клиенту" in js.text
+    assert "data-estimate-export" in js.text
+    assert "exportEstimate" in js.text
+    css = client.get("/console/styles.css")
+    assert css.status_code == 200
+    assert "min(760px" in css.text
+    assert "min(380px" not in css.text
     assert "Authorization" in js.text
     assert "Токен неверный" in js.text
     assert "Создать MVP" in js.text
@@ -389,6 +395,35 @@ def test_console_tz_export_md_docx_pdf(client):
     assert docx.content[:2] == b"PK"
 
     pdf = client.get(f"/console/api/projects/{pid}/tz-export?format=pdf")
+    assert pdf.status_code == 200
+    assert pdf.content.startswith(b"%PDF")
+
+
+def test_console_estimate_export_md_docx_pdf(client):
+    from tests.test_discovery import _drive_discovery_to_owner
+
+    pid, _uid = _seed_project(client, name="Смета консоль")
+    too_soon = client.get(f"/console/api/projects/{pid}/estimate-export?format=md")
+    assert too_soon.status_code == 409
+
+    last = _drive_discovery_to_owner(client, pid)
+    assert last.json()["project_status"] == "WAITING_OWNER"
+    hitl = client.post(f"/projects/{pid}/hitl", json={"action": "approve"})
+    assert hitl.status_code == 200
+
+    md = client.get(f"/console/api/projects/{pid}/estimate-export?format=md")
+    assert md.status_code == 200
+    text = md.content.decode("utf-8")
+    assert "Смета" in text
+    assert "Смета консоль" in text
+    assert "attachment" in md.headers.get("content-disposition", "")
+    assert "smeta.md" in md.headers.get("content-disposition", "")
+
+    docx = client.get(f"/console/api/projects/{pid}/estimate-export?format=docx")
+    assert docx.status_code == 200
+    assert docx.content[:2] == b"PK"
+
+    pdf = client.get(f"/console/api/projects/{pid}/estimate-export?format=pdf")
     assert pdf.status_code == 200
     assert pdf.content.startswith(b"%PDF")
 

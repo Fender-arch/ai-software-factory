@@ -32,7 +32,7 @@ from core.requirement_console import (
     set_requirement_status,
     update_requirement,
 )
-from core.tz_document import TzExportError, export_tz_file
+from core.tz_document import TzExportError, export_client_estimate_file, export_tz_file
 from core.factory import FactoryError
 from core.hitl import HitlError
 from core.services import (
@@ -132,6 +132,19 @@ def console_tz_graph(
     return build_tz_graph(kg, project)
 
 
+def _console_attachment(payload: bytes, media: str, filename: str, ascii_name: str) -> Response:
+    encoded = quote(filename)
+    return Response(
+        content=payload,
+        media_type=media,
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{ascii_name}"; filename*=UTF-8\'\'{encoded}'
+            )
+        },
+    )
+
+
 @router.get("/projects/{project_id}/tz-export")
 def console_tz_export(
     project_id: uuid.UUID,
@@ -144,17 +157,24 @@ def console_tz_export(
         payload, media, filename = export_tz_file(db, project, format)
     except TzExportError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    ascii_name = f"tz.{format}"
-    encoded = quote(filename)
-    return Response(
-        content=payload,
-        media_type=media,
-        headers={
-            "Content-Disposition": (
-                f'attachment; filename="{ascii_name}"; filename*=UTF-8\'\'{encoded}'
-            )
-        },
-    )
+    return _console_attachment(payload, media, filename, f"tz.{format}")
+
+
+@router.get("/projects/{project_id}/estimate-export")
+def console_estimate_export(
+    project_id: uuid.UUID,
+    format: Literal["md", "pdf", "docx"] = Query(default="md"),
+    db: Session = Depends(get_db),
+    _: None = Depends(require_console_auth),
+) -> Response:
+    project = _project_or_404(project_id, db)
+    try:
+        payload, media, filename = export_client_estimate_file(db, project, format)
+    except TzExportError as exc:
+        detail = str(exc)
+        status = 409 if "not ready" in detail else 400
+        raise HTTPException(status_code=status, detail=detail) from exc
+    return _console_attachment(payload, media, filename, f"smeta.{format}")
 
 
 @router.get("/projects/{project_id}/files")

@@ -724,6 +724,9 @@
     body.querySelectorAll("[data-tz-export]").forEach((btn) => {
       btn.onclick = () => exportTz(btn.getAttribute("data-tz-export"));
     });
+    body.querySelectorAll("[data-estimate-export]").forEach((btn) => {
+      btn.onclick = () => exportEstimate(btn.getAttribute("data-estimate-export"));
+    });
     body.querySelectorAll("[data-file-dl]").forEach((btn) => {
       btn.onclick = () => downloadProjectFile(btn.getAttribute("data-file-dl"));
     });
@@ -977,6 +980,12 @@
       </div>
       <h3>Отчёт клиенту</h3>
       <pre class="client-estimate-report">${escapeHtml(report.body || "—")}</pre>
+      <h3>Выгрузить смету</h3>
+      <div class="export-row">
+        <button type="button" class="btn" data-estimate-export="md">Markdown</button>
+        <button type="button" class="btn" data-estimate-export="docx">Word</button>
+        <button type="button" class="btn primary" data-estimate-export="pdf">PDF</button>
+      </div>
       <h3>Источники ставок</h3>
       <ul class="estimate-rationale">${sources || "<li>—</li>"}</ul>
     `;
@@ -1494,46 +1503,66 @@
     }
   }
 
+  async function exportConsoleFile(path, fmt, fallbackName) {
+    showError("");
+    const res = await fetch(path, { headers: headers() });
+    if (res.status === 401) {
+      let detail = "";
+      try {
+        const body = await res.json();
+        detail = body.detail || "";
+      } catch (_) {
+        /* ignore */
+      }
+      throw new Error(showAuthFailure(detail));
+    }
+    if (!res.ok) {
+      let detail = res.statusText;
+      try {
+        const body = await res.json();
+        detail = body.detail || JSON.stringify(body);
+      } catch (_) {
+        /* ignore */
+      }
+      throw new Error(detail);
+    }
+    const blob = await res.blob();
+    const cd = res.headers.get("Content-Disposition") || "";
+    const star = cd.match(/filename\*=UTF-8''([^;]+)/i);
+    const plain = cd.match(/filename="?([^";]+)"?/i);
+    const name = decodeURIComponent((star && star[1]) || (plain && plain[1]) || fallbackName);
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+  }
+
   async function exportTz(fmt) {
     const pid = $("project-select").value;
     if (!pid || !fmt) return;
-    showError("");
     try {
-      const res = await fetch(`/console/api/projects/${pid}/tz-export?format=${encodeURIComponent(fmt)}`, {
-        headers: headers(),
-      });
-      if (res.status === 401) {
-        let detail = "";
-        try {
-          const body = await res.json();
-          detail = body.detail || "";
-        } catch (_) {
-          /* ignore */
-        }
-        throw new Error(showAuthFailure(detail));
-      }
-      if (!res.ok) {
-        let detail = res.statusText;
-        try {
-          const body = await res.json();
-          detail = body.detail || JSON.stringify(body);
-        } catch (_) {
-          /* ignore */
-        }
-        throw new Error(detail);
-      }
-      const blob = await res.blob();
-      const cd = res.headers.get("Content-Disposition") || "";
-      const star = cd.match(/filename\*=UTF-8''([^;]+)/i);
-      const plain = cd.match(/filename="?([^";]+)"?/i);
-      const name = decodeURIComponent((star && star[1]) || (plain && plain[1]) || `tz.${fmt}`);
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = name;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+      await exportConsoleFile(
+        `/console/api/projects/${pid}/tz-export?format=${encodeURIComponent(fmt)}`,
+        fmt,
+        `tz.${fmt}`
+      );
+    } catch (err) {
+      showError(err.message || String(err));
+    }
+  }
+
+  async function exportEstimate(fmt) {
+    const pid = $("project-select").value;
+    if (!pid || !fmt) return;
+    try {
+      await exportConsoleFile(
+        `/console/api/projects/${pid}/estimate-export?format=${encodeURIComponent(fmt)}`,
+        fmt,
+        `smeta.${fmt}`
+      );
     } catch (err) {
       showError(err.message || String(err));
     }

@@ -38,6 +38,8 @@ def test_miniapp_static_served(client):
     assert "client-estimate" in res.text
     assert "Подтверждаю" in res.text
     assert "Нужно обсудить" in res.text
+    assert "Скачать смету" in res.text
+    assert "data-ce-fmt" in res.text
     assert "ws-progress" in res.text
     assert "foundry-field" in res.text
     assert "tz-download" in res.text
@@ -63,8 +65,14 @@ def test_miniapp_js_uses_telegram_fullscreen_and_groq_voice(client):
     assert "disableVerticalSwipes" in js.text
     assert "inTelegramWebView" in js.text
     assert "tz-send" in js.text
+    assert "estimate-export" in js.text
+    assert "estimate-send" in js.text
     assert "downloadFile" in js.text
     assert "openLink" in js.text
+    assert "triggerBlobDownload" in js.text
+    assert "dismissExportHint" in js.text
+    assert "finishTzExportUi" in js.text
+    assert "withTimeout" in js.text
     assert "if (inTelegramWebView()) return false" in js.text
     assert "pickRecorderMime" in js.text
     assert "visualViewport" in js.text

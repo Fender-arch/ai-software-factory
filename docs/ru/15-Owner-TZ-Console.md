@@ -5,7 +5,7 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.8 |
+| Version | 0.9 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -44,7 +44,7 @@ Requirement --conflicts_with--> Requirement
 
 Узлы разделов — пиктограммы [Lucide](https://lucide.dev/) (ISC) в `apps/console/icons/`. Сам узел **и есть** пиктограмма (без дополнительного кружка); мягкое свечение — цвет этапа. Иконка центра зависит от типа продукта. Карта: `apps/console/icons/map.json`.
 
-В карточке проекта — **выгрузка полного ТЗ**: Markdown, Word (`docx`), PDF. Файл собирается из KG: `GET /console/api/projects/{id}/tz-export?format=md|docx|pdf`. Клик по **центру графа** (сам проект) показывает **две оценки**: эвристику HITL владельца (`payload.estimate` / `core/estimate.py`) и, после approve, **рыночную смету клиенту** + отчёт (`payload.client_estimate`, DEC-012) с источниками и статусом подтверждения. Они рядом; эвристика не является ценой заказчику.
+В карточке проекта — **выгрузка полного ТЗ**: Markdown, Word (`docx`), PDF. Файл собирается из KG: `GET /console/api/projects/{id}/tz-export?format=md|docx|pdf`. Клик по **центру графа** (сам проект) показывает **две оценки**: эвристику HITL владельца (`payload.estimate` / `core/estimate.py`) и, после approve, **рыночную смету клиенту** + отчёт (`payload.client_estimate`, DEC-012) с источниками и статусом подтверждения. Они рядом; эвристика не является ценой заказчику. У клиентской сметы те же кнопки файла (MD / Word / PDF): `GET /console/api/projects/{id}/estimate-export?format=md|docx|pdf` — тот же конвейер Markdown→файл, что у ТЗ (`core/tz_document.export_markdown_file`). Правая панель на широком экране ≈760px (`min(760px, 100% − 28px)`), на узком (<900px) по-прежнему на всю ширину / снизу.
 
 Там же **MVP Factory** (DEC-013): кнопка **Создать MVP** после approve владельца **и** confirm клиентской сметы (`READY`), ответы Intervention Queue (текст / секрет; секреты не показываются обратно), статус сборки и **Отправить клиенту на review**. API: `GET/POST /console/api/projects/{id}/mvp`, `POST .../mvp/send-to-client`, `GET .../interventions`, `POST /console/api/interventions/{id}/resolve`.
 
