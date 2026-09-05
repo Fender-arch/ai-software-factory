@@ -13,6 +13,7 @@
 - Runnable skeleton: API + Postgres + Telegram bot stub + STT
 - Migrations for projects, messages, entities, relations, tasks
 - Epics 01–06 delivered (infra → Discovery → KG → HITL/planner/export/factory → Mini App → owner TZ console)
+- Dual estimate: owner heuristic + client market quote/report before Planner (DEC-012)
 
 ## Week-oriented MVP delivery
 

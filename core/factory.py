@@ -166,13 +166,24 @@ def expire_stale_interventions(db: Session, project_id: uuid.UUID | None = None)
     return count
 
 
-def client_confirm_ready(kg: KnowledgeRepository, project: Project) -> bool:
-    """Hook for DEC-012 client estimate confirm (PR #5 — not required yet).
+def _estimate_is_confirmed(payload: dict[str, Any] | None) -> bool:
+    data = payload or {}
+    status = str(data.get("status") or "").lower()
+    return bool(
+        status == "confirmed"
+        or data.get("confirmed")
+        or data.get("client_confirmed")
+    )
 
-    If a ``client_estimate`` artifact exists, factory waits until
-    ``payload.confirmed`` is true. When the feature is absent, owner
-    ``READY`` is enough.
-    """
+
+def client_confirm_ready(kg: KnowledgeRepository, project: Project) -> bool:
+    """DEC-012: wait for client estimate confirm when one exists on the draft TZ."""
+    from core.hitl import get_draft_tz
+
+    draft = get_draft_tz(kg, project.id)
+    ce = ((draft.payload or {}).get("client_estimate") if draft else None)
+    if isinstance(ce, dict):
+        return _estimate_is_confirmed(ce)
     artifacts = [
         e
         for e in kg.list_entities(project.id, type_="Artifact")
@@ -180,18 +191,20 @@ def client_confirm_ready(kg: KnowledgeRepository, project: Project) -> bool:
     ]
     if not artifacts:
         return True
-    latest = artifacts[-1]
-    payload = latest.payload or {}
-    return bool(payload.get("confirmed") or payload.get("client_confirmed"))
+    return _estimate_is_confirmed(artifacts[-1].payload)
 
 
 def factory_gate(db: Session, project: Project) -> tuple[bool, str]:
+    if project.status == ProjectStatus.WAITING_OWNER:
+        return False, "need_owner_approve"
+    if project.status == ProjectStatus.WAITING_CLIENT_ESTIMATE:
+        return False, "need_client_confirm"
     if project.status != ProjectStatus.READY:
         return False, "need_owner_approve"
     kg = KnowledgeRepository(db)
     if not client_confirm_ready(kg, project):
         return False, "need_client_confirm"
-    return True, "owner_approved"
+    return True, "ready"
 
 
 def needed_intervention_specs(product_type: str | None) -> list[dict[str, str]]:
@@ -372,7 +385,7 @@ def create_mvp_job(
                 "клиент ещё не подтвердил смету — фабрика ждёт client_confirm"
             )
         raise FactoryError(
-            f"проект должен быть READY после approve ТЗ, сейчас {project.status.value}"
+            f"проект должен быть READY после approve ТЗ и confirm сметы, сейчас {project.status.value}"
         )
 
     existing = latest_build_job(db, project.id)

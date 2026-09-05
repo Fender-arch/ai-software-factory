@@ -35,10 +35,29 @@ from knowledge.repository import KnowledgeRepository
 from tests.test_mvp_generation import _reach_waiting_owner
 
 
-def _approve(client, project_id: str) -> None:
-    res = client.post(f"/projects/{project_id}/hitl", json={"action": "approve"})
+def _approve(client, project_id: str, *, actor_telegram_id: str | None = None) -> None:
+    body = {"action": "approve"}
+    if actor_telegram_id:
+        body["actor_telegram_id"] = actor_telegram_id
+    res = client.post(f"/projects/{project_id}/hitl", json=body)
     assert res.status_code == 200
-    assert res.json()["project_status"] == "READY"
+    assert res.json()["project_status"] == "WAITING_CLIENT_ESTIMATE"
+
+
+def _confirm_estimate(client, project_id: str) -> None:
+    confirmed = client.post(
+        f"/projects/{project_id}/client-estimate/confirm",
+        json={"action": "confirm"},
+    )
+    assert confirmed.status_code == 200
+    assert confirmed.json()["project_status"] == "READY"
+
+
+def _approve_and_confirm(
+    client, project_id: str, *, actor_telegram_id: str | None = None
+) -> None:
+    _approve(client, project_id, actor_telegram_id=actor_telegram_id)
+    _confirm_estimate(client, project_id)
 
 
 def test_create_mvp_requires_owner_approve(client):
@@ -55,6 +74,9 @@ def test_website_mvp_job_queue_and_send(client):
     assert before.status_code == 400
 
     _approve(client, project_id)
+    blocked = client.post(f"/console/api/projects/{project_id}/mvp", json={})
+    assert blocked.status_code == 400
+    _confirm_estimate(client, project_id)
     created = client.post(f"/console/api/projects/{project_id}/mvp", json={})
     assert created.status_code == 200
     body = created.json()
@@ -100,7 +122,7 @@ def test_telegram_bot_secret_stays_out_of_kg(client):
     project_id = created.json()["id"]
     last = _drive_discovery_to_owner(client, project_id)
     assert last.json()["project_status"] == "WAITING_OWNER"
-    _approve(client, project_id)
+    _approve_and_confirm(client, project_id)
 
     job = client.post(f"/console/api/projects/{project_id}/mvp", json={})
     assert job.status_code == 200
@@ -157,28 +179,10 @@ def test_in_mvp_flag_and_must_fallback():
 def test_client_confirm_hook_blocks_when_estimate_unconfirmed(client):
     project_id = _reach_waiting_owner(client)
     _approve(client, project_id)
-    # Simulate DEC-012 artifact that is not confirmed yet.
-    engine = client.app.dependency_overrides  # keep lint quiet; use graph write via API
-    from core.db import get_db
-
-    db_gen = client.app.dependency_overrides[get_db]()
-    db = next(db_gen)
-    try:
-        project = get_project(db, project_id)
-        kg = KnowledgeRepository(db)
-        kg.create_entity(
-            project.id,
-            "Artifact",
-            "Client estimate",
-            payload={"kind": "client_estimate", "confirmed": False},
-        )
-        db.commit()
-    finally:
-        db.close()
-
     blocked = client.post(f"/console/api/projects/{project_id}/mvp", json={})
     assert blocked.status_code == 400
-    assert "смет" in blocked.json()["detail"].lower() or "confirm" in blocked.json()["detail"]
+    detail = blocked.json()["detail"].lower()
+    assert "смет" in detail or "confirm" in detail or "ready" in detail
 
 
 def test_secret_box_roundtrip(monkeypatch):
@@ -192,7 +196,7 @@ def test_secret_box_roundtrip(monkeypatch):
 
 def test_expired_intervention_cannot_resolve(client):
     project_id = _reach_waiting_owner(client)
-    _approve(client, project_id)
+    _approve_and_confirm(client, project_id)
     created = client.post(f"/console/api/projects/{project_id}/mvp", json={})
     iid = created.json()["interventions"][0]["id"]
 
@@ -217,7 +221,7 @@ def test_expired_intervention_cannot_resolve(client):
 
 def test_reuse_active_job(client):
     project_id = _reach_waiting_owner(client)
-    _approve(client, project_id)
+    _approve_and_confirm(client, project_id)
     first = client.post(f"/console/api/projects/{project_id}/mvp", json={})
     second = client.post(f"/console/api/projects/{project_id}/mvp", json={})
     assert first.json()["job"]["id"] == second.json()["job"]["id"]
@@ -243,6 +247,8 @@ def test_owner_actor_required_on_telegram_path(client, monkeypatch):
         json={"action": "approve", "actor_telegram_id": "999001"},
     )
     assert approved.status_code == 200
+    assert approved.json()["project_status"] == "WAITING_CLIENT_ESTIMATE"
+    _confirm_estimate(client, project_id)
     from core.db import get_db
 
     db = next(client.app.dependency_overrides[get_db]())
@@ -271,7 +277,7 @@ def test_peek_secret_does_not_write_plaintext_to_job(client):
 
     project_id = created.json()["id"]
     _drive_discovery_to_owner(client, project_id)
-    _approve(client, project_id)
+    _approve_and_confirm(client, project_id)
     job = client.post(f"/console/api/projects/{project_id}/mvp", json={})
     iid = next(i["id"] for i in job.json()["interventions"] if i["kind"] == "telegram_token")
     secret = "super-secret-token-xyz"

@@ -6,7 +6,7 @@
 |------|----------|
 | Status | Accepted |
 | Version | 0.5 |
-| Updated | 2026-08-28 |
+| Updated | 2026-09-05 |
 | Owner | ASF Core |
 
 ## Принцип
@@ -63,7 +63,7 @@ Knowledge Graph — это **единственный источник исти�
 
 `Artifact` payload `kind`: `draft_tz` (сгенерированный markdown), `uploaded_file` (вложение заказчика/консоли; байты на диске в `UPLOAD_DIR`, не в JSONB) или `cursor_brief` (файлы Spec Kit + экспорт задач для BuildJob).
 
-У `draft_tz` также хранится `payload.estimate`: детерминированная эвристика стоимости поставки (`hours`, `cost`, `currency`, `hourly_rate`, `rationale`, счётчики требований/рисков). Отдельная таблица не нужна.
+У `draft_tz` также хранится `payload.estimate`: детерминированная **owner**-эвристика стоимости поставки (`hours`, `cost`, `currency`, `hourly_rate`, `rationale`, счётчики требований/рисков). После approve владельца туда же пишутся `payload.client_estimate` + `payload.client_estimate_report`: рыночная смета, источники и русский отчёт (DEC-012). Отдельная таблица не нужна. Два ключа специально — эвристику владельца не затираем.
 
 `payload.in_mvp` у Requirement помечает утверждённый срез MVP для фабрики (DEC-013). Запасной путь: `scope_in` / `scope=in`, затем `priority=must`. **Секреты не пишутся в payload сущности.**
 

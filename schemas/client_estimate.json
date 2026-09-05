@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://asf.local/schemas/client_estimate.json",
+  "title": "ClientEstimate",
+  "type": "object",
+  "required": ["hours", "cost", "currency", "method", "status", "sources", "disclaimer"],
+  "properties": {
+    "hours": { "type": "number" },
+    "cost": { "type": "integer" },
+    "cost_low": { "type": "integer" },
+    "cost_high": { "type": "integer" },
+    "currency": { "type": "string" },
+    "method": { "const": "market_v1" },
+    "status": { "enum": ["pending", "confirmed", "discuss_requested"] },
+    "disclaimer": { "type": "string" },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "kind"],
+        "properties": {
+          "name": { "type": "string" },
+          "kind": { "enum": ["config", "fetched"] },
+          "retrieved": { "type": "string" },
+          "url": { "type": ["string", "null"] },
+          "note": { "type": "string" }
+        }
+      }
+    }
+  }
+}

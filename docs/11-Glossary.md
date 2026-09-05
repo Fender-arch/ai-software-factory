@@ -15,6 +15,8 @@
 | Mode | Named competence (Discovery, Reviewer, …) |
 | Knowledge Graph (KG) | Logical SoT of entities and relations |
 | HITL | Human in the loop |
+| Owner heuristic | Studio-only delivery-cost aid on `payload.estimate` (`core/estimate.py`) |
+| Client estimate | Market-band customer quote + narrative report (DEC-012); confirm before Planner |
 | TZ | Technical specification / requirements pack |
 | STT | Speech-to-text (Whisper in MVP) |
 | Product type | One of website, telegram_bot, rest_service, ai_automation, mobile_native |

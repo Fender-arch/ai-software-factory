@@ -15,7 +15,13 @@ from core.hitl import (
     apply_hitl_decision,
     owner_review_summary,
 )
-from core.models import Message, MessageKind, Project, ProjectStatus
+from core.models import (
+    Message,
+    MessageKind,
+    Project,
+    ProjectStatus,
+    TZ_DOWNLOAD_STATUSES,
+)
 from core.planner import PlannerError, run_planner
 from discovery.fsm import DiscoveryStage
 from discovery.interview import DiscoveryTurnResult, latest_customer_text, run_discovery_turn
@@ -259,7 +265,19 @@ def get_project_workspace(
             allow_multiple = bool(meta.get("allow_multiple", False))
             break
 
-    tz_available = project.status in {ProjectStatus.WAITING_OWNER, ProjectStatus.READY}
+    tz_available = project.status in TZ_DOWNLOAD_STATUSES
+    from core.client_estimate import (
+        client_estimate_from_artifact,
+        client_estimate_report_from_artifact,
+        customer_estimate_view,
+    )
+    from core.hitl import get_draft_tz
+
+    draft = get_draft_tz(kg, project.id)
+    client_estimate = customer_estimate_view(
+        client_estimate_from_artifact(draft),
+        client_estimate_report_from_artifact(draft),
+    )
     return {
         "project": project,
         "mode": mode,
@@ -272,6 +290,7 @@ def get_project_workspace(
         "allow_multiple": allow_multiple,
         "tz_available": tz_available,
         "discovery_progress": compute_discovery_progress(project, state),
+        "client_estimate": client_estimate,
     }
 
 
@@ -658,7 +677,72 @@ def submit_hitl_decision(
     )
     db.commit()
     db.refresh(project)
+    if act == HitlAction.APPROVE:
+        _notify_client_estimate_ready(db, project)
     return result
+
+
+def submit_client_estimate_decision(
+    db: Session,
+    project_id: str | uuid.UUID,
+    action: str,
+    *,
+    customer_telegram_id: str | None = None,
+    note: str | None = None,
+):
+    from core.client_estimate import (
+        ClientEstimateAction,
+        apply_client_estimate_decision,
+        client_estimate_from_artifact,
+    )
+    from core.hitl import get_draft_tz
+    from integrations.telegram.notify import notify_owner_client_estimate_decision
+
+    project = get_project(db, project_id)
+    if project is None:
+        raise ValueError("project not found")
+    assert_project_owner(project, customer_telegram_id)
+    act = ClientEstimateAction(action)
+    result = apply_client_estimate_decision(db, project, act, note=note)
+    db.commit()
+    db.refresh(project)
+    try:
+        kg = KnowledgeRepository(db)
+        draft = get_draft_tz(kg, project.id)
+        notify_owner_client_estimate_decision(
+            project,
+            act,
+            client_estimate_from_artifact(draft),
+        )
+    except Exception:  # noqa: BLE001 — owner DM must not break confirm
+        logger.exception(
+            "Failed to notify owner about client estimate decision for %s",
+            project.id,
+        )
+    return result
+
+
+def _notify_client_estimate_ready(db: Session, project: Project) -> None:
+    try:
+        from core.client_estimate import client_estimate_from_artifact
+        from core.hitl import get_draft_tz
+        from integrations.telegram.notify import (
+            notify_customer_client_estimate_ready,
+            notify_owner_client_estimate_ready,
+        )
+
+        kg = KnowledgeRepository(db)
+        draft = get_draft_tz(kg, project.id)
+        estimate = client_estimate_from_artifact(draft)
+        if estimate is None:
+            return
+        notify_customer_client_estimate_ready(project, estimate)
+        notify_owner_client_estimate_ready(project, estimate)
+    except Exception:  # noqa: BLE001 — notify must not break HITL
+        logger.exception(
+            "Failed to notify client estimate ready for project %s",
+            project.id,
+        )
 
 
 def get_owner_review(
@@ -902,11 +986,7 @@ def send_customer_tz_file(
     if project is None:
         raise ValueError("project not found")
     assert_project_owner(project, customer_telegram_id)
-    if project.status not in {
-        ProjectStatus.WAITING_OWNER,
-        ProjectStatus.READY,
-        ProjectStatus.ARCHIVED,
-    }:
+    if project.status not in TZ_DOWNLOAD_STATUSES:
         raise TzSendError("draft TZ is not ready yet")
     if fmt not in {"md", "pdf", "docx"}:
         raise TzSendError("unsupported format")

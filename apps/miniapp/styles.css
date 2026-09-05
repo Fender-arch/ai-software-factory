@@ -559,6 +559,62 @@ h1 { font-size: 1.05rem; margin: 4px 0 8px; }
   padding: 4px 0 8px;
   scrollbar-width: thin;
 }
+.client-estimate {
+  flex: 0 1 auto;
+  max-height: 38%;
+  overflow: auto;
+  margin: 0 0 6px;
+  padding: 10px 12px;
+  border: 1px solid rgba(232, 195, 106, 0.35);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(180deg, rgba(255, 107, 44, 0.12), transparent 42%),
+    rgba(18, 16, 24, 0.94);
+}
+.client-estimate-kicker {
+  margin: 0 0 4px;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.client-estimate-cost {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.01em;
+}
+.client-estimate-hours,
+.client-estimate-disclaimer,
+.client-estimate-status {
+  margin: 4px 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+.client-estimate-report {
+  margin: 8px 0 0;
+  font-size: 0.82rem;
+}
+.client-estimate-report summary {
+  cursor: pointer;
+  color: var(--cyan);
+  list-style: none;
+}
+.client-estimate-report summary::-webkit-details-marker { display: none; }
+.client-estimate-report #ce-report-body {
+  margin-top: 6px;
+  white-space: pre-wrap;
+  color: var(--text);
+  line-height: 1.4;
+}
+.client-estimate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.client-estimate-actions .btn { flex: 1 1 140px; }
 .bubble {
   max-width: 92%;
   padding: 8px 10px;

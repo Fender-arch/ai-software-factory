@@ -8,7 +8,15 @@ from dataclasses import dataclass, field
 from sqlalchemy.orm import Session
 
 from core.estimate import attach_estimate_to_draft
-from core.models import Entity, Message, MessageKind, Project, ProjectStatus
+from core.models import (
+    Entity,
+    Message,
+    MessageKind,
+    POST_TZ_HOLD_STATUSES,
+    Project,
+    ProjectStatus,
+    TZ_DOWNLOAD_STATUSES,
+)
 from discovery.artifacts import render_draft_tz
 from discovery.closing import (
     closing_ids,
@@ -272,7 +280,11 @@ def run_discovery_turn(
         done_ids=set(answered) | set(escalated),
         plan=plan,
     )
-    if stage == DiscoveryStage.READY_FOR_OWNER and leftover_now:
+    if (
+        stage == DiscoveryStage.READY_FOR_OWNER
+        and leftover_now
+        and project.status not in POST_TZ_HOLD_STATUSES
+    ):
         # Outline grew or content sections were never asked — resume interview.
         stage = leftover_now[0].stage
         topic_id = leftover_now[0].id
@@ -293,7 +305,7 @@ def run_discovery_turn(
         st = current_stage or stage
         is_paused = paused if paused_now is None else paused_now
         if st == DiscoveryStage.READY_FOR_OWNER:
-            if project.status not in {ProjectStatus.READY, ProjectStatus.ARCHIVED}:
+            if project.status not in POST_TZ_HOLD_STATUSES:
                 project.status = ProjectStatus.WAITING_OWNER
         elif st == DiscoveryStage.REVIEW:
             project.status = ProjectStatus.ANALYZING
@@ -328,10 +340,7 @@ def run_discovery_turn(
         )
         db.flush()
         choice_dicts = [choice_as_dict(c) for c in (choices or [])]
-        tz_available = project.status in {
-            ProjectStatus.WAITING_OWNER,
-            ProjectStatus.READY,
-        }
+        tz_available = project.status in TZ_DOWNLOAD_STATUSES
         return DiscoveryTurnResult(
             reply_to_customer=reply,
             stage=st,
@@ -480,7 +489,12 @@ def run_discovery_turn(
         )
         extracted_ids.append(req.id)
         artifact = _refresh_latest_draft_tz(kg, project, literacy=literacy, plan=plan)
-        if project.status in {ProjectStatus.READY, ProjectStatus.ARCHIVED}:
+        if project.status == ProjectStatus.WAITING_CLIENT_ESTIMATE:
+            reply = (
+                "Дополнение зафиксировано. Смета по-прежнему ждёт подтверждения "
+                "в карточке ниже — «Подтверждаю» или «Нужно обсудить»."
+            )
+        elif project.status in {ProjectStatus.READY, ProjectStatus.ARCHIVED}:
             reply = "Дополнение зафиксировано."
         else:
             reply = (

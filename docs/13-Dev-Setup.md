@@ -4,7 +4,7 @@
 |-------|-------|
 | Status | Accepted |
 | Version | 0.10 |
-| Updated | 2026-08-28 |
+| Updated | 2026-09-05 |
 | Owner | ASF Core |
 
 ## Prerequisites
@@ -54,6 +54,8 @@ pytest
 | `OWNER_TELEGRAM_ID` | HITL owner chat |
 | `ASF_ESTIMATE_HOURLY_RATE` | Hourly rate for owner TZ cost estimate (default `3000`) |
 | `ASF_ESTIMATE_CURRENCY` | Currency code for that estimate (default `RUB`) |
+| `ASF_MARKET_RATES_URL` | Optional HTTPS JSON of public market bands (client estimate). Empty = builtin table |
+| `ASF_MARKET_RATES_ALLOWLIST` | Comma-separated hosts allowed for that fetch (SSRF guard) |
 | `MINIAPP_URL` | HTTPS URL of Mini App (e.g. `https://host/miniapp/`) for Menu Button / WebApp |
 | `CONSOLE_TOKEN` | Owner TZ console (`X-Console-Token`). Empty allowed only if `ASF_ENV=local` and `ASF_DEBUG=true` |
 | `ASF_INTERVENTION_KEY` | Seals Intervention Queue secrets (DEC-013). Empty → derived local key |

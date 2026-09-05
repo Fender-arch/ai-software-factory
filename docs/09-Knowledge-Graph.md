@@ -4,7 +4,7 @@
 |-------|-------|
 | Status | Accepted |
 | Version | 0.5 |
-| Updated | 2026-08-28 |
+| Updated | 2026-09-05 |
 | Owner | ASF Core |
 
 ## Principle
@@ -61,7 +61,7 @@ Append-only audit (not an event bus). Used by the owner TZ console.
 
 `Artifact` payload `kind`: `draft_tz` (generated markdown), `uploaded_file` (customer/console attachment; bytes on disk under `UPLOAD_DIR`, not in JSONB), or `cursor_brief` (Spec Kit files + task export for a BuildJob).
 
-A `draft_tz` Artifact also stores `payload.estimate`: deterministic delivery-cost heuristic (`hours`, `cost`, `currency`, `hourly_rate`, `rationale`, requirement/risk counts). No extra table.
+A `draft_tz` Artifact also stores `payload.estimate`: deterministic **owner** delivery-cost heuristic (`hours`, `cost`, `currency`, `hourly_rate`, `rationale`, requirement/risk counts). After owner approve it also stores `payload.client_estimate` + `payload.client_estimate_report`: market-band quote, logged sources, RU narrative (DEC-012). No extra table. Dual keys on purpose — do not overwrite the owner heuristic.
 
 Requirement `payload.in_mvp` marks the approved MVP slice for the factory (DEC-013). Fallback: `scope_in` / `scope=in`, then `priority=must`. **Secrets never go in entity payload.**
 

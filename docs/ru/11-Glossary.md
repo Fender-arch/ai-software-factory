@@ -17,6 +17,8 @@
 | Mode | Именованная компетенция (Discovery, Reviewer, …) |
 | Knowledge Graph (KG) | Логический SoT сущностей и связей |
 | HITL | Human in the loop |
+| Owner heuristic | Внутренняя оценка студии на `payload.estimate` (`core/estimate.py`) |
+| Client estimate | Рыночная смета заказчику + narrative-отчёт (DEC-012); подтверждение до Planner |
 | TZ | Техническое задание / пакет требований |
 | STT | Speech-to-text (Whisper в MVP) |
 | Product type | Один из: website, telegram_bot, rest_service, ai_automation, mobile_native |

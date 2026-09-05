@@ -15,6 +15,7 @@
 - Запускаемый скелет: API + Postgres + stub Telegram-бота + STT
 - Миграции для projects, messages, entities, relations, tasks
 - Эпики 01–06 поставлены (infra → Discovery → KG → HITL/planner/export/factory → Mini App → консоль ТЗ владельца)
+- Две оценки: эвристика владельца + рыночная смета/отчёт клиенту до Planner (DEC-012)
 
 ## Поставка MVP по неделям
 

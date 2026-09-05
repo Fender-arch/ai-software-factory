@@ -1,7 +1,7 @@
 """build_jobs + interventions (DEC-013)
 
-Revision ID: 0003_mvp_factory
-Revises: 0002_entity_history
+Revision ID: 0004_mvp_factory
+Revises: 0003_waiting_client_estimate
 Create Date: 2026-09-05
 
 """
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision: str = "0003_mvp_factory"
-down_revision: Union[str, Sequence[str], None] = "0002_entity_history"
+revision: str = "0004_mvp_factory"
+down_revision: Union[str, Sequence[str], None] = "0003_waiting_client_estimate"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

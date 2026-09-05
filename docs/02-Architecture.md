@@ -28,9 +28,9 @@ Telegram Mini App (fullscreen) ── text | voice
         │
    Artifacts (Markdown, derived)
         │
-   Owner HITL (bot) → Planner → MVP Factory → Cursor executor → Product MVP
-        │                         │
-        │                    Intervention Queue (owner bot / console)
+   Owner HITL (bot) → client estimate (Mini App) → Planner → MVP Factory → Cursor executor
+        │                                                    │
+        │                                               Intervention Queue (owner bot / console)
         │
    Owner TZ console (`/console/`) ← KG view (DEC-007)
 ```
@@ -47,6 +47,7 @@ Telegram Mini App (fullscreen) ── text | voice
 | Telegram bot | Entry, notifications; owner HITL commands in MVP |
 | Owner TZ console | Internal graph of requirements + status/links (DEC-007); not customer UI |
 | Artifact generator | Markdown derived from graph (TZ, decisions, backlog export) |
+| Client estimate | Market-band quote + report after owner approve (DEC-012); customer confirm unlocks Planner/factory |
 | Cursor executor | External coding agent; ASF prepares Spec Kit brief + tasks; HTTP Cloud Agent if `CURSOR_API_KEY`, else stub + deep-link ([DEC-013](../decisions/DEC-013-MVP-Factory-Interventions.md)) |
 | Intervention Queue | Owner HITL for tokens/DNS/server/store secrets; encrypted store, not KG plaintext |
 

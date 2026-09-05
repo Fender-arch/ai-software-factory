@@ -288,7 +288,7 @@ def run_planner(
     """Create DB tasks + KG Task entities after owner approval."""
     if project.status != ProjectStatus.READY:
         raise PlannerError(
-            f"project must be READY (approved TZ), got {project.status.value}"
+            f"project must be READY (approved TZ and confirmed client estimate), got {project.status.value}"
         )
 
     existing = list(db.query(Task).filter(Task.project_id == project.id).all())

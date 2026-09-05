@@ -6,7 +6,14 @@ import uuid
 from typing import Any
 
 from core.models import Entity, Project
+from core.client_estimate import (
+    client_estimate_console_panel,
+    client_estimate_from_artifact,
+    client_estimate_report_from_artifact,
+    estimate_client_project,
+)
 from core.estimate import estimate_console_panel, estimate_project
+from core.hitl import get_draft_tz
 from discovery.fsm import DiscoveryStage
 from discovery.tz_outline import plan_from_state, resolve_active_topics, topic_by_id
 from knowledge.repository import KnowledgeRepository
@@ -52,6 +59,15 @@ def _conflict_ids(kg: KnowledgeRepository, project_id: uuid.UUID) -> set[uuid.UU
         ids.add(rel.from_entity_id)
         ids.add(rel.to_entity_id)
     return ids
+
+
+def _client_estimate_panel(kg: KnowledgeRepository, project: Project) -> dict[str, Any] | None:
+    draft = get_draft_tz(kg, project.id)
+    stored = client_estimate_from_artifact(draft)
+    report = client_estimate_report_from_artifact(draft)
+    if stored is None:
+        stored = estimate_client_project(kg, project, fetch_market=False)
+    return client_estimate_console_panel(stored, report)
 
 
 def build_tz_graph(kg: KnowledgeRepository, project: Project) -> dict[str, Any]:
@@ -245,6 +261,7 @@ def build_tz_graph(kg: KnowledgeRepository, project: Project) -> dict[str, Any]:
             "status": project.status.value,
             "product_type": project.product_type,
             "estimate": estimate_console_panel(estimate_project(kg, project)),
+            "client_estimate": _client_estimate_panel(kg, project),
         },
         "nodes": nodes,
         "edges": edges,

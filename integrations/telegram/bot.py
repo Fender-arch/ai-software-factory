@@ -183,9 +183,14 @@ async def cmd_approve(message: Message, command: CommandObject) -> None:
         await message.answer(f"HITL failed: {exc}")
         return
     _CHAT_PROJECT[message.chat.id] = str(result.project_id)
+    next_hint = (
+        f"Клиенту отправлена смета. /plan `{result.project_id}` — после подтверждения."
+        if result.project_status.value == "WAITING_CLIENT_ESTIMATE"
+        else f"Next: /plan `{result.project_id}`"
+    )
     await message.answer(
         f"{result.message}\nStatus: `{result.project_status.value}`\n"
-        f"Next: /plan `{result.project_id}`",
+        f"{next_hint}",
         parse_mode="Markdown",
     )
 

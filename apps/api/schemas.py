@@ -140,6 +140,26 @@ class WorkspaceResponse(BaseModel):
     allow_multiple: bool = False
     tz_available: bool = False
     discovery_progress: DiscoveryProgress | None = None
+    client_estimate: dict | None = None
+
+
+class ClientEstimateDecisionRequest(BaseModel):
+    action: str = Field(
+        description="confirm | discuss",
+        pattern="^(confirm|discuss)$",
+    )
+    note: str | None = None
+    customer_telegram_id: str | None = None
+
+
+class ClientEstimateDecisionResponse(BaseModel):
+    project_id: uuid.UUID
+    action: str
+    project_status: str
+    artifact_id: uuid.UUID | None
+    decision_id: uuid.UUID | None
+    message: str
+    client_estimate: dict | None = None
 
 
 class FeedbackRequest(BaseModel):
