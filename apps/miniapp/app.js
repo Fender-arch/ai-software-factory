@@ -155,7 +155,11 @@
     create: $("view-create"),
     list: $("view-list"),
     workspace: $("view-workspace"),
+    settings: $("view-settings"),
   };
+
+  /* OWNER_CONTACT_TELEGRAM из env не прокинут в статику Mini App — не выдумывать @. */
+  const OWNER_CONTACT_TELEGRAM = "";
 
   function show(name) {
     Object.entries(views).forEach(([key, el]) => {
@@ -276,6 +280,16 @@
     }
   }
 
+  const settingsBtn = $("btn-settings");
+  if (settingsBtn) {
+    settingsBtn.addEventListener("click", () => {
+      haptic("light");
+      abortWorkspaceLoad();
+      fillSettings();
+      show("settings");
+    });
+  }
+
   document.querySelectorAll("[data-action]").forEach((btn) => {
     btn.addEventListener("click", () => {
       haptic("light");
@@ -367,8 +381,37 @@
     return "в работе";
   }
 
+  function formatProjectTitle(name) {
+    const raw = String(name || "").trim();
+    if (!raw) return "Проект";
+    if (/^проект\b/i.test(raw) || raw === "Загрузка…") return raw;
+    return `Проект: ${raw}`;
+  }
+
+  function fillSettings() {
+    const userEl = $("settings-tg-user");
+    const tgEl = $("settings-owner-tg");
+    const u = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+    if (userEl) {
+      if (u) {
+        const name = [u.first_name, u.last_name].filter(Boolean).join(" ");
+        const handle = u.username ? `@${u.username}` : "";
+        const id = u.id ? `id ${u.id}` : "";
+        userEl.textContent = [name, handle, id].filter(Boolean).join(" · ") || "—";
+      } else if (userId) {
+        userEl.textContent = `id ${userId}`;
+      } else {
+        userEl.textContent = "не определён — откройте из бота или добавьте ?uid=";
+      }
+    }
+    if (tgEl) {
+      const handle = String(OWNER_CONTACT_TELEGRAM || "").trim();
+      tgEl.textContent = handle || "не задан";
+    }
+  }
+
   function resetWorkspaceDom(nameText, metaText) {
-    $("ws-name").textContent = nameText || "Проект";
+    $("ws-name").textContent = formatProjectTitle(nameText);
     $("ws-meta").textContent = metaText || "";
     renderProgress(null, false);
     renderThread([]);
@@ -533,7 +576,7 @@
       });
       if (requestId !== state.wsRequestId) return;
       if (String(ws.project_id) !== pid) return;
-      $("ws-name").textContent = ws.name;
+      $("ws-name").textContent = formatProjectTitle(ws.name);
       $("ws-meta").textContent = customerWorkspaceHud(
         ws.status,
         ws.discovery_stage,
@@ -1763,9 +1806,6 @@
   }
   syncViewportHeight();
 
-  if (!userId) {
-    $("subtitle").textContent = "Откройте из Telegram-бота или добавьте ?uid=";
-  }
-
+  fillSettings();
   refreshHome();
 })();

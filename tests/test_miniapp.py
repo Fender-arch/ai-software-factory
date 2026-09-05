@@ -29,8 +29,9 @@ def test_miniapp_static_served(client):
     assert "Ещё пара уточнений" in js.text
     assert "Сбор требований: ${percent}%" in js.text
     assert "из ${total}" not in js.text
-    assert "20260906-polish" in res.text
-    assert "logo-full-on-dark.svg" in res.text
+    assert "20260906-matrix" in res.text
+    assert "logo-v2.png" in res.text
+    assert "logo-full-on-dark.svg" not in res.text
     assert "mascot-bust.png" in res.text
     assert "mascot-stage" in res.text
     assert 'id="subtitle"' in res.text
@@ -80,6 +81,15 @@ def test_miniapp_static_served(client):
     assert "data-ce-fmt" in res.text
     assert "ws-progress" in res.text
     assert "foundry-field" in res.text
+    assert "matrix-rain" in res.text
+    assert "view-settings" in res.text
+    assert "От идеи до продукта" in res.text
+    assert "Идея → спецификация → MVP" not in res.text
+    assert 'class="pipeline"' not in res.text
+    assert "Настройки" in res.text
+    assert "@UNI4ITBot" in res.text
+    assert "8 903 151 7888" in res.text
+    assert "Дмитрий Нижебецкий" in res.text
     assert "tz-download-row" in res.text
     assert 'id="tz-download"' not in res.text
     assert "Поехали" in res.text
@@ -97,7 +107,8 @@ def test_miniapp_static_served(client):
     assert "--bg: #07060b" in css.text
     assert "--text: #f4efe6" in css.text
     assert "--muted: #a89888" in css.text
-    assert "--accent: #e8c36a" in css.text
+    assert "--accent: #00d2ff" in css.text
+    assert "#e8c36a" not in css.text
     assert "--ember: #ff6b2c" in css.text
     assert "--brand-navy" in css.text
     assert "--brand-cyan" in css.text

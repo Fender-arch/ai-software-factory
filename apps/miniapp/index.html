@@ -5,38 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>ASF</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="./styles.css?v=20260906-polish" />
+  <link rel="stylesheet" href="./styles.css?v=20260906-matrix" />
   <meta name="asf-mascot-riv" content="./mascot.riv" />
   <meta name="asf-mascot-sm" content="Mascot" />
 </head>
 <body>
-  <canvas id="foundry-field" class="foundry-field" aria-hidden="true"></canvas>
+  <canvas id="foundry-field" class="foundry-field matrix-rain" aria-hidden="true"></canvas>
   <div id="app">
     <header class="top">
       <div class="brand-row">
         <div class="brand-lockup">
-          <img class="brand-logo brand-logo-full" src="./brand/logo-full-on-dark.svg" alt="Uni 4 IT — Universal IT Solutions" width="204" height="58" />
-          <img class="brand-logo brand-logo-wordmark" src="./brand/logo-wordmark-on-dark.svg" alt="Uni 4 IT" width="148" height="32" />
+          <img class="brand-logo brand-logo-full" src="./brand/logo-v2.png" alt="Uni 4 IT — Universal IT Solutions" width="409" height="186" />
         </div>
-        <button type="button" id="btn-calm" class="calm-toggle" data-calm-toggle aria-pressed="false" title="Отключить анимации маскота и фона">
-          Спокойный режим
+        <button type="button" id="btn-settings" class="settings-toggle" title="Настройки">
+          Настройки
         </button>
       </div>
-      <p class="hook" id="subtitle">От идеи до продукта — без анкеты.</p>
+      <p class="hook" id="subtitle">От идеи до продукта</p>
     </header>
 
     <section id="view-home" class="view">
-      <ol class="pipeline" aria-label="Как устроена работа">
-        <li>Идея</li>
-        <li>Discovery</li>
-        <li>ТЗ</li>
-        <li>Ревью</li>
-        <li>Смета</li>
-        <li>MVP</li>
-      </ol>
-      <p class="lead">
-        Идея → спецификация → MVP. Голос, кнопки, файлы.
-      </p>
       <div class="actions" id="home-actions">
         <button type="button" data-action="create" class="btn primary">
           <span class="btn-title">Создать проект</span>
@@ -50,6 +38,29 @@
           <span class="btn-title">Замечания к реализации</span>
           <span class="btn-desc">Наговорить или написать, что не так в MVP</span>
         </button>
+      </div>
+    </section>
+
+    <section id="view-settings" class="view hidden">
+      <button type="button" class="linkback" data-back>← Назад</button>
+      <h1>Настройки</h1>
+      <div class="settings-card">
+        <p class="settings-label">Движение</p>
+        <button type="button" id="btn-calm" class="calm-toggle" data-calm-toggle aria-pressed="false" title="Отключить анимации маскота и фона">
+          Спокойный режим
+        </button>
+        <p class="settings-hint">Выключает Matrix-фон и анимацию маскота. То же самое при prefers-reduced-motion.</p>
+      </div>
+      <div class="settings-card">
+        <p class="settings-label">Telegram</p>
+        <p class="settings-row">Пользователь: <span id="settings-tg-user">—</span></p>
+        <p class="settings-row">Бот: <a class="settings-link" href="https://t.me/UNI4ITBot" target="_blank" rel="noopener">@UNI4ITBot</a></p>
+      </div>
+      <div class="settings-card">
+        <p class="settings-label">Контакты</p>
+        <p class="settings-row">Дмитрий Нижебецкий</p>
+        <p class="settings-row">тел. <a class="settings-link" href="tel:89031517888">8 903 151 7888</a></p>
+        <p class="settings-row">Telegram: <span id="settings-owner-tg">не задан</span></p>
       </div>
     </section>
 
@@ -74,10 +85,9 @@
       <div class="ws-chrome">
         <div class="ws-chrome-top">
           <button type="button" class="linkback" data-back-workspace>← К проектам</button>
-          <img class="ws-brand-mark" src="./brand/logo-mark.svg" alt="Uni 4 IT" width="25" height="28" />
-          <button type="button" id="btn-calm-ws" class="calm-toggle" data-calm-toggle aria-pressed="false" title="Отключить анимации маскота и фона">
-            Спокойный режим
-          </button>
+          <div class="ws-brand-lockup">
+            <img class="ws-brand-logo" src="./brand/logo-v2.png" alt="Uni 4 IT — Universal IT Solutions" width="409" height="186" />
+          </div>
         </div>
         <div class="ws-stage">
           <aside id="mascot-slot" class="mascot-slot" data-state="idle" aria-live="polite">
@@ -177,8 +187,8 @@
       </div>
     </div>
   </div>
-  <script src="./foundry.js?v=20260906-polish"></script>
-  <script src="./experience.js?v=20260906-polish"></script>
-  <script src="./app.js?v=20260906-polish"></script>
+  <script src="./foundry.js?v=20260906-matrix"></script>
+  <script src="./experience.js?v=20260906-matrix"></script>
+  <script src="./app.js?v=20260906-matrix"></script>
 </body>
 </html>
