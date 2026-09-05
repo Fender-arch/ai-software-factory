@@ -7,6 +7,11 @@ import os
 from pathlib import Path
 from urllib.parse import quote_plus
 
+from core.egress import (
+    existing_proxy_values,
+    resolve_outbound_proxy_url,
+)
+
 PLACEHOLDER = "SET_ME"
 
 # Keys written into the server `.env` (app + compose interpolation).
@@ -47,6 +52,9 @@ ENV_KEYS = (
     "DOMAIN_CONSOLE",
     "HTTP_PROXY",
     "HTTPS_PROXY",
+    "ALL_PROXY",
+    "TELEGRAM_PROXY",
+    "LLM_HTTP_PROXY",
     "NO_PROXY",
     "ASF_TELEGRAM_IP",
 )
@@ -90,6 +98,12 @@ def database_url(password: str) -> str:
 
 def build_env_values(raw: dict[str, str] | None = None) -> dict[str, str]:
     src = {k: _clean(v) for k, v in (raw or os.environ).items()}
+    # Deploy from GitHub must not wipe an AI proxy that already lives in /opt/asf/.env.
+    if raw is None:
+        for key, value in existing_proxy_values().items():
+            if not src.get(key):
+                src[key] = value
+    proxy = resolve_outbound_proxy_url(src)
 
     postgres = src.get("POSTGRES_PASSWORD") or src.get("ASF_POSTGRES_PASSWORD") or ""
     if is_placeholder(postgres):
@@ -156,8 +170,11 @@ def build_env_values(raw: dict[str, str] | None = None) -> dict[str, str]:
         "ASF_HOST_PORT": host_port,
         "DOMAIN_MINIAPP": domain_miniapp,
         "DOMAIN_CONSOLE": domain_console,
-        "HTTP_PROXY": src.get("HTTP_PROXY") or src.get("TELEGRAM_PROXY") or "",
-        "HTTPS_PROXY": src.get("HTTPS_PROXY") or src.get("TELEGRAM_PROXY") or "",
+        "HTTP_PROXY": src.get("HTTP_PROXY") or proxy,
+        "HTTPS_PROXY": src.get("HTTPS_PROXY") or proxy,
+        "ALL_PROXY": src.get("ALL_PROXY") or "",
+        "TELEGRAM_PROXY": src.get("TELEGRAM_PROXY") or "",
+        "LLM_HTTP_PROXY": src.get("LLM_HTTP_PROXY") or "",
         "NO_PROXY": src.get("NO_PROXY") or "localhost,127.0.0.1,db",
         "ASF_TELEGRAM_IP": ip_mode,
     }

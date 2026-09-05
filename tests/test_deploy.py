@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
@@ -67,10 +68,46 @@ def test_telegram_proxy_and_ip_mode_go_to_env():
     )
     assert values["HTTPS_PROXY"] == "http://127.0.0.1:8888"
     assert values["HTTP_PROXY"] == "http://127.0.0.1:8888"
+    assert values["TELEGRAM_PROXY"] == "http://127.0.0.1:8888"
     assert values["ASF_TELEGRAM_IP"] == "4"
     assert values["NO_PROXY"] == "localhost,127.0.0.1,db"
     bad = build_env_values(_base_raw(ASF_TELEGRAM_IP="99"))
     assert bad["ASF_TELEGRAM_IP"] == "auto"
+
+
+def test_llm_http_proxy_alias_fills_https_and_http_for_ai_and_telegram():
+    values = build_env_values(_base_raw(LLM_HTTP_PROXY="http://127.0.0.1:1080"))
+    assert values["HTTPS_PROXY"] == "http://127.0.0.1:1080"
+    assert values["HTTP_PROXY"] == "http://127.0.0.1:1080"
+    assert values["LLM_HTTP_PROXY"] == "http://127.0.0.1:1080"
+
+
+def test_https_proxy_alone_is_enough_no_second_secret():
+    values = build_env_values(_base_raw(HTTPS_PROXY="http://127.0.0.1:3128"))
+    assert values["HTTPS_PROXY"] == "http://127.0.0.1:3128"
+    assert values["HTTP_PROXY"] == "http://127.0.0.1:3128"
+    assert values["TELEGRAM_PROXY"] == ""
+
+
+def test_empty_github_secrets_keep_existing_vps_ai_proxy(tmp_path: Path, monkeypatch):
+    env_path = tmp_path / ".env"
+    env_path.write_text("HTTPS_PROXY=http://127.0.0.1:3128\n", encoding="utf-8")
+    monkeypatch.setenv("ASF_ENV_PATH", str(env_path))
+    for key in (
+        "TELEGRAM_PROXY",
+        "HTTPS_PROXY",
+        "HTTP_PROXY",
+        "ALL_PROXY",
+        "LLM_HTTP_PROXY",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv("POSTGRES_PASSWORD", "s3cret")
+    monkeypatch.setenv("DOMAIN_MINIAPP", "mini.example.com")
+    monkeypatch.setenv("CONSOLE_TOKEN", "owner-token")
+    values = build_env_values()
+    assert values["HTTPS_PROXY"] == "http://127.0.0.1:3128"
+    assert values["HTTP_PROXY"] == "http://127.0.0.1:3128"
+    assert os.environ.get("HTTPS_PROXY") in {None, ""}
 
 
 def test_render_env_file_contains_keys():

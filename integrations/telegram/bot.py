@@ -24,6 +24,7 @@ from aiogram.types import (
 )
 
 from core.config import get_settings
+from core.egress import resolve_outbound_proxy_url
 from core.db import SessionLocal
 from core.estimate import format_estimate_review_block
 from core.export import ExportError
@@ -506,7 +507,13 @@ async def run_bot() -> None:
         raise SystemExit("TELEGRAM_BOT_TOKEN is empty")
 
     logging.basicConfig(level=logging.INFO)
-    bot = Bot(token=settings.telegram_bot_token)
+    proxy = resolve_outbound_proxy_url()
+    session = None
+    if proxy:
+        from aiogram.client.session.aiohttp import AiohttpSession
+
+        session = AiohttpSession(proxy=proxy)
+    bot = Bot(token=settings.telegram_bot_token, session=session)
     dp = Dispatcher()
     dp.message.register(cmd_start, Command("start"))
     dp.message.register(cmd_new, Command("new"))
