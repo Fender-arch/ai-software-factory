@@ -5,8 +5,8 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.3 |
-| Updated | 2026-09-05 |
+| Version | 0.4 |
+| Updated | 2026-09-06 |
 | Owner | ASF Core |
 
 Хром платформы (Mini App + консоль владельца). Не штамп customer-MVP. Токены: `apps/miniapp/DESIGN.md`.
@@ -17,10 +17,11 @@
 
 | Файл | Назначение |
 |------|------------|
-| `logo-full.svg` | Знак + «Uni 4 IT» + подпись UNIVERSAL IT SOLUTIONS (тёмные буквы, без подложки) |
-| `logo-full-on-dark.svg` | Тот же lockup, светлые буквы для тёмного foundry |
+| `logo-v2.png` | Канон Mini App: знак + «Uni 4 IT» + UNIVERSAL IT SOLUTIONS |
+| `logo-full.svg` | Векторный lockup (тёмные буквы, без подложки) |
+| `logo-full-on-dark.svg` | Тот же lockup, светлые буквы |
 | `logo-wordmark.svg` / `logo-wordmark-on-dark.svg` | Знак + Uni 4 IT без подписи |
-| `logo-mark.svg` | Пиксельный знак U+4, градиент cyan→purple (шапка чата) |
+| `logo-mark.svg` | Пиксельный знак U+4, градиент cyan→purple |
 | `mascot-bust.png` | Компаньон Experience Layer (весь персонаж, прозрачный фон) |
 | `mascot-head.png` | Более плотный кроп головы |
 
@@ -28,8 +29,10 @@ Cyan `#00D2FF` · purple `#9D50BB`. Navy-прямоугольника под л�
 
 ## Mini App
 
-- Старт: полный lockup на своей строке (на низкой высоте — wordmark); хук — под логотипом
-- Шапка workspace: компактный mark по центру между «назад» и спокойным режимом; слот маскота не занимает
+- Старт: полный `logo-v2.png` (`object-fit: contain`, знак не обрезать); слоган только «От идеи до продукта»
+- Шапка workspace: тот же полный lockup; маскот + «Проект: {name}» + статус — одна ровная строка
+- Спокойный режим — в Настройках, не в шапке home/workspace
+- Фон: приглушённый Matrix-дождь cyan/purple, не зелёные частицы
 - Маскот: единорог Uni 4 IT в худи и VR-visor; CSS-реакции на те же биты DEC-011 (`idle`, `listening`, `thinking`, `got_*`, `draft_ready`, `error`) — дыхание, взгляд, периодический взмах. Слот — фиксированная коробка, анимация не толкает композер. `mascot.riv` по-прежнему опционален. Редактор Rive для этого слайса не нужен.
 
 ## Бренд-токены (Mini App)
@@ -41,13 +44,13 @@ Cyan `#00D2FF` · purple `#9D50BB`. Navy-прямоугольника под л�
 | `--bg` | `#07060b` | Тёмный foundry-фон |
 | `--text` | `#f4efe6` | Кремовые буквы (как в wordmark) |
 | `--muted` | `#a89888` | Тёплый soft gray |
-| `--accent` | `#e8c36a` | Foundry gold — основной CTA |
-| `--ember` | `#ff6b2c` | Жар / ошибка |
+| `--accent` | `#00d2ff` | Cyan Uni 4 IT — основной |
+| `--ember` | `#ff6b2c` | Только ошибка, не CTA |
 | `--brand-cyan` | `#00d2ff` | Знак Uni 4 IT |
 | `--brand-purple` | `#9d50bb` | Знак Uni 4 IT |
-| `--brand-grad` | cyan→purple | Знак и тонкая пара к золоту, не SaaS-hero |
+| `--brand-grad` | cyan→purple | Основной CTA + знак |
 
-Неожиданная пара: gold/ember CTA + знак cyan→purple. Ритм (`--space-*`, `--radius`, `--fs-*`) — только сетка, не новые цвета.
+Жёлтый/золото убраны. Основной акцент — cyan→purple. Ритм (`--space-*`, `--radius`, `--fs-*`) — только сетка.
 
 ## Консоль
 

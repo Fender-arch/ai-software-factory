@@ -3,6 +3,10 @@
   let pulseUntil = 0;
   let pulseKind = "";
 
+  const GLYPHS = "01アイウエオカキクケコサシスセソタチツテト0123456789UNI4IT#$%<>";
+  const CYAN = [0, 210, 255];
+  const PURPLE = [157, 80, 187];
+
   function motionBlocked() {
     if (document.documentElement.classList.contains("asf-calm")) return true;
     if (document.documentElement.classList.contains("asf-reduced")) return true;
@@ -16,24 +20,12 @@
     const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return { stop() {}, setPaused() {} };
 
-    const small =
-      Math.min(window.innerWidth || 400, window.innerHeight || 400) < 640;
-    const N = small ? 22 : 40;
-    const pts = Array.from({ length: N }, () => {
-      const u = Math.random() * Math.PI * 2;
-      const v = Math.acos(2 * Math.random() - 1);
-      const r = 0.42 + Math.random() * 0.58;
-      return {
-        x: r * Math.sin(v) * Math.cos(u),
-        y: r * Math.sin(v) * Math.sin(u),
-        z: r * Math.cos(v),
-        ember: Math.random() > 0.55,
-      };
-    });
-
     let raf = 0;
-    let t = 0;
     let running = !motionBlocked();
+    let cols = [];
+    let font = 14;
+    let lastW = 0;
+    let lastH = 0;
 
     function size() {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -42,85 +34,100 @@
       canvas.width = Math.max(1, Math.round(w * dpr));
       canvas.height = Math.max(1, Math.round(h * dpr));
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      font = w < 420 ? 13 : 15;
+      const n = Math.max(8, Math.floor(w / font));
+      if (n !== cols.length || w !== lastW || h !== lastH) {
+        const prev = cols;
+        cols = Array.from({ length: n }, (_, i) => {
+          const old = prev[i];
+          return {
+            y: old ? old.y : Math.random() * (h / font),
+            speed: 0.35 + Math.random() * 0.55,
+            purple: i % 3 === 0,
+          };
+        });
+        lastW = w;
+        lastH = h;
+      }
       return { w, h };
     }
 
-    function project(p, w, h, rotY, rotX) {
-      const cy = Math.cos(rotY);
-      const sy = Math.sin(rotY);
-      const cx = Math.cos(rotX);
-      const sx = Math.sin(rotX);
-      const x1 = p.x * cy - p.z * sy;
-      const z1 = p.x * sy + p.z * cy;
-      const y2 = p.y * cx - z1 * sx;
-      const z2 = p.y * sx + z1 * cx;
-      const f = 1.35 / (1.7 + z2);
-      return { x: w * 0.5 + x1 * f * Math.min(w, h) * 0.42, y: h * 0.46 + y2 * f * Math.min(w, h) * 0.42, z: z2, ember: p.ember };
+    function paintStatic() {
+      const { w, h } = size();
+      ctx.clearRect(0, 0, w, h);
+      ctx.font = `${font}px "SF Mono", "Consolas", ui-monospace, monospace`;
+      ctx.textBaseline = "top";
+      for (let i = 0; i < cols.length; i += 1) {
+        const x = i * font;
+        const y = ((i * 17) % Math.max(1, Math.floor(h / font))) * font;
+        const [r, g, b] = cols[i].purple ? PURPLE : CYAN;
+        ctx.fillStyle = `rgba(${r},${g},${b},0.09)`;
+        ctx.fillText(GLYPHS[(i * 7) % GLYPHS.length], x, y);
+      }
     }
 
     function frame() {
       if (!running) return;
       const { w, h } = size();
-      t += 0.0042;
-      ctx.clearRect(0, 0, w, h);
-      const projected = pts.map((p) => project(p, w, h, t, t * 0.37));
-      projected.sort((a, b) => a.z - b.z);
-      for (let i = 0; i < projected.length; i += 1) {
-        const a = projected[i];
-        for (let j = i + 1; j < projected.length; j += 1) {
-          const b = projected[j];
-          const dx = a.x - b.x;
-          const dy = a.y - b.y;
-          const dist = Math.hypot(dx, dy);
-          if (dist > 92) continue;
-          const alpha = (1 - dist / 92) * 0.16;
-          ctx.strokeStyle = a.ember
-            ? `rgba(255, 132, 64, ${alpha})`
-            : `rgba(92, 225, 230, ${alpha})`;
-          ctx.beginPath();
-          ctx.moveTo(a.x, a.y);
-          ctx.lineTo(b.x, b.y);
-          ctx.stroke();
+      const pulsing = pulseUntil > Date.now();
+      const fade = pulsing ? 0.07 : 0.1;
+      ctx.fillStyle = `rgba(7, 6, 11, ${fade})`;
+      ctx.fillRect(0, 0, w, h);
+      ctx.font = `${font}px "SF Mono", "Consolas", ui-monospace, monospace`;
+      ctx.textBaseline = "top";
+      const boost = pulsing ? 0.08 : 0;
+      for (let i = 0; i < cols.length; i += 1) {
+        const col = cols[i];
+        const x = i * font;
+        const y = col.y * font;
+        let [r, g, b] = col.purple ? PURPLE : CYAN;
+        if (pulsing && pulseKind === "error") {
+          r = 255;
+          g = 107;
+          b = 44;
+        } else if (pulsing && pulseKind === "draft_ready" && col.purple) {
+          r = 0;
+          g = 210;
+          b = 255;
         }
-        const pulsing = pulseUntil > Date.now();
-        const r = 1.4 + (a.z + 1.2) * 0.9 + (pulsing && a.ember ? 0.6 : 0);
-        let fill = a.ember
-          ? "rgba(255, 150, 72, 0.85)"
-          : "rgba(120, 236, 240, 0.8)";
-        if (pulsing && pulseKind === "error" && a.ember) fill = "rgba(255, 107, 44, 0.95)";
-        if (pulsing && pulseKind === "draft_ready" && !a.ember) fill = "rgba(232, 195, 106, 0.95)";
-        ctx.fillStyle = fill;
-        ctx.beginPath();
-        ctx.arc(a.x, a.y, r, 0, Math.PI * 2);
-        ctx.fill();
+        const ch = GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
+        ctx.fillStyle = `rgba(${r},${g},${b},${0.16 + boost})`;
+        ctx.fillText(ch, x, y);
+        col.y += col.speed;
+        if (y > h && Math.random() > 0.975) col.y = -2;
       }
       raf = window.requestAnimationFrame(frame);
     }
 
-    function onVis() {
+    function go() {
       running = document.visibilityState !== "hidden" && !motionBlocked();
+      window.cancelAnimationFrame(raf);
       if (running) {
-        window.cancelAnimationFrame(raf);
         raf = window.requestAnimationFrame(frame);
+      } else {
+        paintStatic();
       }
     }
 
-    window.addEventListener("resize", size);
-    document.addEventListener("visibilitychange", onVis);
-    if (running) raf = window.requestAnimationFrame(frame);
+    window.addEventListener("resize", () => {
+      size();
+      if (!running) paintStatic();
+    });
+    document.addEventListener("visibilitychange", go);
+    go();
     const ctl = {
       stop() {
         running = false;
         window.cancelAnimationFrame(raf);
-        window.removeEventListener("resize", size);
-        document.removeEventListener("visibilitychange", onVis);
       },
       setPaused(paused) {
-        running = !paused && document.visibilityState !== "hidden";
-        if (running) {
+        if (paused) {
+          running = false;
           window.cancelAnimationFrame(raf);
-          raf = window.requestAnimationFrame(frame);
+          paintStatic();
+          return;
         }
+        go();
       },
     };
     fieldCtl = ctl;
