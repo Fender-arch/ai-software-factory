@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.21 |
+| Version | 0.22 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -19,7 +19,7 @@ Quality ideas (clarify pass, `[NEEDS CLARIFICATION]` instead of guessing, checkl
 
 ## Channels
 
-- Telegram **Mini App** project workspace (primary) — text + **«Варианты ответа» popup**. New project: welcome popup then questions. The chat shows a **progress bar** (gray track, green fill); the API still recomputes `done/total` from the adapted outline, but the customer label is a **percent** or «ещё пара уточнений» — not a section list. The assistant message is the next question only.
+- Telegram **Mini App** project workspace (primary) — text + **«Варианты ответа» popup**. New project: welcome popup then questions. The chat shows a **progress bar** (gray track, green fill); the API still recomputes `done/total` from the adapted outline, but the customer label is a **percent** or «ещё пара уточнений» — not a section list. The subtitle under the bar is a human Russian `customer_hud` (never raw status / mode / stage / topic id). Multi-select posts chip **labels**; «Сейчас напишу» waits for typed text before the next question. The assistant message is the next question only.
 - Telegram **voice** (Mini App or bot) → Whisper STT → text (same pipeline)
 - Bot DM: transitional until Mini App; then notifications + deep links
 

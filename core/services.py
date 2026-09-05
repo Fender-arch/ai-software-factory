@@ -270,6 +270,7 @@ def get_project_workspace(
             break
 
     tz_available = project.status in TZ_DOWNLOAD_STATUSES
+    from discovery.customer_copy import customer_workspace_hud
     from core.client_estimate import (
         client_estimate_from_artifact,
         client_estimate_report_from_artifact,
@@ -294,6 +295,11 @@ def get_project_workspace(
         "allow_multiple": allow_multiple,
         "tz_available": tz_available,
         "discovery_progress": compute_discovery_progress(project, state),
+        "customer_hud": customer_workspace_hud(
+            status=project.status,
+            stage=stage,
+            paused=paused,
+        ),
         "client_estimate": client_estimate,
     }
 

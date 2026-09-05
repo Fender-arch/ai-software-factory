@@ -29,7 +29,22 @@ def test_miniapp_static_served(client):
     assert "Ещё пара уточнений" in js.text
     assert "Сбор требований: ${percent}%" in js.text
     assert "из ${total}" not in js.text
-    assert "20260905-mic" in res.text
+    assert "20260905-hud" in res.text
+    assert "customerWorkspaceHud" in js.text
+    assert "customer_hud" in js.text
+    assert "ждём ваш ответ" in js.text
+    assert "уточняем идею" in js.text
+    assert "на ревью у владельца" in js.text
+    assert "в работе" in js.text
+    assert "NON_FUNCTIONAL" in js.text
+    assert "isWriteInChoice" in js.text
+    assert "сейчас\\s+напишу" in js.text
+    assert "напишу\\s+сам" in js.text
+    assert "свой\\s+вариант" in js.text
+    assert "formatSelectedLabels" in js.text
+    assert "holdForWriteIn" in js.text
+    assert "indexOf(c) + 1" not in js.text
+    assert "${ws.status} · ${ws.mode}" not in js.text
     assert "ensureMicStream" in js.text
     assert "micStreamLive" in js.text
     assert "sortThreadMessages" in js.text
@@ -151,6 +166,12 @@ def test_create_project_welcome_and_russian_question(client):
     assert "выберите вариант" not in first_q.lower()
     assert ws.json().get("discovery_choices")
     assert ws.json().get("allow_multiple") is True
+    hud = ws.json().get("customer_hud") or ""
+    assert hud
+    assert "waiting" not in hud.lower()
+    assert "create" not in hud.lower()
+    assert "_" not in hud
+    assert any(ch.isalpha() and ord(ch) > 127 for ch in hud)
 
     msg = client.post(
         f"/projects/{pid}/messages",

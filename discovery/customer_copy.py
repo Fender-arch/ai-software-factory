@@ -118,3 +118,86 @@ def strip_prior_answer_echo(text: str) -> str:
 def sanitize_customer_reply(text: str) -> str:
     """Catalog menu + prior-answer echo stay out of the customer chat."""
     return strip_prior_answer_echo(strip_catalog_menu(text))
+
+
+DEFAULT_HUD_RU = "в работе"
+
+# Customer Mini App HUD only — never ProjectStatus / topic / product_type codes.
+_PROJECT_STATUS_HUD_RU = {
+    "NEW": "уточняем идею",
+    "INTERVIEW": "ждём ваш ответ",
+    "ANALYZING": "собираем черновик",
+    "WAITING_CUSTOMER": "ждём ваш ответ",
+    "WAITING_OWNER": "на ревью у владельца",
+    "WAITING_CLIENT_ESTIMATE": "смотрите смету",
+    "READY": "можно собирать MVP",
+    "ARCHIVED": "проект закрыт",
+}
+
+_DISCOVERY_STAGE_HUD_RU = {
+    "PROJECT_CREATED": "уточняем идею",
+    "UNDERSTANDING_IDEA": "уточняем идею",
+    "BUSINESS_CONTEXT": "уточняем задачу",
+    "USERS": "кто будет пользоваться",
+    "FUNCTIONAL": "что должно уметь",
+    "DATA": "какие данные нужны",
+    "NON_FUNCTIONAL": "как должно работать",
+    "INTEGRATIONS": "какие связи с другими системами",
+    "ACCEPTANCE": "как примем работу",
+    "RISKS": "риски и ограничения",
+    "REVIEW": "проверяем черновик",
+    "READY_FOR_OWNER": "на ревью у владельца",
+}
+
+_HOLD_STATUS_HUD = frozenset(
+    {
+        "WAITING_OWNER",
+        "WAITING_CLIENT_ESTIMATE",
+        "READY",
+        "ARCHIVED",
+        "ANALYZING",
+    }
+)
+
+
+def _hud_key(value: object | None) -> str:
+    if value is None:
+        return ""
+    raw = getattr(value, "value", value)
+    return str(raw).strip().upper().replace(" ", "_").replace("-", "_")
+
+
+def customer_status_hud(status: object | None) -> str:
+    """Human Russian label for a project status. Unknown → «в работе»."""
+    key = _hud_key(status)
+    if not key:
+        return DEFAULT_HUD_RU
+    return _PROJECT_STATUS_HUD_RU.get(key, DEFAULT_HUD_RU)
+
+
+def customer_stage_hud(stage: object | None) -> str:
+    """Human Russian label for a Discovery stage. Unknown → «в работе»."""
+    key = _hud_key(stage)
+    if not key:
+        return DEFAULT_HUD_RU
+    return _DISCOVERY_STAGE_HUD_RU.get(key, DEFAULT_HUD_RU)
+
+
+def customer_workspace_hud(
+    *,
+    status: object | None = None,
+    stage: object | None = None,
+    paused: bool = False,
+) -> str:
+    """One Mini App subtitle under the progress bar. No raw enums or mode ids."""
+    if paused:
+        return "на паузе"
+    status_key = _hud_key(status)
+    if status_key in _HOLD_STATUS_HUD:
+        return customer_status_hud(status)
+    stage_key = _hud_key(stage)
+    if stage_key in _DISCOVERY_STAGE_HUD_RU:
+        return _DISCOVERY_STAGE_HUD_RU[stage_key]
+    if status_key in _PROJECT_STATUS_HUD_RU:
+        return _PROJECT_STATUS_HUD_RU[status_key]
+    return DEFAULT_HUD_RU
