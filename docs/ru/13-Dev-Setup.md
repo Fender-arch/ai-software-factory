@@ -5,7 +5,7 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.11 |
+| Version | 0.12 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -54,6 +54,11 @@ pytest
 | `LLM_MODEL` | Модель Groq chat (по умолчанию `llama-3.3-70b-versatile`; для stub не нужна) |
 | `DISCOVERY_ENGINE` | `auto` \| `llm` \| `fsm` — DEC-008. `auto` = ходы LLM, если `LLM_PROVIDER` не `stub`; `fsm` принудительно запасной путь (без меню заголовков каталога, DEC-014) |
 | `OWNER_TELEGRAM_ID` | Чат владельца для HITL |
+| `STUDIO_NAME` | Название студии в клиентском ТЗ (необязательно) |
+| `OWNER_CONTACT_NAME` | Имя владельца/студии в клиентском ТЗ (необязательно) |
+| `OWNER_CONTACT_EMAIL` | Email владельца/студии в клиентском ТЗ (необязательно) |
+| `OWNER_CONTACT_PHONE` | Телефон владельца/студии в клиентском ТЗ (необязательно) |
+| `OWNER_CONTACT_TELEGRAM` | Telegram владельца/студии в клиентском ТЗ (необязательно) |
 | `ASF_ESTIMATE_HOURLY_RATE` | Ставка часа для оценки стоимости ТЗ (по умолчанию `3000`) |
 | `ASF_ESTIMATE_CURRENCY` | Валюта этой оценки (по умолчанию `RUB`) |
 | `ASF_MARKET_RATES_URL` | Опциональный HTTPS JSON публичных вилок ставок (смета клиенту). Пусто = встроенная таблица |

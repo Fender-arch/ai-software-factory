@@ -5,7 +5,7 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.22 |
+| Version | 0.23 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -171,7 +171,15 @@ Keyword-покрытие разделов ≥ 0.4 **не** заменяет эт
 
 ## Выходные артефакты
 
-Из Knowledge Graph:
+Из Knowledge Graph (только представление; хранилище — KG):
+
+**Клиентское ТЗ** (`core/tz_document.compose_tz_markdown`, Mini App / консоль MD·Word·PDF):
+
+- Заголовок **Техническое задание** + имя проекта (без «Draft TZ», без Appendix)
+- Мета: проект, контакты заказчика (разделы Discovery `contacts` / `preferred_contact` + Telegram id), контакты студии/владельца (`STUDIO_NAME` / `OWNER_CONTACT_*` или `Project.payload.owner_contacts`)
+- Оглавление с якорями Markdown; пронумерованные разделы; коды требований `ТЗ-N.M`
+
+**Внутренний английский черновик** (`discovery.artifacts.render_draft_tz`, Artifact `kind=draft_tz`, превью HITL / Spec Kit):
 
 - Vision / постановка проблемы
 - User stories с Given–When–Then для главного пути

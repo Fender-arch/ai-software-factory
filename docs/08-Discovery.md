@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.22 |
+| Version | 0.23 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -192,7 +192,15 @@ Keyword section-coverage ≥ 0.4 does **not** replace this floor.
 
 ## Output artifacts
 
-Derived from Knowledge Graph:
+Derived from Knowledge Graph (presentation only; the KG stays the store):
+
+**Client TZ** (`core/tz_document.compose_tz_markdown`, Mini App / console MD·Word·PDF):
+
+- Title **Техническое задание** + project name (no “Draft TZ”, no Appendix)
+- Meta: project, customer contacts (Discovery `contacts` / `preferred_contact` + Telegram id), studio/owner contacts (`STUDIO_NAME` / `OWNER_CONTACT_*` or `Project.payload.owner_contacts`)
+- Table of contents with Markdown anchors; numbered sections; requirement codes `ТЗ-N.M`
+
+**Internal English draft** (`discovery.artifacts.render_draft_tz`, Artifact `kind=draft_tz`, HITL preview / Spec Kit):
 
 - Vision / problem statement
 - User stories with Given–When–Then for the primary path
