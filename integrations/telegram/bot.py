@@ -13,6 +13,7 @@ import asyncio
 import logging
 
 from aiogram import Bot, Dispatcher, F
+from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.filters import Command, CommandObject
 from aiogram.types import (
     CallbackQuery,
@@ -44,6 +45,7 @@ from core.services import (
     send_project_mvp_to_client,
     submit_hitl_decision,
 )
+from integrations.outbound_proxy import http_proxy_url
 
 logger = logging.getLogger(__name__)
 
@@ -506,7 +508,9 @@ async def run_bot() -> None:
         raise SystemExit("TELEGRAM_BOT_TOKEN is empty")
 
     logging.basicConfig(level=logging.INFO)
-    bot = Bot(token=settings.telegram_bot_token)
+    proxy = http_proxy_url()
+    session = AiohttpSession(proxy=proxy) if proxy else None
+    bot = Bot(token=settings.telegram_bot_token, session=session)
     dp = Dispatcher()
     dp.message.register(cmd_start, Command("start"))
     dp.message.register(cmd_new, Command("new"))
@@ -539,6 +543,8 @@ async def run_bot() -> None:
             logger.exception("Failed to set Mini App menu button")
 
     logger.info("Starting ASF Telegram bot")
+    if proxy:
+        logger.info("Telegram Bot API uses outbound HTTP proxy")
     await dp.start_polling(bot)
 
 

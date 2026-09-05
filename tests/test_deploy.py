@@ -69,6 +69,31 @@ def test_render_env_file_contains_keys():
     assert "ASF_ESTIMATE_CURRENCY=RUB" in text
     assert "ASF_INTERVENTION_TTL_HOURS=72" in text
     assert "CURSOR_CLOUD_API_URL=https://api.cursor.com" in text
+    values = build_env_values(_base_raw())
+    assert values["HTTPS_PROXY"] == ""
+    assert values["EGRESS_SSH_HOST"] == ""
+    assert "localhost" in values["NO_PROXY"]
+
+
+def test_egress_host_sets_container_http_proxy():
+    values = build_env_values(_base_raw(EGRESS_SSH_HOST="5.180.43.218"))
+    assert values["EGRESS_SSH_HOST"] == "5.180.43.218"
+    assert values["EGRESS_SSH_USER"] == "root"
+    assert values["EGRESS_SSH_PORT"] == "22"
+    assert values["HTTPS_PROXY"] == "http://egress:8888"
+    assert values["HTTP_PROXY"] == "http://egress:8888"
+    assert values["ALL_PROXY"] == "http://egress:8888"
+    assert "egress" in values["NO_PROXY"]
+    assert "db" in values["NO_PROXY"]
+
+
+def test_prod_compose_defines_egress_profile():
+    text = (Path(__file__).resolve().parents[1] / "docker-compose.prod.yml").read_text(
+        encoding="utf-8"
+    )
+    assert 'profiles: ["egress"]' in text
+    assert "dockerfile: docker/Dockerfile.egress" in text
+    assert "HTTPS_PROXY: ${HTTPS_PROXY:-}" in text
 
 
 def test_nginx_vhost_is_not_default_server():

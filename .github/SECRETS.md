@@ -30,6 +30,10 @@
 #   DISCOVERY_ENGINE    auto | llm | fsm (default auto = llm when LLM_PROVIDER is not stub)
 #   ASF_ESTIMATE_HOURLY_RATE  Owner TZ cost heuristic (default 3000)
 #   ASF_ESTIMATE_CURRENCY     Currency for that estimate (default RUB)
+#   EGRESS_SSH_HOST     Exit VPS for geo-unrestricted Groq/OpenAI/Telegram (SSH tunnel)
+#   EGRESS_SSH_USER     SSH user on that host (default root)
+#   EGRESS_SSH_PORT     Default 22
+#   EGRESS_SSH_PASSWORD First-time only: install tinyproxy + the ASF pubkey. Not written to .env.
 #   ASF_MARKET_RATES_URL      Optional HTTPS JSON of public market bands (DEC-012)
 #   ASF_MARKET_RATES_ALLOWLIST  Comma-separated hosts allowed for that fetch
 #   ASF_INTERVENTION_KEY      Seals Intervention Queue secrets (DEC-013)

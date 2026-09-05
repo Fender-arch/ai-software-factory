@@ -20,6 +20,27 @@ services:
     networks:
       - asf_internal
 
+  egress:
+    profiles: ["egress"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.egress
+    restart: unless-stopped
+    environment:
+      EGRESS_SSH_HOST: ${EGRESS_SSH_HOST}
+      EGRESS_SSH_USER: ${EGRESS_SSH_USER:-root}
+      EGRESS_SSH_PORT: ${EGRESS_SSH_PORT:-22}
+    volumes:
+      - ${ASF_EGRESS_KEY_PATH:-/opt/asf-secrets/egress_id_ed25519}:/run/secrets/egress_id_ed25519:ro
+    healthcheck:
+      test: ["CMD", "nc", "-z", "127.0.0.1", "8888"]
+      interval: 5s
+      timeout: 3s
+      retries: 18
+      start_period: 15s
+    networks:
+      - asf_internal
+
   api:
     build:
       context: .
@@ -32,6 +53,10 @@ services:
       ASF_ENV: production
       ASF_DEBUG: "false"
       UPLOAD_DIR: /data/uploads
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      ALL_PROXY: ${ALL_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1,db,egress}
     ports:
       - "127.0.0.1:${ASF_HOST_PORT:-18000}:8000"
     volumes:
@@ -67,6 +92,10 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       ASF_ENV: production
       ASF_DEBUG: "false"
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      ALL_PROXY: ${ALL_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1,db,egress}
     depends_on:
       api:
         condition: service_healthy

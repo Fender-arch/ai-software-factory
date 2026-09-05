@@ -5,7 +5,7 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.9 |
+| Version | 0.10 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -28,6 +28,6 @@
 
 ## Переменные окружения
 
-См. `.env.example`: `DATABASE_URL`, `TELEGRAM_BOT_TOKEN`, `GROQ_API_KEY`, `OPENAI_API_KEY`, `STT_PROVIDER` (`stub`\|`groq`\|`whisper`), `STT_MODEL`, `LLM_PROVIDER` (`stub`\|`groq`), `LLM_MODEL`, `OWNER_TELEGRAM_ID`, `ASF_ESTIMATE_HOURLY_RATE`, `ASF_ESTIMATE_CURRENCY`, `MINIAPP_URL`, `CONSOLE_TOKEN`, `ASF_INTERVENTION_KEY`, `CURSOR_API_KEY`.
+См. `.env.example`: `DATABASE_URL`, `TELEGRAM_BOT_TOKEN`, `GROQ_API_KEY`, `OPENAI_API_KEY`, `STT_PROVIDER` (`stub`\|`groq`\|`whisper`), `STT_MODEL`, `LLM_PROVIDER` (`stub`\|`groq`), `LLM_MODEL`, `OWNER_TELEGRAM_ID`, `ASF_ESTIMATE_HOURLY_RATE`, `ASF_ESTIMATE_CURRENCY`, `MINIAPP_URL`, `CONSOLE_TOKEN`, `ASF_INTERVENTION_KEY`, `CURSOR_API_KEY`. Опциональный geo-egress на VPS: `EGRESS_SSH_HOST`, `HTTPS_PROXY` (см. [16-VPS-Deploy.md](16-VPS-Deploy.md)).
 
 Деплой на VPS (существующий сайт сохраняется): [16-VPS-Deploy.md](16-VPS-Deploy.md), секреты [`.github/SECRETS.md`](../../.github/SECRETS.md).

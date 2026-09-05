@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.2 |
-| Updated | 2026-08-28 |
+| Version | 0.3 |
+| Updated | 2026-09-05 |
 | Owner | ASF Core |
 
 ## Goal
@@ -22,6 +22,7 @@ ASF never binds host ports **80**, **443**, or **5432**. The API listens on `127
 | `deploy/` | Render `.env`, nginx snippets, remote start |
 | `.github/workflows/deploy-vps.yml` | SSH/SCP deploy from GitHub Actions |
 | `.github/SECRETS.md` | Secret names to fill |
+| `docker/Dockerfile.egress` | Optional SSH tunnel to a geo-unrestricted exit VPS |
 
 ## What is not touched
 
@@ -80,6 +81,26 @@ bash deploy/setup_proxy.sh
 3. `https://<DOMAIN_MINIAPP>/miniapp/` opens the Russian Mini App
 4. `https://<DOMAIN_CONSOLE>/console/` opens the owner console (paste `CONSOLE_TOKEN`)
 5. Telegram bot Menu button opens the Mini App (`MINIAPP_URL`)
+
+## Geo egress (Groq / OpenAI / Telegram)
+
+Russian VPS networks often block `api.groq.com`, `api.openai.com`, and sometimes `api.telegram.org`. Optional compose profile `egress` keeps a **localhost-only** HTTP proxy on an unrestricted SSH host and forwards it into the `api` and `bot` containers.
+
+Flow:
+
+1. Exit VPS: `tinyproxy` on `127.0.0.1:8888` (not public).
+2. ASF VPS: durable ed25519 key in `/opt/asf-secrets/` (outside the deploy tarball).
+3. Service `egress`: `autossh -L 0.0.0.0:8888:127.0.0.1:8888` on Docker network `asf_internal`.
+4. `HTTPS_PROXY=http://egress:8888` for `api` and `bot`. `NO_PROXY` keeps `db`, localhost, and `egress` itself off the proxy.
+
+GitHub secrets: `EGRESS_SSH_HOST`, `EGRESS_SSH_USER` (default `root`), `EGRESS_SSH_PORT` (default `22`). `EGRESS_SSH_PASSWORD` is **first deploy only** (install tinyproxy + the pubkey); it is not written to `/opt/asf/.env`. After that, key-only SSH is enough. Leave `EGRESS_SSH_HOST` empty to keep today’s direct outbound.
+
+Smoke on the ASF VPS after deploy:
+
+```bash
+docker compose -f /opt/asf/docker-compose.prod.yml --env-file /opt/asf/.env --profile egress exec -T api \
+  python -c "import os,httpx; print(os.environ.get('HTTPS_PROXY')); r=httpx.get('https://api.telegram.org'); print(r.status_code)"
+```
 
 ## Rollback ASF only
 

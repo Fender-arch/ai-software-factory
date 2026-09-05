@@ -39,6 +39,16 @@ cd "$DEPLOY_PATH"
 export PYTHONPATH="$DEPLOY_PATH"
 export ASF_ENV_PATH="${DEPLOY_PATH}/.env"
 python3 deploy/write_env.py
+chmod +x "${DEPLOY_PATH}/deploy/"*.sh "${DEPLOY_PATH}/docker/"*.sh 2>/dev/null || true
+if [[ -n "${EGRESS_SSH_HOST:-}" && "${EGRESS_SSH_HOST}" != "SET_ME" ]]; then
+  export EGRESS_SSH_HOST
+  export EGRESS_SSH_USER="${EGRESS_SSH_USER:-root}"
+  export EGRESS_SSH_PORT="${EGRESS_SSH_PORT:-22}"
+  export EGRESS_SSH_PASSWORD="${EGRESS_SSH_PASSWORD:-}"
+  bash "${DEPLOY_PATH}/deploy/setup_egress_tunnel.sh"
+  export ASF_EGRESS_KEY_PATH="${ASF_EGRESS_KEY_DIR:-/opt/asf-secrets}/egress_id_ed25519"
+  export COMPOSE_PROFILES="${COMPOSE_PROFILES:+$COMPOSE_PROFILES,}egress"
+fi
 # Compose interpolates ${ASF_HOST_PORT} from the process env first.
 # GitHub placeholder SET_ME is non-empty, so ${ASF_HOST_PORT:-18000} would not apply.
 if [[ -z "${ASF_HOST_PORT:-}" || "${ASF_HOST_PORT}" == "SET_ME" || ! "${ASF_HOST_PORT}" =~ ^[0-9]+$ ]]; then
@@ -75,10 +85,33 @@ if ! docker info >/dev/null 2>&1 && ! asf_sudo docker info >/dev/null 2>&1; then
   exit 1
 fi
 
-compose -f docker-compose.prod.yml --env-file .env up -d --build
+if [[ "${COMPOSE_PROFILES:-}" == *egress* ]]; then
+  compose -f docker-compose.prod.yml --env-file .env --profile egress up -d --build egress
+  echo "Waiting for egress tunnel on :8888"
+  ready=0
+  for _ in $(seq 1 36); do
+    if compose -f docker-compose.prod.yml --env-file .env --profile egress exec -T egress \
+      nc -z 127.0.0.1 8888 2>/dev/null; then
+      ready=1
+      break
+    fi
+    sleep 5
+  done
+  if [[ "$ready" -ne 1 ]]; then
+    echo "egress tunnel did not become ready; API/Telegram may fail geo checks" >&2
+    compose -f docker-compose.prod.yml --env-file .env --profile egress logs --tail 50 egress || true
+  fi
+  compose -f docker-compose.prod.yml --env-file .env --profile egress up -d --build
+else
+  compose -f docker-compose.prod.yml --env-file .env up -d --build
+fi
 
 echo "ASF listening on 127.0.0.1:${ASF_HOST_PORT} (not 80/443)"
-compose -f docker-compose.prod.yml --env-file .env ps
+if [[ "${COMPOSE_PROFILES:-}" == *egress* ]]; then
+  compose -f docker-compose.prod.yml --env-file .env --profile egress ps
+else
+  compose -f docker-compose.prod.yml --env-file .env ps
+fi
 
 chmod +x "${DEPLOY_PATH}/deploy/"*.sh 2>/dev/null || true
 DOMAIN_MINIAPP="${DOMAIN_MINIAPP}" \

@@ -5,8 +5,8 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.2 |
-| Updated | 2026-08-28 |
+| Version | 0.3 |
+| Updated | 2026-09-05 |
 | Owner | ASF Core |
 
 ## Цель
@@ -24,6 +24,7 @@ ASF не занимает порты хоста **80**, **443** и **5432**. API
 | `deploy/` | Рендер `.env`, фрагменты nginx, удалённый старт |
 | `.github/workflows/deploy-vps.yml` | Деплой по SSH/SCP из GitHub Actions |
 | `.github/SECRETS.md` | Имена секретов, которые нужно заполнить |
+| `docker/Dockerfile.egress` | Опциональный SSH-туннель на VPS без geo-ограничений |
 
 ## Что не трогается
 
@@ -82,6 +83,26 @@ bash deploy/setup_proxy.sh
 3. `https://<DOMAIN_MINIAPP>/miniapp/` открывает Mini App на русском
 4. `https://<DOMAIN_CONSOLE>/console/` открывает консоль владельца (вставьте `CONSOLE_TOKEN`)
 5. Кнопка меню Telegram-бота открывает Mini App (`MINIAPP_URL`)
+
+## Geo-egress (Groq / OpenAI / Telegram)
+
+Сети российских VPS часто режут `api.groq.com`, `api.openai.com` и иногда `api.telegram.org`. Опциональный профиль compose `egress` держит HTTP-прокси **только на localhost** выходного SSH-хоста и прокидывает его в контейнеры `api` и `bot`.
+
+Цепочка:
+
+1. Выходной VPS: `tinyproxy` на `127.0.0.1:8888` (не в интернет).
+2. VPS ASF: постоянный ключ ed25519 в `/opt/asf-secrets/` (вне tarball деплоя).
+3. Сервис `egress`: `autossh -L 0.0.0.0:8888:127.0.0.1:8888` в сети Docker `asf_internal`.
+4. `HTTPS_PROXY=http://egress:8888` для `api` и `bot`. `NO_PROXY` исключает `db`, localhost и сам `egress`.
+
+Секреты GitHub: `EGRESS_SSH_HOST`, `EGRESS_SSH_USER` (по умолчанию `root`), `EGRESS_SSH_PORT` (по умолчанию `22`). `EGRESS_SSH_PASSWORD` — **только первый деплой** (поставить tinyproxy и pubkey); в `/opt/asf/.env` пароль не пишется. Дальше достаточно ключа. Пустой `EGRESS_SSH_HOST` — прямой исходящий трафик, как раньше.
+
+Smoke на VPS ASF после деплоя:
+
+```bash
+docker compose -f /opt/asf/docker-compose.prod.yml --env-file /opt/asf/.env --profile egress exec -T api \
+  python -c "import os,httpx; print(os.environ.get('HTTPS_PROXY')); r=httpx.get('https://api.telegram.org'); print(r.status_code)"
+```
 
 ## Откат только ASF
 

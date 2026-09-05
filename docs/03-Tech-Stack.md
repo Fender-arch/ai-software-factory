@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.9 |
+| Version | 0.10 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -26,6 +26,6 @@ Locked choices for MVP. Alternatives belong in Future, not in endless bake-offs.
 
 ## Environment variables
 
-See `.env.example`: `DATABASE_URL`, `TELEGRAM_BOT_TOKEN`, `GROQ_API_KEY`, `OPENAI_API_KEY`, `STT_PROVIDER` (`stub`\|`groq`\|`whisper`), `STT_MODEL`, `LLM_PROVIDER` (`stub`\|`groq`), `LLM_MODEL`, `OWNER_TELEGRAM_ID`, `ASF_ESTIMATE_HOURLY_RATE`, `ASF_ESTIMATE_CURRENCY`, `MINIAPP_URL`, `CONSOLE_TOKEN`, `ASF_INTERVENTION_KEY`, `CURSOR_API_KEY`.
+See `.env.example`: `DATABASE_URL`, `TELEGRAM_BOT_TOKEN`, `GROQ_API_KEY`, `OPENAI_API_KEY`, `STT_PROVIDER` (`stub`\|`groq`\|`whisper`), `STT_MODEL`, `LLM_PROVIDER` (`stub`\|`groq`), `LLM_MODEL`, `OWNER_TELEGRAM_ID`, `ASF_ESTIMATE_HOURLY_RATE`, `ASF_ESTIMATE_CURRENCY`, `MINIAPP_URL`, `CONSOLE_TOKEN`, `ASF_INTERVENTION_KEY`, `CURSOR_API_KEY`. Optional VPS geo egress: `EGRESS_SSH_HOST`, `HTTPS_PROXY` (see [16-VPS-Deploy.md](16-VPS-Deploy.md)).
 
 VPS deploy (existing website kept): [16-VPS-Deploy.md](16-VPS-Deploy.md), secrets [`.github/SECRETS.md`](../.github/SECRETS.md).

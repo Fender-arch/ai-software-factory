@@ -1,0 +1,10 @@
+FROM alpine:3.20
+
+RUN apk add --no-cache autossh openssh-client busybox-extras
+
+COPY docker/egress-tunnel.sh /usr/local/bin/egress-tunnel.sh
+RUN chmod +x /usr/local/bin/egress-tunnel.sh
+
+EXPOSE 8888
+
+ENTRYPOINT ["/usr/local/bin/egress-tunnel.sh"]

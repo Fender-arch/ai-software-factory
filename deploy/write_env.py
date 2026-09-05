@@ -40,6 +40,13 @@ ENV_KEYS = (
     "ASF_HOST_PORT",
     "DOMAIN_MINIAPP",
     "DOMAIN_CONSOLE",
+    "EGRESS_SSH_HOST",
+    "EGRESS_SSH_USER",
+    "EGRESS_SSH_PORT",
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "ALL_PROXY",
+    "NO_PROXY",
 )
 
 
@@ -108,6 +115,25 @@ def build_env_values(raw: dict[str, str] | None = None) -> dict[str, str]:
     if is_placeholder(console_token):
         raise ValueError("CONSOLE_TOKEN is required in production (replace GitHub secret SET_ME)")
 
+    egress_host = src.get("EGRESS_SSH_HOST") or ""
+    egress_user = src.get("EGRESS_SSH_USER") or "root"
+    if is_placeholder(egress_user):
+        egress_user = "root"
+    egress_port = src.get("EGRESS_SSH_PORT") or "22"
+    if not egress_port.isdigit() or not (1 <= int(egress_port) <= 65535):
+        egress_port = "22"
+    default_no_proxy = "localhost,127.0.0.1,db,egress"
+    if egress_host:
+        default_proxy = "http://egress:8888"
+        http_proxy = src.get("HTTP_PROXY") or default_proxy
+        https_proxy = src.get("HTTPS_PROXY") or default_proxy
+        all_proxy = src.get("ALL_PROXY") or default_proxy
+    else:
+        http_proxy = src.get("HTTP_PROXY") or ""
+        https_proxy = src.get("HTTPS_PROXY") or ""
+        all_proxy = src.get("ALL_PROXY") or ""
+    no_proxy = src.get("NO_PROXY") or default_no_proxy
+
     values = {
         "ASF_ENV": src.get("ASF_ENV") or "production",
         "ASF_DEBUG": src.get("ASF_DEBUG") or "false",
@@ -138,6 +164,13 @@ def build_env_values(raw: dict[str, str] | None = None) -> dict[str, str]:
         "ASF_HOST_PORT": host_port,
         "DOMAIN_MINIAPP": domain_miniapp,
         "DOMAIN_CONSOLE": domain_console,
+        "EGRESS_SSH_HOST": egress_host,
+        "EGRESS_SSH_USER": egress_user,
+        "EGRESS_SSH_PORT": egress_port,
+        "HTTP_PROXY": http_proxy,
+        "HTTPS_PROXY": https_proxy,
+        "ALL_PROXY": all_proxy,
+        "NO_PROXY": no_proxy,
     }
     return values
 
