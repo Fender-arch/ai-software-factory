@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
   const tg = window.Telegram && window.Telegram.WebApp;
 
   function applyTelegramTheme() {
@@ -113,7 +113,7 @@
   const SpeechRecognition =
     window.SpeechRecognition || window.webkitSpeechRecognition || null;
 
-  /** Web Speech is unreliable in Telegram WebView — record + Groq instead. */
+  /** Web Speech is unreliable in Telegram WebView вЂ” record + Groq instead. */
   function canUseWebSpeech() {
     if (state.webSpeechDisabled) return false;
     if (inTelegramWebView()) return false;
@@ -158,8 +158,8 @@
     settings: $("view-settings"),
   };
 
-  /* OWNER_CONTACT_TELEGRAM из env не прокинут в статику Mini App — не выдумывать @. */
-  const OWNER_CONTACT_TELEGRAM = "";
+  /* OWNER_CONTACT_TELEGRAM РёР· env РЅРµ РїСЂРѕРєРёРЅСѓС‚ РІ СЃС‚Р°С‚РёРєСѓ Mini App вЂ” РЅРµ РІС‹РґСѓРјС‹РІР°С‚СЊ @. */
+  const OWNER_CONTACT_TELEGRAM = "@trender023";
 
   function show(name) {
     Object.entries(views).forEach(([key, el]) => {
@@ -234,7 +234,7 @@
   function requireUser() {
     if (!userId) {
       alert(
-        "Не удалось определить Telegram user id. Откройте Mini App из бота или добавьте ?uid=YOUR_ID"
+        "РќРµ СѓРґР°Р»РѕСЃСЊ РѕРїСЂРµРґРµР»РёС‚СЊ Telegram user id. РћС‚РєСЂРѕР№С‚Рµ Mini App РёР· Р±РѕС‚Р° РёР»Рё РґРѕР±Р°РІСЊС‚Рµ ?uid=YOUR_ID"
       );
       return false;
     }
@@ -301,7 +301,7 @@
       }
       state.listMode = action === "feedback" ? "feedback" : "change";
       $("list-title").textContent =
-        state.listMode === "feedback" ? "Замечания к реализации" : "Изменить проект";
+        state.listMode === "feedback" ? "Р—Р°РјРµС‡Р°РЅРёСЏ Рє СЂРµР°Р»РёР·Р°С†РёРё" : "РР·РјРµРЅРёС‚СЊ РїСЂРѕРµРєС‚";
       loadProjects();
     });
   });
@@ -326,28 +326,28 @@
   }
 
   const CUSTOMER_STATUS_HUD_RU = {
-    NEW: "уточняем идею",
-    INTERVIEW: "ждём ваш ответ",
-    ANALYZING: "собираем черновик",
-    WAITING_CUSTOMER: "ждём ваш ответ",
-    WAITING_OWNER: "на ревью у владельца",
-    WAITING_CLIENT_ESTIMATE: "смотрите смету",
-    READY: "можно собирать MVP",
-    ARCHIVED: "проект закрыт",
+    NEW: "СѓС‚РѕС‡РЅСЏРµРј РёРґРµСЋ",
+    INTERVIEW: "Р¶РґС‘Рј РІР°С€ РѕС‚РІРµС‚",
+    ANALYZING: "СЃРѕР±РёСЂР°РµРј С‡РµСЂРЅРѕРІРёРє",
+    WAITING_CUSTOMER: "Р¶РґС‘Рј РІР°С€ РѕС‚РІРµС‚",
+    WAITING_OWNER: "РЅР° СЂРµРІСЊСЋ Сѓ РІР»Р°РґРµР»СЊС†Р°",
+    WAITING_CLIENT_ESTIMATE: "СЃРјРѕС‚СЂРёС‚Рµ СЃРјРµС‚Сѓ",
+    READY: "РјРѕР¶РЅРѕ СЃРѕР±РёСЂР°С‚СЊ MVP",
+    ARCHIVED: "РїСЂРѕРµРєС‚ Р·Р°РєСЂС‹С‚",
   };
   const CUSTOMER_STAGE_HUD_RU = {
-    PROJECT_CREATED: "уточняем идею",
-    UNDERSTANDING_IDEA: "уточняем идею",
-    BUSINESS_CONTEXT: "уточняем задачу",
-    USERS: "кто будет пользоваться",
-    FUNCTIONAL: "что должно уметь",
-    DATA: "какие данные нужны",
-    NON_FUNCTIONAL: "как должно работать",
-    INTEGRATIONS: "какие связи с другими системами",
-    ACCEPTANCE: "как примем работу",
-    RISKS: "риски и ограничения",
-    REVIEW: "проверяем черновик",
-    READY_FOR_OWNER: "на ревью у владельца",
+    PROJECT_CREATED: "СѓС‚РѕС‡РЅСЏРµРј РёРґРµСЋ",
+    UNDERSTANDING_IDEA: "СѓС‚РѕС‡РЅСЏРµРј РёРґРµСЋ",
+    BUSINESS_CONTEXT: "СѓС‚РѕС‡РЅСЏРµРј Р·Р°РґР°С‡Сѓ",
+    USERS: "РєС‚Рѕ Р±СѓРґРµС‚ РїРѕР»СЊР·РѕРІР°С‚СЊСЃСЏ",
+    FUNCTIONAL: "С‡С‚Рѕ РґРѕР»Р¶РЅРѕ СѓРјРµС‚СЊ",
+    DATA: "РєР°РєРёРµ РґР°РЅРЅС‹Рµ РЅСѓР¶РЅС‹",
+    NON_FUNCTIONAL: "РєР°Рє РґРѕР»Р¶РЅРѕ СЂР°Р±РѕС‚Р°С‚СЊ",
+    INTEGRATIONS: "РєР°РєРёРµ СЃРІСЏР·Рё СЃ РґСЂСѓРіРёРјРё СЃРёСЃС‚РµРјР°РјРё",
+    ACCEPTANCE: "РєР°Рє РїСЂРёРјРµРј СЂР°Р±РѕС‚Сѓ",
+    RISKS: "СЂРёСЃРєРё Рё РѕРіСЂР°РЅРёС‡РµРЅРёСЏ",
+    REVIEW: "РїСЂРѕРІРµСЂСЏРµРј С‡РµСЂРЅРѕРІРёРє",
+    READY_FOR_OWNER: "РЅР° СЂРµРІСЊСЋ Сѓ РІР»Р°РґРµР»СЊС†Р°",
   };
   const HOLD_STATUS_HUD = {
     WAITING_OWNER: true,
@@ -370,7 +370,7 @@
       const looksEnglishEnum = /^[A-Z][A-Z0-9_]+$/.test(ready);
       if (!looksEnglishEnum) return ready;
     }
-    if (paused) return "на паузе";
+    if (paused) return "РЅР° РїР°СѓР·Рµ";
     const statusKey = hudKey(status);
     if (HOLD_STATUS_HUD[statusKey] && CUSTOMER_STATUS_HUD_RU[statusKey]) {
       return CUSTOMER_STATUS_HUD_RU[statusKey];
@@ -378,14 +378,14 @@
     const stageKey = hudKey(stage);
     if (CUSTOMER_STAGE_HUD_RU[stageKey]) return CUSTOMER_STAGE_HUD_RU[stageKey];
     if (CUSTOMER_STATUS_HUD_RU[statusKey]) return CUSTOMER_STATUS_HUD_RU[statusKey];
-    return "в работе";
+    return "РІ СЂР°Р±РѕС‚Рµ";
   }
 
   function formatProjectTitle(name) {
     const raw = String(name || "").trim();
-    if (!raw) return "Проект";
-    if (/^проект\b/i.test(raw) || raw === "Загрузка…") return raw;
-    return `Проект: ${raw}`;
+    if (!raw) return "РџСЂРѕРµРєС‚";
+    if (/^РїСЂРѕРµРєС‚\b/i.test(raw) || raw === "Р—Р°РіСЂСѓР·РєР°вЂ¦") return raw;
+    return `РџСЂРѕРµРєС‚: ${raw}`;
   }
 
   function fillSettings() {
@@ -397,16 +397,16 @@
         const name = [u.first_name, u.last_name].filter(Boolean).join(" ");
         const handle = u.username ? `@${u.username}` : "";
         const id = u.id ? `id ${u.id}` : "";
-        userEl.textContent = [name, handle, id].filter(Boolean).join(" · ") || "—";
+        userEl.textContent = [name, handle, id].filter(Boolean).join(" В· ") || "вЂ”";
       } else if (userId) {
         userEl.textContent = `id ${userId}`;
       } else {
-        userEl.textContent = "не определён — откройте из бота или добавьте ?uid=";
+        userEl.textContent = "РЅРµ РѕРїСЂРµРґРµР»С‘РЅ вЂ” РѕС‚РєСЂРѕР№С‚Рµ РёР· Р±РѕС‚Р° РёР»Рё РґРѕР±Р°РІСЊС‚Рµ ?uid=";
       }
     }
     if (tgEl) {
       const handle = String(OWNER_CONTACT_TELEGRAM || "").trim();
-      tgEl.textContent = handle || "не задан";
+      tgEl.textContent = handle || "РЅРµ Р·Р°РґР°РЅ";
     }
   }
 
@@ -441,7 +441,7 @@
 
   $("create-submit").addEventListener("click", async () => {
     if (!requireUser()) return;
-    const name = ($("create-name").value || "").trim() || `Проект ${userId}`;
+    const name = ($("create-name").value || "").trim() || `РџСЂРѕРµРєС‚ ${userId}`;
     const btn = $("create-submit");
     btn.disabled = true;
     try {
@@ -453,7 +453,7 @@
         }),
       });
       const pid = project && (project.id || project.project_id);
-      if (!pid) throw new Error("Проект создан, но не получен id чата");
+      if (!pid) throw new Error("РџСЂРѕРµРєС‚ СЃРѕР·РґР°РЅ, РЅРѕ РЅРµ РїРѕР»СѓС‡РµРЅ id С‡Р°С‚Р°");
       $("create-name").value = "";
       state.listMode = "create";
       await openWorkspace(pid, "create");
@@ -471,7 +471,7 @@
     const list = $("project-list");
     const empty = $("list-empty");
     list.innerHTML = "";
-    empty.textContent = "Пока нет проектов.";
+    empty.textContent = "РџРѕРєР° РЅРµС‚ РїСЂРѕРµРєС‚РѕРІ.";
     try {
       const projects = await api(
         `/projects?customer_telegram_id=${encodeURIComponent(userId)}`
@@ -483,8 +483,8 @@
       if (!visible.length) {
         empty.textContent =
           state.listMode === "feedback"
-            ? "Пока нет проектов с MVP на проверке."
-            : "Пока нет проектов.";
+            ? "РџРѕРєР° РЅРµС‚ РїСЂРѕРµРєС‚РѕРІ СЃ MVP РЅР° РїСЂРѕРІРµСЂРєРµ."
+            : "РџРѕРєР° РЅРµС‚ РїСЂРѕРµРєС‚РѕРІ.";
         empty.classList.remove("hidden");
         return;
       }
@@ -506,8 +506,8 @@
           const del = document.createElement("button");
           del.type = "button";
           del.className = "icon-delete";
-          del.title = "Удалить проект";
-          del.setAttribute("aria-label", `Удалить проект ${p.name}`);
+          del.title = "РЈРґР°Р»РёС‚СЊ РїСЂРѕРµРєС‚";
+          del.setAttribute("aria-label", `РЈРґР°Р»РёС‚СЊ РїСЂРѕРµРєС‚ ${p.name}`);
           del.innerHTML =
             '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>';
           del.addEventListener("click", (ev) => {
@@ -530,7 +530,7 @@
   async function deleteProject(project) {
     if (!requireUser()) return;
     const ok = window.confirm(
-      `Удалить проект «${project.name}»?\n\nБудут удалены все сообщения, требования и связанные данные. Это нельзя отменить.`
+      `РЈРґР°Р»РёС‚СЊ РїСЂРѕРµРєС‚ В«${project.name}В»?\n\nР‘СѓРґСѓС‚ СѓРґР°Р»РµРЅС‹ РІСЃРµ СЃРѕРѕР±С‰РµРЅРёСЏ, С‚СЂРµР±РѕРІР°РЅРёСЏ Рё СЃРІСЏР·Р°РЅРЅС‹Рµ РґР°РЅРЅС‹Рµ. Р­С‚Рѕ РЅРµР»СЊР·СЏ РѕС‚РјРµРЅРёС‚СЊ.`
     );
     if (!ok) return;
     try {
@@ -560,7 +560,7 @@
       state.listMode = mode;
     }
     if (!keepThread) {
-      resetWorkspaceDom("Загрузка…", "Открываю чат этого проекта…");
+      resetWorkspaceDom("Р—Р°РіСЂСѓР·РєР°вЂ¦", "РћС‚РєСЂС‹РІР°СЋ С‡Р°С‚ СЌС‚РѕРіРѕ РїСЂРѕРµРєС‚Р°вЂ¦");
     }
     show("workspace");
     xp("thinking");
@@ -593,14 +593,14 @@
       );
       const placeholder =
         mode === "feedback"
-          ? "Что исправить или добавить в реализации…"
+          ? "Р§С‚Рѕ РёСЃРїСЂР°РІРёС‚СЊ РёР»Рё РґРѕР±Р°РІРёС‚СЊ РІ СЂРµР°Р»РёР·Р°С†РёРёвЂ¦"
           : (ws.discovery_choices || []).length
-            ? "Ответьте текстом или откройте варианты…"
+            ? "РћС‚РІРµС‚СЊС‚Рµ С‚РµРєСЃС‚РѕРј РёР»Рё РѕС‚РєСЂРѕР№С‚Рµ РІР°СЂРёР°РЅС‚С‹вЂ¦"
           : ws.status === "WAITING_CLIENT_ESTIMATE"
-            ? "Смета ниже — подтвердите или напишите, что обсудить…"
+            ? "РЎРјРµС‚Р° РЅРёР¶Рµ вЂ” РїРѕРґС‚РІРµСЂРґРёС‚Рµ РёР»Рё РЅР°РїРёС€РёС‚Рµ, С‡С‚Рѕ РѕР±СЃСѓРґРёС‚СЊвЂ¦"
           : ws.status === "WAITING_OWNER" || ws.status === "READY"
-            ? "Можно добавить уточнение…"
-            : "Ответьте текстом или откройте варианты…";
+            ? "РњРѕР¶РЅРѕ РґРѕР±Р°РІРёС‚СЊ СѓС‚РѕС‡РЅРµРЅРёРµвЂ¦"
+            : "РћС‚РІРµС‚СЊС‚Рµ С‚РµРєСЃС‚РѕРј РёР»Рё РѕС‚РєСЂРѕР№С‚Рµ РІР°СЂРёР°РЅС‚С‹вЂ¦";
       $("composer-text").placeholder = placeholder;
       renderClientEstimate(ws.client_estimate, ws.status);
       if (ws.tz_available) xp("draft_ready");
@@ -642,11 +642,11 @@
       Number(progress.remaining != null ? progress.remaining : total - done)
     );
     if (progress.phase === "done" || percent >= 100) {
-      label.textContent = "Сбор требований: готово";
+      label.textContent = "РЎР±РѕСЂ С‚СЂРµР±РѕРІР°РЅРёР№: РіРѕС‚РѕРІРѕ";
     } else if (remaining <= 3) {
-      label.textContent = "Ещё пара уточнений";
+      label.textContent = "Р•С‰С‘ РїР°СЂР° СѓС‚РѕС‡РЅРµРЅРёР№";
     } else {
-      label.textContent = `Сбор требований: ${percent}%`;
+      label.textContent = `РЎР±РѕСЂ С‚СЂРµР±РѕРІР°РЅРёР№: ${percent}%`;
     }
   }
 
@@ -654,7 +654,7 @@
     if (!m || m.role === "customer") return false;
     if (m.meta_kind === "welcome") return true;
     const t = String(m.text || "").toLowerCase();
-    return t.includes("добро пожаловать") && t.includes("сбор требований");
+    return t.includes("РґРѕР±СЂРѕ РїРѕР¶Р°Р»РѕРІР°С‚СЊ") && t.includes("СЃР±РѕСЂ С‚СЂРµР±РѕРІР°РЅРёР№");
   }
 
   function welcomeKey(pid) {
@@ -732,24 +732,24 @@
     if (!m) return false;
     if (m.meta_kind === "tz_download" || m.meta_kind === "tz_updated") return true;
     const t = String(m.text || "").toLowerCase();
-    if (!t.includes("черновик")) return false;
+    if (!t.includes("С‡РµСЂРЅРѕРІРёРє")) return false;
     return (
-      t.includes("скачайте") ||
-      t.includes("скачать его можно") ||
-      t.includes("добавлено к материалам ревью") ||
-      t.includes("обновлён") ||
-      t.includes("обновлен") ||
-      /обновил[аи]?\s+черновик/.test(t)
+      t.includes("СЃРєР°С‡Р°Р№С‚Рµ") ||
+      t.includes("СЃРєР°С‡Р°С‚СЊ РµРіРѕ РјРѕР¶РЅРѕ") ||
+      t.includes("РґРѕР±Р°РІР»РµРЅРѕ Рє РјР°С‚РµСЂРёР°Р»Р°Рј СЂРµРІСЊСЋ") ||
+      t.includes("РѕР±РЅРѕРІР»С‘РЅ") ||
+      t.includes("РѕР±РЅРѕРІР»РµРЅ") ||
+      /РѕР±РЅРѕРІРёР»[Р°Рё]?\s+С‡РµСЂРЅРѕРІРёРє/.test(t)
     );
   }
 
   function tzCardTitle(m) {
-    if (m && m.meta_kind === "tz_updated") return "ТЗ обновилось";
-    return "ТЗ готово";
+    if (m && m.meta_kind === "tz_updated") return "РўР— РѕР±РЅРѕРІРёР»РѕСЃСЊ";
+    return "РўР— РіРѕС‚РѕРІРѕ";
   }
 
   function tzCardLead() {
-    return "Кинуть в чат бота";
+    return "РљРёРЅСѓС‚СЊ РІ С‡Р°С‚ Р±РѕС‚Р°";
   }
 
   function appendTzFormatButtons(host) {
@@ -860,17 +860,17 @@
     const text = String(raw || "").trim();
     const low = text.toLowerCase();
     if (
-      low.includes("сеть до telegram недоступна") ||
+      low.includes("СЃРµС‚СЊ РґРѕ telegram РЅРµРґРѕСЃС‚СѓРїРЅР°") ||
       low.includes("telegram_bot_api_unreachable")
     ) {
-      return "Сервер не смог связаться с Telegram Bot API (не ваш интернет). Попробуйте ещё раз.";
+      return "РЎРµСЂРІРµСЂ РЅРµ СЃРјРѕРі СЃРІСЏР·Р°С‚СЊСЃСЏ СЃ Telegram Bot API (РЅРµ РІР°С€ РёРЅС‚РµСЂРЅРµС‚). РџРѕРїСЂРѕР±СѓР№С‚Рµ РµС‰С‘ СЂР°Р·.";
     }
     return text;
   }
 
   function showExportFallback(reason, kind, fmt, exportPath) {
     const why =
-      humanizeTelegramSendError(reason) || "Не удалось отправить файл в чат бота.";
+      humanizeTelegramSendError(reason) || "РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РїСЂР°РІРёС‚СЊ С„Р°Р№Р» РІ С‡Р°С‚ Р±РѕС‚Р°.";
     const box = $("export-fallback");
     const textEl = $("export-fallback-text");
     const open = $("export-open");
@@ -906,20 +906,20 @@
     if (cost) {
       cost.textContent = est.formatted_cost
         ? `${est.formatted_cost}`
-        : "—";
+        : "вЂ”";
     }
     if (hours) {
       const range =
         est.formatted_cost_low && est.formatted_cost_high
-          ? `Вилка ${est.formatted_cost_low} – ${est.formatted_cost_high}`
+          ? `Р’РёР»РєР° ${est.formatted_cost_low} вЂ“ ${est.formatted_cost_high}`
           : "";
       hours.textContent = [
-        est.formatted_hours ? `~${est.formatted_hours} ч` : "",
-        est.formatted_rate_mid ? `середина ${est.formatted_rate_mid}` : "",
+        est.formatted_hours ? `~${est.formatted_hours} С‡` : "",
+        est.formatted_rate_mid ? `СЃРµСЂРµРґРёРЅР° ${est.formatted_rate_mid}` : "",
         range,
       ]
         .filter(Boolean)
-        .join(" · ");
+        .join(" В· ");
     }
     if (disc) disc.textContent = est.disclaimer || "";
     if (reportBody) {
@@ -934,11 +934,11 @@
     if (actions) actions.classList.toggle("hidden", !canDecide);
     if (statusEl) {
       if (est.status === "confirmed") {
-        statusEl.textContent = "Смета подтверждена. Можно ждать сборку MVP.";
+        statusEl.textContent = "РЎРјРµС‚Р° РїРѕРґС‚РІРµСЂР¶РґРµРЅР°. РњРѕР¶РЅРѕ Р¶РґР°С‚СЊ СЃР±РѕСЂРєСѓ MVP.";
       } else if (est.status === "discuss_requested") {
-        statusEl.textContent = "Запрос на обсуждение отправлен разработчику.";
+        statusEl.textContent = "Р—Р°РїСЂРѕСЃ РЅР° РѕР±СЃСѓР¶РґРµРЅРёРµ РѕС‚РїСЂР°РІР»РµРЅ СЂР°Р·СЂР°Р±РѕС‚С‡РёРєСѓ.";
       } else if (projectStatus === "WAITING_CLIENT_ESTIMATE") {
-        statusEl.textContent = "Подтвердите ориентир — и только потом начнём MVP.";
+        statusEl.textContent = "РџРѕРґС‚РІРµСЂРґРёС‚Рµ РѕСЂРёРµРЅС‚РёСЂ вЂ” Рё С‚РѕР»СЊРєРѕ РїРѕС‚РѕРј РЅР°С‡РЅС‘Рј MVP.";
       } else {
         statusEl.textContent = "";
       }
@@ -1023,14 +1023,14 @@
     const exportPath = `/projects/${state.projectId}/${base}-export?${qs}`;
     const sendPath = `/projects/${state.projectId}/${base}-send?${qs}`;
     hideExportFallback();
-    showSendHint("Отправляем файл в чат бота…");
+    showSendHint("РћС‚РїСЂР°РІР»СЏРµРј С„Р°Р№Р» РІ С‡Р°С‚ Р±РѕС‚Р°вЂ¦");
 
     try {
       const sent = await api(sendPath, { method: "POST" });
       if (!sent || sent.sent !== true || !sent.message_id) {
-        throw new Error("Бот не подтвердил отправку файла в личку.");
+        throw new Error("Р‘РѕС‚ РЅРµ РїРѕРґС‚РІРµСЂРґРёР» РѕС‚РїСЂР°РІРєСѓ С„Р°Р№Р»Р° РІ Р»РёС‡РєСѓ.");
       }
-      showSendHint("Файл в личке с ботом. Закройте Mini App — его нет в этой ленте.");
+      showSendHint("Р¤Р°Р№Р» РІ Р»РёС‡РєРµ СЃ Р±РѕС‚РѕРј. Р—Р°РєСЂРѕР№С‚Рµ Mini App вЂ” РµРіРѕ РЅРµС‚ РІ СЌС‚РѕР№ Р»РµРЅС‚Рµ.");
       openCustomerBotChat(sent.bot_username);
       return;
     } catch (err) {
@@ -1058,7 +1058,7 @@
       }
       if (openExportInBrowser(href)) {
         ev.preventDefault();
-        showSendHint("Если файл не открылся — напишите боту /start и нажмите «Ещё раз в бота».");
+        showSendHint("Р•СЃР»Рё С„Р°Р№Р» РЅРµ РѕС‚РєСЂС‹Р»СЃСЏ вЂ” РЅР°РїРёС€РёС‚Рµ Р±РѕС‚Сѓ /start Рё РЅР°Р¶РјРёС‚Рµ В«Р•С‰С‘ СЂР°Р· РІ Р±РѕС‚Р°В».");
       }
     });
   }
@@ -1122,7 +1122,7 @@
     if (openBtn) openBtn.classList.remove("hidden");
     if (hint && state.allowMultiple) {
       hint.classList.remove("hidden");
-      hint.textContent = "Можно отметить несколько вариантов, затем «Выбрать».";
+      hint.textContent = "РњРѕР¶РЅРѕ РѕС‚РјРµС‚РёС‚СЊ РЅРµСЃРєРѕР»СЊРєРѕ РІР°СЂРёР°РЅС‚РѕРІ, Р·Р°С‚РµРј В«Р’С‹Р±СЂР°С‚СЊВ».";
     }
     if (applyBtn) applyBtn.classList.toggle("hidden", !state.allowMultiple);
     state.choiceItems.forEach((choice) => {
@@ -1130,7 +1130,7 @@
       btn.type = "button";
       btn.className = choice.recommended ? "choice-chip recommended" : "choice-chip";
       btn.textContent = choice.recommended
-        ? `${choice.label || choice.id} · рекомендуем`
+        ? `${choice.label || choice.id} В· СЂРµРєРѕРјРµРЅРґСѓРµРј`
         : choice.label || choice.id;
       btn.addEventListener("click", () => onChoiceTap(choice));
       box.appendChild(btn);
@@ -1138,7 +1138,7 @@
     if (paused) {
       const tip = document.createElement("div");
       tip.className = "muted";
-      tip.textContent = "Интервью на паузе";
+      tip.textContent = "РРЅС‚РµСЂРІСЊСЋ РЅР° РїР°СѓР·Рµ";
       box.appendChild(tip);
     }
   }
@@ -1170,8 +1170,8 @@
       .filter(Boolean)
       .join(" ")
       .toLowerCase()
-      .replace(/ё/g, "е");
-    return /сейчас\s+напишу|напишу\s+сам|свой\s+вариант/.test(blob);
+      .replace(/С‘/g, "Рµ");
+    return /СЃРµР№С‡Р°СЃ\s+РЅР°РїРёС€Сѓ|РЅР°РїРёС€Сѓ\s+СЃР°Рј|СЃРІРѕР№\s+РІР°СЂРёР°РЅС‚/.test(blob);
   }
 
   function selectedChoices() {
@@ -1188,8 +1188,8 @@
       .filter(Boolean);
     if (!labels.length) return "";
     if (labels.length === 1) return labels[0];
-    if (labels.length === 2) return `${labels[0]} и ${labels[1]}`;
-    return `${labels.slice(0, -1).join(", ")} и ${labels[labels.length - 1]}`;
+    if (labels.length === 2) return `${labels[0]} Рё ${labels[1]}`;
+    return `${labels.slice(0, -1).join(", ")} Рё ${labels[labels.length - 1]}`;
   }
 
   function encodeSelectedPayload(extraText) {
@@ -1219,8 +1219,8 @@
     const labels = formatSelectedLabels();
     showSendHint(
       labels
-        ? `Выбрано: ${labels}. Допишите текст и нажмите «Отправить».`
-        : "Допишите текст и нажмите «Отправить»."
+        ? `Р’С‹Р±СЂР°РЅРѕ: ${labels}. Р”РѕРїРёС€РёС‚Рµ С‚РµРєСЃС‚ Рё РЅР°Р¶РјРёС‚Рµ В«РћС‚РїСЂР°РІРёС‚СЊВ».`
+        : "Р”РѕРїРёС€РёС‚Рµ С‚РµРєСЃС‚ Рё РЅР°Р¶РјРёС‚Рµ В«РћС‚РїСЂР°РІРёС‚СЊВ»."
     );
     focusComposer();
   }
@@ -1260,7 +1260,7 @@
     const tip = document.createElement("div");
     tip.className = "bubble assistant typing";
     tip.id = "typing-bubble";
-    tip.textContent = "Ассистент печатает…";
+    tip.textContent = "РђСЃСЃРёСЃС‚РµРЅС‚ РїРµС‡Р°С‚Р°РµС‚вЂ¦";
     thread.appendChild(tip);
     scrollThreadToLatest();
   }
@@ -1274,12 +1274,12 @@
     if (!requireUser() || !state.projectId) return false;
     const payload = String(text || "").trim();
     if (!payload) {
-      showSendHint("Выберите варианты или введите текст, затем нажмите «Отправить».");
+      showSendHint("Р’С‹Р±РµСЂРёС‚Рµ РІР°СЂРёР°РЅС‚С‹ РёР»Рё РІРІРµРґРёС‚Рµ С‚РµРєСЃС‚, Р·Р°С‚РµРј РЅР°Р¶РјРёС‚Рµ В«РћС‚РїСЂР°РІРёС‚СЊВ».");
       return false;
     }
     if (state.sending) return false;
     state.sending = true;
-    showSendHint("Отправка…");
+    showSendHint("РћС‚РїСЂР°РІРєР°вЂ¦");
     xp("thinking");
     state.wsMessages = [
       ...(state.wsMessages || []),
@@ -1345,7 +1345,7 @@
     choicesApply.addEventListener("click", async () => {
       const typed = ($("composer-text").value || "").trim();
       if (!selectedChoices().length && !typed) {
-        showSendHint("Отметьте варианты или нажмите «Отмена».");
+        showSendHint("РћС‚РјРµС‚СЊС‚Рµ РІР°СЂРёР°РЅС‚С‹ РёР»Рё РЅР°Р¶РјРёС‚Рµ В«РћС‚РјРµРЅР°В».");
         return;
       }
       if (selectedChoices().some(isWriteInChoice) && !typed) {
@@ -1354,7 +1354,7 @@
       }
       const payload = encodeSelectedPayload(typed);
       if (!payload) {
-        showSendHint("Отметьте варианты или нажмите «Отмена».");
+        showSendHint("РћС‚РјРµС‚СЊС‚Рµ РІР°СЂРёР°РЅС‚С‹ РёР»Рё РЅР°Р¶РјРёС‚Рµ В«РћС‚РјРµРЅР°В».");
         return;
       }
       closeChoicesModal();
@@ -1376,7 +1376,7 @@
     try {
       if (mode === "feedback") {
         if (!typed) {
-          showSendHint("Введите замечание и нажмите «Отправить».");
+          showSendHint("Р’РІРµРґРёС‚Рµ Р·Р°РјРµС‡Р°РЅРёРµ Рё РЅР°Р¶РјРёС‚Рµ В«РћС‚РїСЂР°РІРёС‚СЊВ».");
           return;
         }
         xp("thinking");
@@ -1414,7 +1414,7 @@
   $("btn-attach").addEventListener("click", () => {
     if (!requireUser() || !state.projectId) return;
     if (state.listMode === "feedback") {
-      alert("В режиме замечаний прикрепите файл как текст описания или используйте голос позже.");
+      alert("Р’ СЂРµР¶РёРјРµ Р·Р°РјРµС‡Р°РЅРёР№ РїСЂРёРєСЂРµРїРёС‚Рµ С„Р°Р№Р» РєР°Рє С‚РµРєСЃС‚ РѕРїРёСЃР°РЅРёСЏ РёР»Рё РёСЃРїРѕР»СЊР·СѓР№С‚Рµ РіРѕР»РѕСЃ РїРѕР·Р¶Рµ.");
     }
     $("file-input").click();
   });
@@ -1425,7 +1425,7 @@
     input.value = "";
     if (!file || !state.projectId || !requireUser()) return;
     if (state.listMode === "feedback") {
-      alert("Прикрепление файлов в замечаниях пока через текст. Опишите замечание.");
+      alert("РџСЂРёРєСЂРµРїР»РµРЅРёРµ С„Р°Р№Р»РѕРІ РІ Р·Р°РјРµС‡Р°РЅРёСЏС… РїРѕРєР° С‡РµСЂРµР· С‚РµРєСЃС‚. РћРїРёС€РёС‚Рµ Р·Р°РјРµС‡Р°РЅРёРµ.");
       return;
     }
     try {
@@ -1471,8 +1471,8 @@
     voiceBtn.classList.toggle("recording", active);
     voiceBtn.setAttribute("aria-pressed", active ? "true" : "false");
     const label = voiceBtn.querySelector(".btn-label");
-    if (label) label.textContent = active ? "Стоп" : "Голос";
-    voiceBtn.title = active ? "Остановить запись" : "Надиктовать в поле ответа";
+    if (label) label.textContent = active ? "РЎС‚РѕРї" : "Р“РѕР»РѕСЃ";
+    voiceBtn.title = active ? "РћСЃС‚Р°РЅРѕРІРёС‚СЊ Р·Р°РїРёСЃСЊ" : "РќР°РґРёРєС‚РѕРІР°С‚СЊ РІ РїРѕР»Рµ РѕС‚РІРµС‚Р°";
     if (statusText) {
       voiceStatus.classList.remove("hidden");
       voiceStatus.textContent = statusText;
@@ -1483,7 +1483,7 @@
   }
 
   function resizeComposer() {
-    /* textarea fills 20–25% composer via CSS flex */
+    /* textarea fills 20вЂ“25% composer via CSS flex */
   }
 
   function appendToComposer(transcript) {
@@ -1519,8 +1519,8 @@
     state.recognition = null;
     state.voiceMode = null;
     const note = reason
-      ? `Web Speech недоступен (${reason}). Запись → Groq Whisper…`
-      : "Запись → Groq Whisper…";
+      ? `Web Speech РЅРµРґРѕСЃС‚СѓРїРµРЅ (${reason}). Р—Р°РїРёСЃСЊ в†’ Groq WhisperвЂ¦`
+      : "Р—Р°РїРёСЃСЊ в†’ Groq WhisperвЂ¦";
     setVoiceUi(false, note);
     startMediaDictation().catch((e) => alert(e.message || String(e)));
   }
@@ -1536,7 +1536,7 @@
     }
     if (state.voiceMode === "media" && state.mediaRecorder) {
       const recorder = state.mediaRecorder;
-      setVoiceUi(true, "Распознавание (Groq)…");
+      setVoiceUi(true, "Р Р°СЃРїРѕР·РЅР°РІР°РЅРёРµ (Groq)вЂ¦");
       try {
         if (recorder.state === "recording") recorder.requestData();
       } catch (_) {
@@ -1559,7 +1559,7 @@
     state.speechGotResult = false;
 
     rec.onstart = () => {
-      setVoiceUi(true, "Web Speech: слушаю… затем Стоп");
+      setVoiceUi(true, "Web Speech: СЃР»СѓС€Р°СЋвЂ¦ Р·Р°С‚РµРј РЎС‚РѕРї");
     };
     rec.onresult = (event) => {
       for (let i = event.resultIndex; i < event.results.length; i += 1) {
@@ -1568,7 +1568,7 @@
           state.speechGotResult = true;
           appendToComposer(row[0].transcript);
           voiceStatus.classList.remove("hidden");
-          voiceStatus.textContent = "Текст вставлен — можно договорить или править";
+          voiceStatus.textContent = "РўРµРєСЃС‚ РІСЃС‚Р°РІР»РµРЅ вЂ” РјРѕР¶РЅРѕ РґРѕРіРѕРІРѕСЂРёС‚СЊ РёР»Рё РїСЂР°РІРёС‚СЊ";
           xp("got_voice");
         }
       }
@@ -1579,10 +1579,10 @@
       if (code === "no-speech") return;
       if (code === "not-allowed") {
         xp("error");
-        alert("Нет доступа к микрофону. Разрешите микрофон для Telegram/браузера.");
+        alert("РќРµС‚ РґРѕСЃС‚СѓРїР° Рє РјРёРєСЂРѕС„РѕРЅСѓ. Р Р°Р·СЂРµС€РёС‚Рµ РјРёРєСЂРѕС„РѕРЅ РґР»СЏ Telegram/Р±СЂР°СѓР·РµСЂР°.");
         return;
       }
-      // network / service-not-allowed / audio-capture → use Groq path
+      // network / service-not-allowed / audio-capture в†’ use Groq path
       if (
         code === "network" ||
         code === "service-not-allowed" ||
@@ -1597,7 +1597,7 @@
         fallbackToGroq(code);
         return;
       }
-      alert("Ошибка Web Speech: " + code + ". Пробуем Groq…");
+      alert("РћС€РёР±РєР° Web Speech: " + code + ". РџСЂРѕР±СѓРµРј GroqвЂ¦");
       fallbackToGroq(code);
     };
     rec.onend = () => {
@@ -1609,7 +1609,7 @@
       const hasText = (($("composer-text").value || "").trim().length > 0);
       setVoiceUi(
         false,
-        hasText ? "Готово — поправьте текст при необходимости и нажмите Отправить" : ""
+        hasText ? "Р“РѕС‚РѕРІРѕ вЂ” РїРѕРїСЂР°РІСЊС‚Рµ С‚РµРєСЃС‚ РїСЂРё РЅРµРѕР±С…РѕРґРёРјРѕСЃС‚Рё Рё РЅР°Р¶РјРёС‚Рµ РћС‚РїСЂР°РІРёС‚СЊ" : ""
       );
       if (!state.speechGotResult) xp("idle");
       if (hasText) {
@@ -1696,7 +1696,7 @@
         state.voiceMode = null;
         setVoiceUi(false, "");
         xp("error");
-        alert("Ошибка записи. Попробуйте ещё раз или введите текст.");
+        alert("РћС€РёР±РєР° Р·Р°РїРёСЃРё. РџРѕРїСЂРѕР±СѓР№С‚Рµ РµС‰С‘ СЂР°Р· РёР»Рё РІРІРµРґРёС‚Рµ С‚РµРєСЃС‚.");
       };
       state.mediaRecorder.onstop = () => {
         setMicTracksEnabled(false);
@@ -1707,20 +1707,20 @@
       } catch (_) {
         state.mediaRecorder.start();
       }
-      setVoiceUi(true, "Идёт запись… нажмите микрофон ещё раз, чтобы остановить");
+      setVoiceUi(true, "РРґС‘С‚ Р·Р°РїРёСЃСЊвЂ¦ РЅР°Р¶РјРёС‚Рµ РјРёРєСЂРѕС„РѕРЅ РµС‰С‘ СЂР°Р·, С‡С‚РѕР±С‹ РѕСЃС‚Р°РЅРѕРІРёС‚СЊ");
     } catch (err) {
       state.voiceMode = null;
       setVoiceUi(false, "");
       xp("error");
       if (err && err.code === "no-media") {
         alert(
-          "Голосовой ввод недоступен в этом клиенте Telegram. Разрешите микрофон для Telegram в настройках телефона или введите текст. Голосовые в чат бота тоже принимаются."
+          "Р“РѕР»РѕСЃРѕРІРѕР№ РІРІРѕРґ РЅРµРґРѕСЃС‚СѓРїРµРЅ РІ СЌС‚РѕРј РєР»РёРµРЅС‚Рµ Telegram. Р Р°Р·СЂРµС€РёС‚Рµ РјРёРєСЂРѕС„РѕРЅ РґР»СЏ Telegram РІ РЅР°СЃС‚СЂРѕР№РєР°С… С‚РµР»РµС„РѕРЅР° РёР»Рё РІРІРµРґРёС‚Рµ С‚РµРєСЃС‚. Р“РѕР»РѕСЃРѕРІС‹Рµ РІ С‡Р°С‚ Р±РѕС‚Р° С‚РѕР¶Рµ РїСЂРёРЅРёРјР°СЋС‚СЃСЏ."
         );
         return;
       }
       const msg = String(err && err.message ? err.message : err);
       alert(
-        "Не удалось получить доступ к микрофону. В Android: Настройки → приложения → Telegram → разрешения → Микрофон. Затем закройте Mini App и откройте снова. " +
+        "РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РґРѕСЃС‚СѓРї Рє РјРёРєСЂРѕС„РѕРЅСѓ. Р’ Android: РќР°СЃС‚СЂРѕР№РєРё в†’ РїСЂРёР»РѕР¶РµРЅРёСЏ в†’ Telegram в†’ СЂР°Р·СЂРµС€РµРЅРёСЏ в†’ РњРёРєСЂРѕС„РѕРЅ. Р—Р°С‚РµРј Р·Р°РєСЂРѕР№С‚Рµ Mini App Рё РѕС‚РєСЂРѕР№С‚Рµ СЃРЅРѕРІР°. " +
           msg
       );
     }
@@ -1737,24 +1737,24 @@
       if (!blob.size || elapsed < 400) {
         setVoiceUi(false, "");
         xp("idle");
-        alert("Слишком короткая запись. Нажмите микрофон, говорите, затем нажмите ещё раз.");
+        alert("РЎР»РёС€РєРѕРј РєРѕСЂРѕС‚РєР°СЏ Р·Р°РїРёСЃСЊ. РќР°Р¶РјРёС‚Рµ РјРёРєСЂРѕС„РѕРЅ, РіРѕРІРѕСЂРёС‚Рµ, Р·Р°С‚РµРј РЅР°Р¶РјРёС‚Рµ РµС‰С‘ СЂР°Р·.");
         return;
       }
       const ext = state.recorderExt || (type.includes("ogg") ? "ogg" : type.includes("mp4") || type.includes("aac") ? "mp4" : "webm");
       const fd = new FormData();
       fd.append("file", blob, `voice.${ext}`);
-      setVoiceUi(false, "Распознавание (Groq)…");
+      setVoiceUi(false, "Р Р°СЃРїРѕР·РЅР°РІР°РЅРёРµ (Groq)вЂ¦");
       xp("thinking");
       const res = await api("/stt/transcribe", { method: "POST", body: fd });
       const text = (res.text || "").trim();
       if (!text) {
         setVoiceUi(false, "");
         xp("error");
-        alert("Не удалось распознать речь. Попробуйте ещё раз или введите текст.");
+        alert("РќРµ СѓРґР°Р»РѕСЃСЊ СЂР°СЃРїРѕР·РЅР°С‚СЊ СЂРµС‡СЊ. РџРѕРїСЂРѕР±СѓР№С‚Рµ РµС‰С‘ СЂР°Р· РёР»Рё РІРІРµРґРёС‚Рµ С‚РµРєСЃС‚.");
         return;
       }
       appendToComposer(text);
-      setVoiceUi(false, "Текст вставлен — можно править и отправить");
+      setVoiceUi(false, "РўРµРєСЃС‚ РІСЃС‚Р°РІР»РµРЅ вЂ” РјРѕР¶РЅРѕ РїСЂР°РІРёС‚СЊ Рё РѕС‚РїСЂР°РІРёС‚СЊ");
       xp("got_voice");
       setTimeout(() => {
         if (!state.recording) {

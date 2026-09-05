@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>ASF</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="./styles.css?v=20260906-matrix" />
+  <link rel="stylesheet" href="./styles.css?v=20260906-matrix-tg" />
   <meta name="asf-mascot-riv" content="./mascot.riv" />
   <meta name="asf-mascot-sm" content="Mascot" />
 </head>
@@ -15,78 +15,78 @@
     <header class="top">
       <div class="brand-row">
         <div class="brand-lockup">
-          <img class="brand-logo brand-logo-full" src="./brand/logo-v2.png" alt="Uni 4 IT — Universal IT Solutions" width="409" height="186" />
+          <img class="brand-logo brand-logo-full" src="./brand/logo-v2.png" alt="Uni 4 IT вЂ” Universal IT Solutions" width="409" height="186" />
         </div>
-        <button type="button" id="btn-settings" class="settings-toggle" title="Настройки">
-          Настройки
+        <button type="button" id="btn-settings" class="settings-toggle" title="РќР°СЃС‚СЂРѕР№РєРё">
+          РќР°СЃС‚СЂРѕР№РєРё
         </button>
       </div>
-      <p class="hook" id="subtitle">От идеи до продукта</p>
+      <p class="hook" id="subtitle">РћС‚ РёРґРµРё РґРѕ РїСЂРѕРґСѓРєС‚Р°</p>
     </header>
 
     <section id="view-home" class="view">
       <div class="actions" id="home-actions">
         <button type="button" data-action="create" class="btn primary">
-          <span class="btn-title">Создать проект</span>
-          <span class="btn-desc">Новое интервью</span>
+          <span class="btn-title">РЎРѕР·РґР°С‚СЊ РїСЂРѕРµРєС‚</span>
+          <span class="btn-desc">РќРѕРІРѕРµ РёРЅС‚РµСЂРІСЊСЋ</span>
         </button>
         <button type="button" data-action="change" class="btn hidden">
-          <span class="btn-title">Изменить проект</span>
-          <span class="btn-desc">Дописать или поправить требования</span>
+          <span class="btn-title">РР·РјРµРЅРёС‚СЊ РїСЂРѕРµРєС‚</span>
+          <span class="btn-desc">Р”РѕРїРёСЃР°С‚СЊ РёР»Рё РїРѕРїСЂР°РІРёС‚СЊ С‚СЂРµР±РѕРІР°РЅРёСЏ</span>
         </button>
         <button type="button" data-action="feedback" class="btn hidden">
-          <span class="btn-title">Замечания к реализации</span>
-          <span class="btn-desc">Наговорить или написать, что не так в MVP</span>
+          <span class="btn-title">Р—Р°РјРµС‡Р°РЅРёСЏ Рє СЂРµР°Р»РёР·Р°С†РёРё</span>
+          <span class="btn-desc">РќР°РіРѕРІРѕСЂРёС‚СЊ РёР»Рё РЅР°РїРёСЃР°С‚СЊ, С‡С‚Рѕ РЅРµ С‚Р°Рє РІ MVP</span>
         </button>
       </div>
     </section>
 
     <section id="view-settings" class="view hidden">
-      <button type="button" class="linkback" data-back>← Назад</button>
-      <h1>Настройки</h1>
+      <button type="button" class="linkback" data-back>в†ђ РќР°Р·Р°Рґ</button>
+      <h1>РќР°СЃС‚СЂРѕР№РєРё</h1>
       <div class="settings-card">
-        <p class="settings-label">Движение</p>
-        <button type="button" id="btn-calm" class="calm-toggle" data-calm-toggle aria-pressed="false" title="Отключить анимации маскота и фона">
-          Спокойный режим
+        <p class="settings-label">Р”РІРёР¶РµРЅРёРµ</p>
+        <button type="button" id="btn-calm" class="calm-toggle" data-calm-toggle aria-pressed="false" title="РћС‚РєР»СЋС‡РёС‚СЊ Р°РЅРёРјР°С†РёРё РјР°СЃРєРѕС‚Р° Рё С„РѕРЅР°">
+          РЎРїРѕРєРѕР№РЅС‹Р№ СЂРµР¶РёРј
         </button>
-        <p class="settings-hint">Выключает Matrix-фон и анимацию маскота. То же самое при prefers-reduced-motion.</p>
+        <p class="settings-hint">Р’С‹РєР»СЋС‡Р°РµС‚ Matrix-С„РѕРЅ Рё Р°РЅРёРјР°С†РёСЋ РјР°СЃРєРѕС‚Р°. РўРѕ Р¶Рµ СЃР°РјРѕРµ РїСЂРё prefers-reduced-motion.</p>
       </div>
       <div class="settings-card">
         <p class="settings-label">Telegram</p>
-        <p class="settings-row">Пользователь: <span id="settings-tg-user">—</span></p>
-        <p class="settings-row">Бот: <a class="settings-link" href="https://t.me/UNI4ITBot" target="_blank" rel="noopener">@UNI4ITBot</a></p>
+        <p class="settings-row">РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ: <span id="settings-tg-user">вЂ”</span></p>
+        <p class="settings-row">Р‘РѕС‚: <a class="settings-link" href="https://t.me/UNI4ITBot" target="_blank" rel="noopener">@UNI4ITBot</a></p>
       </div>
       <div class="settings-card">
-        <p class="settings-label">Контакты</p>
-        <p class="settings-row">Дмитрий Нижебецкий</p>
-        <p class="settings-row">тел. <a class="settings-link" href="tel:89031517888">8 903 151 7888</a></p>
-        <p class="settings-row">Telegram: <span id="settings-owner-tg">не задан</span></p>
+        <p class="settings-label">РљРѕРЅС‚Р°РєС‚С‹</p>
+        <p class="settings-row">Р”РјРёС‚СЂРёР№ РќРёР¶РµР±РµС†РєРёР№</p>
+        <p class="settings-row">С‚РµР». <a class="settings-link" href="tel:89031517888">8 903 151 7888</a></p>
+        <p class="settings-row">Telegram: <span id="settings-owner-tg">РЅРµ Р·Р°РґР°РЅ</span></p>
       </div>
     </section>
 
     <section id="view-create" class="view hidden">
-      <button type="button" class="linkback" data-back>← Назад</button>
-      <h1>Новый проект</h1>
+      <button type="button" class="linkback" data-back>в†ђ РќР°Р·Р°Рґ</button>
+      <h1>РќРѕРІС‹Р№ РїСЂРѕРµРєС‚</h1>
       <label class="field">
-        Название
-        <input id="create-name" type="text" placeholder="Например: бот записи" maxlength="200" />
+        РќР°Р·РІР°РЅРёРµ
+        <input id="create-name" type="text" placeholder="РќР°РїСЂРёРјРµСЂ: Р±РѕС‚ Р·Р°РїРёСЃРё" maxlength="200" />
       </label>
-      <button type="button" id="create-submit" class="btn primary">Создать и открыть</button>
+      <button type="button" id="create-submit" class="btn primary">РЎРѕР·РґР°С‚СЊ Рё РѕС‚РєСЂС‹С‚СЊ</button>
     </section>
 
     <section id="view-list" class="view hidden">
-      <button type="button" class="linkback" data-back>← Назад</button>
-      <h1 id="list-title">Проекты</h1>
+      <button type="button" class="linkback" data-back>в†ђ РќР°Р·Р°Рґ</button>
+      <h1 id="list-title">РџСЂРѕРµРєС‚С‹</h1>
       <ul id="project-list" class="list"></ul>
-      <p id="list-empty" class="muted hidden">Пока нет проектов.</p>
+      <p id="list-empty" class="muted hidden">РџРѕРєР° РЅРµС‚ РїСЂРѕРµРєС‚РѕРІ.</p>
     </section>
 
     <section id="view-workspace" class="view hidden">
       <div class="ws-chrome">
         <div class="ws-chrome-top">
-          <button type="button" class="linkback" data-back-workspace>← К проектам</button>
+          <button type="button" class="linkback" data-back-workspace>в†ђ Рљ РїСЂРѕРµРєС‚Р°Рј</button>
           <div class="ws-brand-lockup">
-            <img class="ws-brand-logo" src="./brand/logo-v2.png" alt="Uni 4 IT — Universal IT Solutions" width="409" height="186" />
+            <img class="ws-brand-logo" src="./brand/logo-v2.png" alt="Uni 4 IT вЂ” Universal IT Solutions" width="409" height="186" />
           </div>
         </div>
         <div class="ws-stage">
@@ -97,17 +97,17 @@
                 <div class="mascot-rig">
                   <div class="mascot-body">
                     <div class="mascot-wave">
-                      <img class="mascot-photo" src="./brand/mascot-bust.png" alt="Компаньон интервью Uni 4 IT" width="72" height="92" />
+                      <img class="mascot-photo" src="./brand/mascot-bust.png" alt="РљРѕРјРїР°РЅСЊРѕРЅ РёРЅС‚РµСЂРІСЊСЋ Uni 4 IT" width="72" height="92" />
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-            <p id="mascot-status" class="mascot-status">На связи</p>
+            <p id="mascot-status" class="mascot-status">РќР° СЃРІСЏР·Рё</p>
           </aside>
           <div class="ws-head">
-            <h1 id="ws-name">Проект</h1>
-            <div id="ws-progress" class="ws-progress hidden" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Сбор требований">
+            <h1 id="ws-name">РџСЂРѕРµРєС‚</h1>
+            <div id="ws-progress" class="ws-progress hidden" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="РЎР±РѕСЂ С‚СЂРµР±РѕРІР°РЅРёР№">
               <div class="ws-progress-track">
                 <div id="ws-progress-fill" class="ws-progress-fill"></div>
               </div>
@@ -119,19 +119,19 @@
       </div>
       <div id="thread" class="thread"></div>
       <section id="client-estimate" class="client-estimate hidden" aria-live="polite">
-        <p class="client-estimate-kicker">Смета для согласования</p>
+        <p class="client-estimate-kicker">РЎРјРµС‚Р° РґР»СЏ СЃРѕРіР»Р°СЃРѕРІР°РЅРёСЏ</p>
         <div id="ce-cost" class="client-estimate-cost"></div>
         <div id="ce-hours" class="client-estimate-hours"></div>
         <p id="ce-disclaimer" class="client-estimate-disclaimer"></p>
         <details id="ce-report" class="client-estimate-report">
-          <summary>Почему столько стоит</summary>
+          <summary>РџРѕС‡РµРјСѓ СЃС‚РѕР»СЊРєРѕ СЃС‚РѕРёС‚</summary>
           <div id="ce-report-body"></div>
         </details>
         <div id="ce-actions" class="client-estimate-actions hidden">
-          <button type="button" id="ce-confirm" class="btn primary">Подтверждаю</button>
-          <button type="button" id="ce-discuss" class="btn">Нужно обсудить</button>
+          <button type="button" id="ce-confirm" class="btn primary">РџРѕРґС‚РІРµСЂР¶РґР°СЋ</button>
+          <button type="button" id="ce-discuss" class="btn">РќСѓР¶РЅРѕ РѕР±СЃСѓРґРёС‚СЊ</button>
         </div>
-        <p class="client-estimate-download-title">Получить смету в чат бота</p>
+        <p class="client-estimate-download-title">РџРѕР»СѓС‡РёС‚СЊ СЃРјРµС‚Сѓ РІ С‡Р°С‚ Р±РѕС‚Р°</p>
         <div id="ce-download" class="tz-download-row">
           <button type="button" class="btn" data-ce-fmt="md">Markdown</button>
           <button type="button" class="btn" data-ce-fmt="docx">Word</button>
@@ -144,23 +144,23 @@
         <div id="export-fallback" class="export-fallback hidden">
           <p id="export-fallback-text" class="export-fallback-text"></p>
           <div class="export-fallback-row">
-            <button type="button" id="export-retry" class="btn primary">Ещё раз в бота</button>
-            <a id="export-open" class="btn" href="#" target="_blank" rel="noopener">Открыть файл</a>
+            <button type="button" id="export-retry" class="btn primary">Р•С‰С‘ СЂР°Р· РІ Р±РѕС‚Р°</button>
+            <a id="export-open" class="btn" href="#" target="_blank" rel="noopener">РћС‚РєСЂС‹С‚СЊ С„Р°Р№Р»</a>
           </div>
         </div>
         <form id="composer" class="composer">
-          <textarea id="composer-text" rows="4" placeholder="Сообщение…"></textarea>
+          <textarea id="composer-text" rows="4" placeholder="РЎРѕРѕР±С‰РµРЅРёРµвЂ¦"></textarea>
           <div class="composer-toolbar">
-            <button type="button" id="btn-choices" class="choices-btn hidden">Варианты ответа</button>
-            <button type="button" id="btn-attach" class="icon-btn" title="Прикрепить файл">
+            <button type="button" id="btn-choices" class="choices-btn hidden">Р’Р°СЂРёР°РЅС‚С‹ РѕС‚РІРµС‚Р°</button>
+            <button type="button" id="btn-attach" class="icon-btn" title="РџСЂРёРєСЂРµРїРёС‚СЊ С„Р°Р№Р»">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.44 11.05l-8.49 8.49a5.25 5.25 0 0 1-7.43-7.43l8.49-8.49a3.5 3.5 0 0 1 4.95 4.95l-8.49 8.49a1.75 1.75 0 1 1-2.47-2.47l7.78-7.78"/></svg>
-              <span class="btn-label">Файл</span>
+              <span class="btn-label">Р¤Р°Р№Р»</span>
             </button>
-            <button type="button" id="btn-voice" class="icon-btn" title="Надиктовать в поле ответа" aria-pressed="false">
+            <button type="button" id="btn-voice" class="icon-btn" title="РќР°РґРёРєС‚РѕРІР°С‚СЊ РІ РїРѕР»Рµ РѕС‚РІРµС‚Р°" aria-pressed="false">
               <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 17v5"/><path d="M8 22h8"/></svg>
-              <span class="btn-label">Голос</span>
+              <span class="btn-label">Р“РѕР»РѕСЃ</span>
             </button>
-            <button type="submit" class="btn primary send-btn" title="Отправить">Отправить</button>
+            <button type="submit" class="btn primary send-btn" title="РћС‚РїСЂР°РІРёС‚СЊ">РћС‚РїСЂР°РІРёС‚СЊ</button>
           </div>
           <input id="file-input" type="file" class="hidden" />
         </form>
@@ -171,24 +171,24 @@
 
   <div id="welcome-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
     <div class="modal-card">
-      <h2 id="welcome-title">Как это будет</h2>
+      <h2 id="welcome-title">РљР°Рє СЌС‚Рѕ Р±СѓРґРµС‚</h2>
       <div id="welcome-body" class="modal-body"></div>
-      <button type="button" id="welcome-go" class="btn primary">Поехали</button>
+      <button type="button" id="welcome-go" class="btn primary">РџРѕРµС…Р°Р»Рё</button>
     </div>
   </div>
   <div id="choices-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="choices-title">
     <div class="modal-card">
-      <h2 id="choices-title">Варианты ответа</h2>
+      <h2 id="choices-title">Р’Р°СЂРёР°РЅС‚С‹ РѕС‚РІРµС‚Р°</h2>
       <p id="choice-hint" class="muted choice-hint hidden"></p>
       <div id="choice-chips" class="choice-chips"></div>
       <div class="modal-actions">
-        <button type="button" id="choices-cancel" class="btn">Отмена</button>
-        <button type="button" id="choices-apply" class="btn primary hidden">Выбрать</button>
+        <button type="button" id="choices-cancel" class="btn">РћС‚РјРµРЅР°</button>
+        <button type="button" id="choices-apply" class="btn primary hidden">Р’С‹Р±СЂР°С‚СЊ</button>
       </div>
     </div>
   </div>
-  <script src="./foundry.js?v=20260906-matrix"></script>
-  <script src="./experience.js?v=20260906-matrix"></script>
-  <script src="./app.js?v=20260906-matrix"></script>
+  <script src="./foundry.js?v=20260906-matrix-tg"></script>
+  <script src="./experience.js?v=20260906-matrix-tg"></script>
+  <script src="./app.js?v=20260906-matrix-tg"></script>
 </body>
 </html>
