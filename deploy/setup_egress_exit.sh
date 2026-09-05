@@ -4,11 +4,12 @@ set -euo pipefail
 
 PUBKEY="${ASF_EGRESS_PUBKEY:-}"
 
+# env so `asf_sudo VAR=value cmd` works as root (`"$@"` would exec VAR=value).
 asf_sudo() {
   if [[ "$(id -u)" -eq 0 ]]; then
-    "$@"
+    env "$@"
   elif sudo -n true 2>/dev/null; then
-    sudo "$@"
+    sudo env "$@"
   else
     echo "Need root or passwordless sudo to install tinyproxy" >&2
     return 1

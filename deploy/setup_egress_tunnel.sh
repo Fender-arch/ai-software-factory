@@ -20,15 +20,16 @@ if [[ -z "$USER" || "$USER" == "SET_ME" ]]; then
   USER=root
 fi
 
+# env so `asf_sudo VAR=value cmd` works as root (`"$@"` would exec VAR=value).
 asf_sudo() {
   if [[ "$(id -u)" -eq 0 ]]; then
-    "$@"
+    env "$@"
   elif sudo -n true 2>/dev/null; then
-    sudo "$@"
+    sudo env "$@"
   elif [[ -n "${VPS_PASSWORD:-}" ]]; then
-    printf '%s\n' "$VPS_PASSWORD" | sudo -S -p "" "$@"
+    printf '%s\n' "$VPS_PASSWORD" | sudo -S -p "" env "$@"
   else
-    "$@"
+    env "$@"
   fi
 }
 
@@ -53,7 +54,6 @@ if [[ ! -f "$KEY" ]]; then
 fi
 chmod 600 "$KEY"
 chmod 644 "${KEY}.pub"
-PUBKEY="$(cat "${KEY}.pub")"
 
 if [[ -n "${EGRESS_SSH_PASSWORD:-}" && "${EGRESS_SSH_PASSWORD}" != "SET_ME" ]]; then
   if ! command -v sshpass >/dev/null 2>&1; then
@@ -63,8 +63,9 @@ if [[ -n "${EGRESS_SSH_PASSWORD:-}" && "${EGRESS_SSH_PASSWORD}" != "SET_ME" ]]; 
     fi
   fi
   if ! command -v sshpass >/dev/null 2>&1; then
-    echo "sshpass missing; cannot push key to ${HOST}. Add this pubkey to authorized_keys:" >&2
-    echo "$PUBKEY" >&2
+    echo "sshpass missing; cannot push key to ${HOST}." >&2
+    echo "Add ${KEY}.pub to authorized_keys on the exit host, then re-run Deploy VPS" >&2
+    echo "(or leave EGRESS_SSH_PASSWORD empty for key-only SSH)." >&2
     exit 1
   fi
   export SSHPASS="${EGRESS_SSH_PASSWORD}"
@@ -80,8 +81,7 @@ if [[ -n "${EGRESS_SSH_PASSWORD:-}" && "${EGRESS_SSH_PASSWORD}" != "SET_ME" ]]; 
   unset EGRESS_SSH_PASSWORD
 else
   echo "EGRESS_SSH_PASSWORD empty — assuming key is already on ${HOST}"
-  echo "Public key (add to authorized_keys if the tunnel fails):"
-  echo "$PUBKEY"
+  echo "If the tunnel fails, add ${KEY}.pub to authorized_keys on the exit host."
 fi
 
 echo "ASF_EGRESS_KEY_PATH=${KEY}"

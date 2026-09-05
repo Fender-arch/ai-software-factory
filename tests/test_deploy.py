@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -185,8 +186,39 @@ def test_normalize_domain_strips_url():
 def test_telegram_egress_scripts_do_not_print_secrets():
     diagnose = Path("deploy/diagnose_telegram_egress.sh").read_text(encoding="utf-8")
     hotfix = Path("deploy/hotfix_telegram_ipv4.sh").read_text(encoding="utf-8")
+    tunnel = Path("deploy/setup_egress_tunnel.sh").read_text(encoding="utf-8")
     assert "api.telegram.org" in diagnose
     assert "VERDICT=" in diagnose
     assert "TELEGRAM_BOT_TOKEN" not in diagnose
     assert "TELEGRAM_BOT_TOKEN" not in hotfix
     assert "extra_hosts" in hotfix
+    assert "EGRESS_SSH_PASSWORD" not in diagnose
+    assert 'echo "$PUBKEY"' not in tunnel
+    assert 'echo "$EGRESS_SSH_PASSWORD"' not in tunnel
+
+
+def test_asf_sudo_uses_env_so_apt_prefixes_work():
+    for rel in (
+        "deploy/setup_egress_tunnel.sh",
+        "deploy/setup_egress_exit.sh",
+        "deploy/setup_proxy.sh",
+        "deploy/remote_up.sh",
+    ):
+        text = Path(rel).read_text(encoding="utf-8")
+        assert 'env "$@"' in text, rel
+
+
+def test_asf_sudo_env_prefix_is_not_executed_as_command():
+    script = r"""
+    set -euo pipefail
+    asf_sudo() {
+      if [[ "$(id -u)" -eq 0 ]]; then
+        env "$@"
+      else
+        env "$@"
+      fi
+    }
+    out="$(asf_sudo DEBIAN_FRONTEND=noninteractive /bin/sh -c 'printf %s "$DEBIAN_FRONTEND"')"
+    test "$out" = "noninteractive"
+    """
+    subprocess.run(["bash", "-c", script], check=True)
