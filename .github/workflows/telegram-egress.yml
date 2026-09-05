@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - "cursor/telegram-egress-*"
+      - "cursor/fix-egress-*"
 
 concurrency:
   group: asf-telegram-egress
@@ -45,7 +46,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
           port: ${{ secrets.VPS_SSH_PORT || 22 }}
-          source: deploy/diagnose_telegram_egress.sh,deploy/hotfix_telegram_ipv4.sh
+          source: deploy/diagnose_telegram_egress.sh,deploy/hotfix_telegram_ipv4.sh,deploy/hotfix_egress_proxy_env.sh
           target: /tmp/asf-telegram-egress
           overwrite: true
           timeout: 60s
@@ -69,11 +70,17 @@ jobs:
             mkdir -p "$DEPLOY_PATH/deploy"
             cp /tmp/asf-telegram-egress/deploy/diagnose_telegram_egress.sh "$DEPLOY_PATH/deploy/" || true
             cp /tmp/asf-telegram-egress/deploy/hotfix_telegram_ipv4.sh "$DEPLOY_PATH/deploy/" || true
+            cp /tmp/asf-telegram-egress/deploy/hotfix_egress_proxy_env.sh "$DEPLOY_PATH/deploy/" || true
             chmod +x "$DEPLOY_PATH/deploy/"*.sh
             echo "===== BEFORE ====="
             bash "$DEPLOY_PATH/deploy/diagnose_telegram_egress.sh" | tee /tmp/asf-tg-before.txt
             verdict="$(grep '^VERDICT=' /tmp/asf-tg-before.txt | tail -1 || true)"
             echo "parsed ${verdict}"
+            if grep -q '"via_proxy": false' /tmp/asf-tg-before.txt \
+              && grep -qE '^EGRESS_SSH_HOST=[^[:space:]]+' "$DEPLOY_PATH/.env" 2>/dev/null; then
+              echo "Tunnel configured but containers have no proxy — applying env hotfix"
+              bash "$DEPLOY_PATH/deploy/hotfix_egress_proxy_env.sh" || echo "proxy env hotfix failed"
+            fi
             if echo "$verdict" | grep -q 'egress_blocked'; then
               if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -qi 'Status: active'; then
                 echo "ufw active: allow outgoing 443/tcp and 53"
@@ -82,8 +89,12 @@ jobs:
               fi
             fi
             if echo "$verdict" | grep -Eq 'host_can_reach_telegram|unknown|telegram_blocked|egress_blocked'; then
-              echo "Trying IPv4 extra_hosts hotfix if host IPv4 works..."
-              bash "$DEPLOY_PATH/deploy/hotfix_telegram_ipv4.sh" || echo "hotfix skipped or failed (ok if host cannot reach Telegram)"
+              if grep -qE '^EGRESS_SSH_HOST=[^[:space:]]+' "$DEPLOY_PATH/.env" 2>/dev/null; then
+                echo "Skipping IPv4 extra_hosts — geo egress is configured"
+              else
+                echo "Trying IPv4 extra_hosts hotfix if host IPv4 works..."
+                bash "$DEPLOY_PATH/deploy/hotfix_telegram_ipv4.sh" || echo "hotfix skipped or failed (ok if host cannot reach Telegram)"
+              fi
             fi
             echo "===== AFTER ====="
             bash "$DEPLOY_PATH/deploy/diagnose_telegram_egress.sh"

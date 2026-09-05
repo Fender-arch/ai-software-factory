@@ -71,6 +71,14 @@ compose() {
 }
 
 echo
+echo "-- egress container --"
+if command -v docker >/dev/null 2>&1 && docker inspect asf-egress-1 >/dev/null 2>&1; then
+  docker inspect -f 'asf-egress-1 status={{.State.Status}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' asf-egress-1 || true
+else
+  echo "asf-egress-1 not found"
+fi
+
+echo
 echo "-- api container --"
 if [[ -f "${DEPLOY_PATH}/docker-compose.prod.yml" ]]; then
   (
@@ -79,10 +87,19 @@ if [[ -f "${DEPLOY_PATH}/docker-compose.prod.yml" ]]; then
     if [[ -f docker-compose.telegram-egress.yml ]]; then
       files+=(-f docker-compose.telegram-egress.yml)
     fi
+    if grep -qE '^EGRESS_SSH_HOST=[^[:space:]]+' .env 2>/dev/null; then
+      files+=(--profile egress)
+    fi
     compose "${files[@]}" --env-file .env exec -T api python - <<'PY' || echo "container diagnose failed"
 import json
+import os
 import socket
 import urllib.request
+from urllib.parse import urlparse
+
+import httpx
+
+from core.egress import resolve_outbound_proxy_url
 from integrations.telegram.notify import diagnose_telegram_bot_api
 
 print("container ipv4 route probe:", end=" ")
@@ -95,12 +112,44 @@ try:
 except OSError as exc:
     print(type(exc).__name__)
 
+for key in (
+    "TELEGRAM_PROXY",
+    "HTTPS_PROXY",
+    "HTTP_PROXY",
+    "ALL_PROXY",
+    "LLM_HTTP_PROXY",
+):
+    raw = (os.environ.get(key) or "").strip()
+    print(f"{key}: {'yes' if raw and raw != 'SET_ME' else 'no'}")
+
+proxy = resolve_outbound_proxy_url()
+if proxy:
+    parsed = urlparse(proxy)
+    host = parsed.hostname or "?"
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    print(f"proxy_target={host}:{port}")
+else:
+    print("proxy_target=none")
+
 for host in ("example.org", "api.telegram.org"):
     try:
         urllib.request.urlopen(f"https://{host}", timeout=8)
         print(f"container urllib {host}: ok")
     except Exception as exc:
         print(f"container urllib {host}: {type(exc).__name__}")
+
+def _httpx_probe(label: str, **kwargs) -> None:
+    try:
+        response = httpx.get("https://api.telegram.org", timeout=8, **kwargs)
+        print(f"{label}: {response.status_code}")
+    except Exception as exc:  # noqa: BLE001 — ops probe
+        print(f"{label}: {type(exc).__name__}")
+
+_httpx_probe("httpx telegram direct", trust_env=False)
+if proxy:
+    _httpx_probe("httpx telegram via_proxy", trust_env=False, proxy=proxy)
+else:
+    print("httpx telegram via_proxy: skipped")
 
 report = diagnose_telegram_bot_api()
 print(json.dumps(report, ensure_ascii=False))

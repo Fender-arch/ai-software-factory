@@ -40,6 +40,16 @@ cd "$DEPLOY_PATH"
 export PYTHONPATH="$DEPLOY_PATH"
 export ASF_ENV_PATH="${DEPLOY_PATH}/.env"
 python3 deploy/write_env.py
+# Empty GitHub HTTPS_PROXY= wins over --env-file .env interpolation and
+# wipes http://egress:8888 from api/bot (via_proxy=false, sendDocument ConnectError).
+set +u
+for key in HTTPS_PROXY HTTP_PROXY ALL_PROXY TELEGRAM_PROXY LLM_HTTP_PROXY; do
+  val="${!key}"
+  if [[ -z "$val" || "$val" == "SET_ME" ]]; then
+    unset "$key"
+  fi
+done
+set -u
 chmod +x "${DEPLOY_PATH}/deploy/"*.sh "${DEPLOY_PATH}/docker/"*.sh 2>/dev/null || true
 if [[ -n "${EGRESS_SSH_HOST:-}" && "${EGRESS_SSH_HOST}" != "SET_ME" ]]; then
   export EGRESS_SSH_HOST
