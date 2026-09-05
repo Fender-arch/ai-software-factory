@@ -29,9 +29,13 @@ def test_miniapp_static_served(client):
     assert "Ещё пара уточнений" in js.text
     assert "Сбор требований: ${percent}%" in js.text
     assert "из ${total}" not in js.text
-    assert "20260906-brandv2" in res.text
+    assert "20260906-polish" in res.text
     assert "logo-full-on-dark.svg" in res.text
     assert "mascot-bust.png" in res.text
+    assert "mascot-stage" in res.text
+    assert 'id="subtitle"' in res.text
+    assert res.text.find("brand-row") < res.text.find('id="subtitle"')
+    assert res.text.find('id="subtitle"') < res.text.find("</header>")
     assert "Uni 4 IT" in res.text
     assert "УНИВЕРСАЛЬНЫЕ РЕШЕНИЯ ДЛЯ IT" not in res.text
     brand_full = client.get("/miniapp/brand/logo-full.svg")
@@ -90,15 +94,27 @@ def test_miniapp_static_served(client):
     assert "#2ecc71" in css.text
     assert "#5c5c5c" in css.text
     assert "--app-vh" in css.text
+    assert "--bg: #07060b" in css.text
+    assert "--text: #f4efe6" in css.text
+    assert "--muted: #a89888" in css.text
+    assert "--accent: #e8c36a" in css.text
+    assert "--ember: #ff6b2c" in css.text
     assert "--brand-navy" in css.text
     assert "--brand-cyan" in css.text
     assert "--brand-purple" in css.text
     assert "--brand-grad" in css.text
     assert "--brand-lavender" not in css.text
+    assert "--space-3: 12px" in css.text
+    assert "--radius: 12px" in css.text
+    assert "object-fit: contain" in css.text
+    assert "contain: layout" in css.text
+    assert ".mascot-stage" in css.text
     assert "asf-mascot-wave" in css.text
     assert "rotateY" in css.text
     assert "--tg-theme-bg-color" in css.text
     assert "flex: 0 0 24%" in css.text
+    assert "indigo-500" not in css.text
+    assert "blue-500" not in css.text
     assert "microphone=(self)" in (res.headers.get("permissions-policy") or "")
     assert res.headers.get("cache-control") == "no-store"
 
