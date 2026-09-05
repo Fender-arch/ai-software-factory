@@ -5,7 +5,7 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.3 |
+| Version | 0.4 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -84,6 +84,19 @@ bash deploy/setup_proxy.sh
 3. `https://<DOMAIN_MINIAPP>/miniapp/` открывает Mini App на русском
 4. `https://<DOMAIN_CONSOLE>/console/` открывает консоль владельца (вставьте `CONSOLE_TOKEN`)
 5. Кнопка меню Telegram-бота открывает Mini App (`MINIAPP_URL`)
+6. **Тот же бот:** `TELEGRAM_BOT_TOKEN` — бот BotFather, у которого URL Mini App. `GET /health/telegram` (или лог старта бота) показывает `bot_username` — он должен совпадать с чатом, откуда открыли Mini App. `sendDocument` идёт с этим токеном из **контейнера API**, не из WebView.
+7. **Исходящий доступ VPS к Bot API** (выгрузка ТЗ падает здесь, если egress закрыт; пользователь уже в Telegram — не аргумент):
+
+```bash
+# с хоста VPS
+curl -sS -o /dev/null -w '%{http_code}\n' --max-time 8 https://api.telegram.org
+# из контейнера API (это путь sendDocument)
+docker compose -f /opt/asf/docker-compose.prod.yml --env-file /opt/asf/.env exec -T api \
+  python -c "from integrations.telegram.notify import diagnose_telegram_bot_api; import json; print(json.dumps(diagnose_telegram_bot_api()))"
+curl -sS http://127.0.0.1:18000/health/telegram
+```
+
+Ожидается HTTP до `api.telegram.org` и `bot_ok: true` с username бота Mini App. `401` / `Unauthorized` — неверный или placeholder-токен. Transport / timeout — файрвол, DNS или IPv6 egress, не телефон заказчика. В логах `sendDocument` есть `http` status + `description` Telegram, токена нет.
 
 ## Откат только ASF
 

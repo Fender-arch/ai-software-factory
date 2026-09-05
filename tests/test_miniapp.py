@@ -29,7 +29,7 @@ def test_miniapp_static_served(client):
     assert "Ещё пара уточнений" in js.text
     assert "Сбор требований: ${percent}%" in js.text
     assert "из ${total}" not in js.text
-    assert "20260906-brand" in res.text
+    assert "20260906-tzapierr" in res.text
     assert "logo-full-on-dark.svg" in res.text
     assert "mascot-bust.png" in res.text
     assert "UNI4IT" in res.text
@@ -117,6 +117,9 @@ def test_miniapp_js_uses_telegram_fullscreen_and_groq_voice(client):
     assert "Файл в личке с ботом" in js.text
     assert "Закройте Mini App" in js.text
     assert "Отправляем файл в чат бота" in js.text
+    assert "humanizeTelegramSendError" in js.text
+    assert "Telegram Bot API" in js.text
+    assert "не ваш интернет" in js.text
     html = client.get("/miniapp/").text
     assert "Ещё раз в бота" in html
     assert 'id="export-fallback"' in html

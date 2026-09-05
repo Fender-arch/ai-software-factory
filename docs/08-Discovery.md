@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.23 |
+| Version | 0.24 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -88,7 +88,7 @@ keeps coverage but uses rephrased FSM questions (no catalog heading menu).
 
 After clarify, a short **closing wrap-up** (still `REVIEW`) asks: anything else to add; a specific budget figure if the customer wants one; and whether they already have a brief (file or paste from ChatGPT / another LLM). Attached text/markdown/docx is extracted into the TZ. «готово» skips leftover wrap-up and emits the draft.
 
-When the draft is sent, the customer gets a **thread card** in the Mini App (not a sticky bar). Format buttons **send the same TZ to the bot chat first** (`POST /projects/{id}/tz-send` → `sendDocument`). Device download is only a fallback. Owner-corrected TZ uses the same channel.
+When the draft is sent, the customer gets a **thread card** in the Mini App (not a sticky bar). Format buttons **send the same TZ to the bot chat first** (`POST /projects/{id}/tz-send` → VPS `sendDocument` to `api.telegram.org`, not the WebView). Device download is only a fallback. Owner-corrected TZ uses the same channel. Failure copy must not imply the user’s Telegram network is down — see [14-Telegram-Customer-UX.md](14-Telegram-Customer-UX.md).
 
 ## TZ outline (start-of-build minimum)
 

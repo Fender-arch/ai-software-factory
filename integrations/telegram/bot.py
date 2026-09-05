@@ -538,7 +538,16 @@ async def run_bot() -> None:
         except Exception:  # noqa: BLE001 — menu button is best-effort
             logger.exception("Failed to set Mini App menu button")
 
-    logger.info("Starting ASF Telegram bot")
+    try:
+        me = await bot.get_me()
+        logger.info(
+            "Starting ASF Telegram bot username=%s id=%s "
+            "(TELEGRAM_BOT_TOKEN must be this same bot as the Mini App in BotFather)",
+            me.username,
+            me.id,
+        )
+    except Exception:  # noqa: BLE001 — still try to poll; do not log token
+        logger.exception("Telegram getMe failed at bot start")
     await dp.start_polling(bot)
 
 
