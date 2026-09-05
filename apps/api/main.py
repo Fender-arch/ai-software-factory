@@ -215,6 +215,7 @@ def api_project_workspace(
         allow_multiple=bool(ws.get("allow_multiple")),
         tz_available=bool(ws.get("tz_available")),
         discovery_progress=ws.get("discovery_progress"),
+        customer_hud=ws.get("customer_hud"),
         client_estimate=ws.get("client_estimate"),
     )
 

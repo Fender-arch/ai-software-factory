@@ -140,6 +140,7 @@ class WorkspaceResponse(BaseModel):
     allow_multiple: bool = False
     tz_available: bool = False
     discovery_progress: DiscoveryProgress | None = None
+    customer_hud: str | None = None
     client_estimate: dict | None = None
 
 

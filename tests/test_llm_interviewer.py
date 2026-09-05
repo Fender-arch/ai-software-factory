@@ -342,6 +342,35 @@ def test_customer_copy_strips_catalog_menu_lines():
     )
 
 
+def test_customer_workspace_hud_is_russian_not_raw_codes():
+    from core.models import ProjectStatus
+    from discovery.customer_copy import customer_workspace_hud
+    from discovery.fsm import DiscoveryStage
+
+    assert customer_workspace_hud(
+        status=ProjectStatus.WAITING_CUSTOMER,
+        stage=DiscoveryStage.UNDERSTANDING_IDEA,
+    ) == "уточняем идею"
+    assert customer_workspace_hud(
+        status="waiting customer",
+        stage="non-functional",
+    ) == "как должно работать"
+    assert customer_workspace_hud(status=ProjectStatus.WAITING_OWNER) == (
+        "на ревью у владельца"
+    )
+    assert customer_workspace_hud(status="WAITING_CUSTOMER") == "ждём ваш ответ"
+    assert customer_workspace_hud(paused=True) == "на паузе"
+    assert customer_workspace_hud(status="mystery", stage="topic_id") == "в работе"
+    assert "WAITING" not in customer_workspace_hud(status=ProjectStatus.WAITING_CUSTOMER)
+    assert "NON_FUNCTIONAL" not in customer_workspace_hud(
+        stage=DiscoveryStage.NON_FUNCTIONAL
+    )
+    assert "create" not in customer_workspace_hud(
+        status=ProjectStatus.WAITING_CUSTOMER,
+        stage=DiscoveryStage.PROJECT_CREATED,
+    )
+
+
 def test_customer_copy_strips_prior_answer_echo():
     from discovery.customer_copy import strip_prior_answer_echo
 

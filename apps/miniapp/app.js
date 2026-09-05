@@ -270,6 +270,62 @@
     }
   }
 
+  const CUSTOMER_STATUS_HUD_RU = {
+    NEW: "уточняем идею",
+    INTERVIEW: "ждём ваш ответ",
+    ANALYZING: "собираем черновик",
+    WAITING_CUSTOMER: "ждём ваш ответ",
+    WAITING_OWNER: "на ревью у владельца",
+    WAITING_CLIENT_ESTIMATE: "смотрите смету",
+    READY: "можно собирать MVP",
+    ARCHIVED: "проект закрыт",
+  };
+  const CUSTOMER_STAGE_HUD_RU = {
+    PROJECT_CREATED: "уточняем идею",
+    UNDERSTANDING_IDEA: "уточняем идею",
+    BUSINESS_CONTEXT: "уточняем задачу",
+    USERS: "кто будет пользоваться",
+    FUNCTIONAL: "что должно уметь",
+    DATA: "какие данные нужны",
+    NON_FUNCTIONAL: "как должно работать",
+    INTEGRATIONS: "какие связи с другими системами",
+    ACCEPTANCE: "как примем работу",
+    RISKS: "риски и ограничения",
+    REVIEW: "проверяем черновик",
+    READY_FOR_OWNER: "на ревью у владельца",
+  };
+  const HOLD_STATUS_HUD = {
+    WAITING_OWNER: true,
+    WAITING_CLIENT_ESTIMATE: true,
+    READY: true,
+    ARCHIVED: true,
+    ANALYZING: true,
+  };
+
+  function hudKey(value) {
+    return String(value || "")
+      .trim()
+      .toUpperCase()
+      .replace(/[\s-]+/g, "_");
+  }
+
+  function customerWorkspaceHud(status, stage, paused, serverHud) {
+    const ready = String(serverHud || "").trim();
+    if (ready && !/[_]|^(create|change|feedback)$/i.test(ready)) {
+      const looksEnglishEnum = /^[A-Z][A-Z0-9_]+$/.test(ready);
+      if (!looksEnglishEnum) return ready;
+    }
+    if (paused) return "на паузе";
+    const statusKey = hudKey(status);
+    if (HOLD_STATUS_HUD[statusKey] && CUSTOMER_STATUS_HUD_RU[statusKey]) {
+      return CUSTOMER_STATUS_HUD_RU[statusKey];
+    }
+    const stageKey = hudKey(stage);
+    if (CUSTOMER_STAGE_HUD_RU[stageKey]) return CUSTOMER_STAGE_HUD_RU[stageKey];
+    if (CUSTOMER_STATUS_HUD_RU[statusKey]) return CUSTOMER_STATUS_HUD_RU[statusKey];
+    return "в работе";
+  }
+
   function resetWorkspaceDom(nameText, metaText) {
     $("ws-name").textContent = nameText || "Проект";
     $("ws-meta").textContent = metaText || "";
@@ -347,7 +403,7 @@
         btn.type = "button";
         btn.className = "project-open";
         btn.innerHTML = `<div>${escapeHtml(p.name)}</div><div class="meta">${escapeHtml(
-          p.status
+          customerWorkspaceHud(p.status, p.discovery_stage, false, p.customer_hud)
         )}</div>`;
         btn.addEventListener("click", () => openWorkspace(p.id, state.listMode));
         li.appendChild(btn);
@@ -427,9 +483,12 @@
       if (requestId !== state.wsRequestId) return;
       if (String(ws.project_id) !== pid) return;
       $("ws-name").textContent = ws.name;
-      $("ws-meta").textContent = `${ws.status} · ${ws.mode} · ${ws.discovery_stage || "—"}${
-        ws.paused ? " · пауза" : ""
-      }`;
+      $("ws-meta").textContent = customerWorkspaceHud(
+        ws.status,
+        ws.discovery_stage,
+        Boolean(ws.paused),
+        ws.customer_hud
+      );
       renderProgress(ws.discovery_progress, mode !== "feedback");
       applyWelcomeGate(ws.messages || [], mode);
       renderChoices(
@@ -944,21 +1003,83 @@
     });
   }
 
+  function isWriteInChoice(choice) {
+    const blob = [choice && choice.label, choice && choice.id]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase()
+      .replace(/ё/g, "е");
+    return /сейчас\s+напишу|напишу\s+сам|свой\s+вариант/.test(blob);
+  }
+
+  function selectedChoices() {
+    return state.choiceItems.filter((c) => {
+      if (!state.selectedIds.has(c.id)) return false;
+      if (c.exclusive && !isWriteInChoice(c)) return false;
+      return true;
+    });
+  }
+
+  function formatSelectedLabels() {
+    const labels = selectedChoices()
+      .map((c) => String(c.label || "").trim() || c.id)
+      .filter(Boolean);
+    if (!labels.length) return "";
+    if (labels.length === 1) return labels[0];
+    if (labels.length === 2) return `${labels[0]} и ${labels[1]}`;
+    return `${labels.slice(0, -1).join(", ")} и ${labels[labels.length - 1]}`;
+  }
+
   function encodeSelectedPayload(extraText) {
     const extra = String(extraText || "").trim();
-    const selected = state.choiceItems.filter(
-      (c) => state.selectedIds.has(c.id) && !c.exclusive
+    const labels = formatSelectedLabels();
+    if (!labels) return extra;
+    return extra ? `${labels}\n${extra}` : labels;
+  }
+
+  function focusComposer() {
+    const box = $("composer-text");
+    if (!box) return;
+    try {
+      box.focus({ preventScroll: true });
+    } catch (_) {
+      try {
+        box.focus();
+      } catch (__) {
+        /* some WebViews */
+      }
+    }
+  }
+
+  function holdForWriteIn() {
+    closeChoicesModal();
+    paintSelectedChips();
+    const labels = formatSelectedLabels();
+    showSendHint(
+      labels
+        ? `Выбрано: ${labels}. Допишите текст и нажмите «Отправить».`
+        : "Допишите текст и нажмите «Отправить»."
     );
-    if (!selected.length) return extra;
-    const nums = selected
-      .map((c) => state.choiceItems.indexOf(c) + 1)
-      .filter((n) => n > 0)
-      .join(", ");
-    return extra ? `${nums}\n${extra}` : nums;
+    focusComposer();
   }
 
   async function onChoiceTap(choice) {
     if (!choice) return;
+    if (isWriteInChoice(choice)) {
+      if (state.allowMultiple) {
+        if (state.selectedIds.has(choice.id)) state.selectedIds.delete(choice.id);
+        else state.selectedIds.add(choice.id);
+      } else {
+        state.selectedIds = new Set([choice.id]);
+      }
+      if (state.selectedIds.has(choice.id)) {
+        holdForWriteIn();
+      } else {
+        paintSelectedChips();
+        showSendHint("");
+      }
+      return;
+    }
     if (choice.exclusive || !state.allowMultiple) {
       closeChoicesModal();
       await sendDiscoveryText(choice.label || choice.id);
@@ -1060,7 +1181,16 @@
   const choicesApply = $("choices-apply");
   if (choicesApply) {
     choicesApply.addEventListener("click", async () => {
-      const payload = encodeSelectedPayload("");
+      const typed = ($("composer-text").value || "").trim();
+      if (!selectedChoices().length && !typed) {
+        showSendHint("Отметьте варианты или нажмите «Отмена».");
+        return;
+      }
+      if (selectedChoices().some(isWriteInChoice) && !typed) {
+        holdForWriteIn();
+        return;
+      }
+      const payload = encodeSelectedPayload(typed);
       if (!payload) {
         showSendHint("Отметьте варианты или нажмите «Отмена».");
         return;

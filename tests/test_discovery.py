@@ -321,6 +321,31 @@ def test_discovery_choice_sets_product_shape(client):
     assert project["product_type"] == "telegram_bot"
 
 
+def test_match_choices_accepts_labels_not_only_indexes():
+    from discovery.interview import _match_choices
+    from discovery.tz_outline import Choice
+
+    choices = [
+        Choice("site", "Сайт"),
+        Choice("bot", "Telegram-бот"),
+        Choice("write", "Сейчас напишу свой вариант"),
+    ]
+    hits, extra = _match_choices("Сайт и Telegram-бот", choices)
+    assert [c.id for c in hits] == ["site", "bot"]
+    assert extra == ""
+
+    hits, extra = _match_choices("Сайт, Telegram-бот\nнужна форма заявки", choices)
+    assert {c.id for c in hits} == {"site", "bot"}
+    assert "форма" in extra
+
+    hits, extra = _match_choices(
+        "Сейчас напишу свой вариант\nстудия «Норд», +79990001122",
+        choices,
+    )
+    assert [c.id for c in hits] == ["write"]
+    assert "Норд" in extra
+
+
 def test_discovery_multi_choice_covers_out_of_scope(client):
     created = client.post(
         "/projects", json={"name": "MultiScope", "product_type": "website"}

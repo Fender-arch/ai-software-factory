@@ -1205,6 +1205,18 @@ def _match_choices(text: str, choices: list[Choice]) -> tuple[list[Choice], str]
         if 0 <= idx < len(choices):
             return [choices[idx]], extra
 
+    compact_l = compact.lower()
+    exact_line = [
+        choice for choice in choices if choice.label.lower() == compact_l
+    ]
+    if exact_line:
+        return _unique_choices(exact_line), rest.strip()
+
+    token_hits, token_extra = _match_label_tokens(compact, choices)
+    if token_hits:
+        extra = " ".join(part for part in (rest.strip(), token_extra) if part).strip()
+        return token_hits, extra
+
     lowered = raw.lower()
     found = [
         choice
@@ -1221,6 +1233,40 @@ def _match_choices(text: str, choices: list[Choice]) -> tuple[list[Choice], str]
     if single:
         return [single], extra
     return [], raw
+
+
+def _choice_by_token(token: str, choices: list[Choice]) -> Choice | None:
+    needle = (token or "").strip().lower()
+    if not needle:
+        return None
+    for choice in choices:
+        label = choice.label.lower()
+        if needle == label:
+            return choice
+        cid = choice.id.replace("_", " ").lower()
+        if needle == cid or needle == choice.id.lower():
+            return choice
+    return None
+
+
+def _match_label_tokens(
+    line: str, choices: list[Choice]
+) -> tuple[list[Choice], str]:
+    """Match «Сайт, бот и форма» — labels, not chip numbers."""
+    tokens = [part.strip() for part in re.split(r"\s*,\s*|\s+и\s+", line or "") if part.strip()]
+    if len(tokens) < 2:
+        return [], ""
+    picked: list[Choice] = []
+    leftover: list[str] = []
+    for token in tokens:
+        hit = _choice_by_token(token, choices)
+        if hit:
+            picked.append(hit)
+        else:
+            leftover.append(token)
+    if len(picked) >= 2 or (picked and not leftover):
+        return _unique_choices(picked), " ".join(leftover).strip()
+    return [], ""
 
 
 def _match_choice(text: str, choices: list[Choice]) -> tuple[Choice | None, str]:
