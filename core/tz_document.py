@@ -191,10 +191,20 @@ def compose_tz_markdown(db: Session, project: Project) -> str:
     status_key = project.status.value
     status_ru = PROJECT_STATUS_RU.get(status_key, status_key)
     owner = resolve_owner_contacts(state)
-    customer_lines = _contact_lines_from_entities(req_by_topic.get("contacts") or [])
+    from discovery.stakeholders import stakeholder_header_lines
+
+    customer_lines = stakeholder_header_lines(kg, project)
+    req_contacts = _contact_lines_from_entities(req_by_topic.get("contacts") or [])
     preferred = _contact_lines_from_entities(req_by_topic.get("preferred_contact") or [])
+    seen = {line.lower() for line in customer_lines}
+    for line in req_contacts:
+        if line.lower() not in seen:
+            customer_lines.append(line)
+            seen.add(line.lower())
     if project.customer_telegram_id:
-        customer_lines.insert(0, f"Telegram заказчика: `{project.customer_telegram_id}`")
+        tg_line = f"Telegram заказчика: `{project.customer_telegram_id}`"
+        if tg_line.lower() not in seen:
+            customer_lines.insert(0, tg_line)
     for line in preferred:
         customer_lines.append(f"Предпочтительный канал: {line}")
     if not customer_lines:

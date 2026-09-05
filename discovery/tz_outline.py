@@ -132,7 +132,95 @@ def choice_as_dict(choice: Choice) -> dict[str, object]:
 
 _Q = ITLiteracy
 
+INTRO_TOPIC_IDS = frozenset({"customer_intro", "have_brief"})
+HAVE_BRIEF_TOPIC = "have_brief"
+CUSTOMER_INTRO_TOPIC = "customer_intro"
+
 TZ_TOPICS: tuple[TzTopic, ...] = (
+    TzTopic(
+        id="customer_intro",
+        stage=DiscoveryStage.CUSTOMER_INTRO,
+        title_ru="Знакомство с заказчиком",
+        title_en="Customer introduction",
+        questions={
+            _Q.LOW: (
+                "Давайте сначала познакомимся — ещё не про сам продукт. "
+                "Как к вам обращаться? Оставьте телефон, email или Telegram, "
+                "если удобно. Есть название компании, для которой делаем продукт, "
+                "или вы как физлицо без названия? Чем занимаетесь — отрасль "
+                "или сфера? Если уместно — ваша роль в проекте."
+            ),
+            _Q.MEDIUM: (
+                "Сначала знакомство, не техника: как обращаться; контакты "
+                "(телефон / email / Telegram); компания или явно «нет названия / "
+                "физлицо»; сфера деятельности; роль, если это не очевидно."
+            ),
+            _Q.HIGH: (
+                "Stakeholder intake before the product brief: preferred name, "
+                "contact channels, organization or explicit individual / no "
+                "company name, industry, and your role if relevant."
+            ),
+        },
+        options=(
+            Choice("intro_individual", "Я физлицо — компании нет"),
+            Choice(
+                "intro_write",
+                "Сейчас напишу имя, контакты и компанию",
+                sufficient=False,
+            ),
+            Choice("intro_tg", "Достаточно этого чата в Telegram"),
+        ),
+        keywords=(
+            "зовут",
+            "обраща",
+            "телефон",
+            "email",
+            "почта",
+            "компания",
+            "физлицо",
+            "отрасл",
+            "сфера",
+        ),
+        needs_substance=True,
+    ),
+    TzTopic(
+        id="have_brief",
+        stage=DiscoveryStage.CUSTOMER_INTRO,
+        title_ru="Готовая постановка",
+        title_en="Existing brief",
+        questions={
+            _Q.LOW: (
+                "Есть ли уже готовая постановка, ТЗ или бриф — файл или текст, "
+                "который вы собирали сами или с нейросетью? Если да — прикрепите "
+                "файл или вставьте текст, разберём и дополним. Если нет — "
+                "пройдём задачу в разговоре."
+            ),
+            _Q.MEDIUM: (
+                "Уже есть постановка / ТЗ / бриф? Если да — прикрепите файл "
+                "или вставьте текст. Если нет — обычный разбор идеи."
+            ),
+            _Q.HIGH: (
+                "Do you already have a written brief or spec (file or paste)? "
+                "If yes, attach it and we will merge it into the TZ outline. "
+                "If not, we continue a conversational Discovery."
+            ),
+        },
+        options=(
+            Choice("brief_none", "Нет готовой постановки — давайте в разговоре"),
+            Choice(
+                "brief_file",
+                "Есть — сейчас прикреплю файл",
+                sufficient=False,
+            ),
+            Choice(
+                "brief_paste",
+                "Есть — сейчас вставлю текст",
+                sufficient=False,
+            ),
+        ),
+        keywords=("постановк", "бриф", "тз", "brief", "спецификац"),
+        needs_substance=True,
+    ),
     TzTopic(
         id="purpose_problem",
         stage=DiscoveryStage.UNDERSTANDING_IDEA,
@@ -1360,6 +1448,8 @@ SKIPPABLE_IDS = frozenset(
 )
 CORE_TOPIC_IDS = frozenset(
     {
+        "customer_intro",
+        "have_brief",
         "purpose_problem",
         "product_shape",
         "success_mvp",
@@ -1389,6 +1479,7 @@ PUBLIC_PRESENCE_TOPIC_IDS = frozenset(
 )
 CUSTOM_TOPIC_ID_RE = re.compile(r"^custom:[a-z0-9_]{2,40}$")
 MAX_CUSTOM_TOPICS = 8
+MAX_BRIEF_OVERFLOW_TOPICS = 16
 
 TZ_TOPICS = tuple(
     replace(topic, skippable=True) if topic.id in SKIPPABLE_IDS else topic

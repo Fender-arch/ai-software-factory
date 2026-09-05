@@ -21,6 +21,7 @@ from knowledge.types import normalize_requirement_status
 
 STAGE_LABELS_RU: dict[str, str] = {
     DiscoveryStage.PROJECT_CREATED.value: "Старт",
+    DiscoveryStage.CUSTOMER_INTRO.value: "Знакомство",
     DiscoveryStage.UNDERSTANDING_IDEA.value: "Цель и идея",
     DiscoveryStage.BUSINESS_CONTEXT.value: "Бизнес-контекст",
     DiscoveryStage.USERS.value: "Пользователи",

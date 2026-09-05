@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.23 |
+| Version | 0.24 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -37,6 +37,7 @@ UX requirements: [14-Telegram-Customer-UX.md](14-Telegram-Customer-UX.md).
 
 ```
 PROJECT_CREATED
+  → CUSTOMER_INTRO
   → UNDERSTANDING_IDEA
   → BUSINESS_CONTEXT
   → USERS
@@ -51,6 +52,33 @@ PROJECT_CREATED
 ```
 
 Each stage contains **one or more TZ topics**. Transitions may go backward when contradictions or gaps appear. Change / implementation-feedback modes may re-enter relevant stages without resetting the whole project.
+
+## Acquaintance, then optional brief (DEC-015)
+
+Discovery **does not start with the product**. Stage `CUSTOMER_INTRO`
+collects who we are talking to — adaptively, one living conversation, not
+a rigid form:
+
+- name / how to address;
+- contacts (phone, email, Telegram — whatever they give);
+- company for the product **or** explicit “no company name / individual”;
+- industry;
+- role when it helps.
+
+Facts are stored as KG `Customer` + `Organization` (plus a `contacts`
+requirement so the TZ header in `compose_tz_markdown` stays filled).
+
+**Then** ask whether a written brief / TZ already exists.
+
+- **No** — continue ordinary flexible Discovery (`purpose_problem` …).
+- **Yes** — invite a file or paste (same Mini App upload as today).
+  `discovery/brief_ingest.py` parses the attachment (`extract_attachment_text`),
+  merges facts into outline topics, **creates `custom:` topics for overflow**,
+  and asks only the empty leftovers. The reply is a short recap — not an
+  echo of the file.
+
+The late closing question “do you have a brief?” is skipped when
+`have_brief` was already answered.
 
 ## LLM-driven turns (DEC-008)
 
@@ -96,7 +124,7 @@ Catalog: `discovery/tz_outline.py`. Tailored from GOST 34.602-2020, ISO/IEC/IEEE
 
 The catalog is a **library**, not the interview script. `discovery/adapt.py` builds a per-project plan:
 
-1. **Spine** (never skipped): purpose, solution type, MVP success, out of scope, must-have functions, primary scenario, acceptance, timeline, budget, contacts, preferred channel, **legal / 152-FZ**, risks
+1. **Spine** (never skipped): **acquaintance** (`customer_intro`), **ready brief?** (`have_brief`), purpose, solution type, MVP success, out of scope, must-have functions, primary scenario, acceptance, timeline, budget, contacts (auto-closed when intro already has them), preferred channel, **legal / 152-FZ**, risks
 2. **Type / shape modules** — pages/CTA, bot vs Mini App, API resources, AI trigger, and so on
 3. **Capability modules** — booking rules, notifications, API consumers, voice, failure path — only when the captured idea needs them
 4. **Dynamic subsections** (`custom:…`) — heuristics add a few task-specific extras (for example who books a slot); Groq may add up to 8 when `LLM_PROVIDER=groq`

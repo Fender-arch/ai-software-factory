@@ -152,9 +152,11 @@ def test_compose_tz_markdown_client_structure(db, monkeypatch):
     toc_at = md.index("## Оглавление")
     first_section_at = md.index("## 1. ")
     assert toc_at < first_section_at
-    assert "## 1. Цель и проблема" in md
-    assert f"[Цель и проблема](#{heading_anchor('1. Цель и проблема')})" in md
-    assert "**ТЗ-1.1**" in md
+    purpose = re.search(r"## (\d+)\. Цель и проблема", md)
+    assert purpose, md
+    purpose_n = purpose.group(1)
+    assert f"[Цель и проблема](#{heading_anchor(f'{purpose_n}. Цель и проблема')})" in md
+    assert f"**ТЗ-{purpose_n}.1**" in md
     assert "Нужен сайт витрины пекарни" in md
 
     must = re.search(r"## (\d+)\. Обязательные функции", md)
@@ -175,6 +177,40 @@ def test_compose_tz_markdown_client_structure(db, monkeypatch):
     assert numbered == [str(i) for i in range(1, len(numbered) + 1)]
     toc_links = re.findall(r"^\d+\. \[.+\]\(#.+\)$", md, flags=re.M)
     assert len(toc_links) == len(numbered)
+
+
+def test_compose_tz_header_uses_customer_and_organization(db):
+    project = _project(db)
+    kg = KnowledgeRepository(db)
+    kg.create_entity(
+        project.id,
+        "Customer",
+        "Анна",
+        payload={
+            "display_name": "Анна Смирнова",
+            "phone": "+7 900 222-33-44",
+            "email": "anna@example.com",
+            "role": "директор",
+        },
+    )
+    kg.create_entity(
+        project.id,
+        "Organization",
+        "Студия Север",
+        payload={
+            "name": "Студия Север",
+            "is_individual": False,
+            "industry": "дизайн интерьеров",
+        },
+    )
+    db.flush()
+    md = compose_tz_markdown(db, project)
+    assert "### Контакты заказчика" in md
+    assert "Имя: Анна Смирнова" in md
+    assert "Телефон: +7 900 222-33-44" in md
+    assert "Компания: Студия Север" in md
+    assert "Отрасль: дизайн интерьеров" in md
+    assert "Роль: директор" in md
 
 
 def test_owner_contacts_payload_overrides_env(db, monkeypatch):

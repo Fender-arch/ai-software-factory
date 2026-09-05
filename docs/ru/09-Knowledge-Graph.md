@@ -5,7 +5,7 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.5 |
+| Version | 0.6 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -59,7 +59,9 @@ Knowledge Graph — это **единственный источник исти�
 
 ## Типы сущностей (MVP)
 
-`Project` · `Message` · `Requirement` · `OpenQuestion` · `Decision` · `Task` · `Artifact` · `Risk` (опционально) · `Feedback` (замечания к реализации)
+`Project` · `Message` · `Requirement` · `OpenQuestion` · `Decision` · `Task` · `Artifact` · `Risk` (опционально) · `Feedback` (замечания к реализации) · `Customer` · `Organization`
+
+`Customer` / `Organization` пишутся на знакомстве Discovery (DEC-015): имя, контакты, роль, компания или явно физлицо / нет названия, отрасль. Та же таблица `entity` — отдельная миграция не нужна. Шапка ТЗ (`compose_tz_markdown`) читает их первой, затем требования `contacts` / `preferred_contact`.
 
 `Artifact` payload `kind`: `draft_tz` (сгенерированный markdown), `uploaded_file` (вложение заказчика/консоли; байты на диске в `UPLOAD_DIR`, не в JSONB) или `cursor_brief` (файлы Spec Kit + экспорт задач для BuildJob).
 

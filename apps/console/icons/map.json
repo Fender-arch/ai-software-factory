@@ -3,6 +3,8 @@
   "package": "lucide-static@0.511.0",
   "license": "ISC",
   "topics": {
+    "customer_intro": "contact",
+    "have_brief": "clipboard-check",
     "purpose_problem": "target",
     "product_shape": "app-window",
     "as_is_process": "git-branch",
@@ -50,6 +52,7 @@
   },
   "stages": {
     "PROJECT_CREATED": "flag",
+    "CUSTOMER_INTRO": "contact",
     "UNDERSTANDING_IDEA": "lightbulb",
     "BUSINESS_CONTEXT": "briefcase",
     "USERS": "users",

@@ -86,6 +86,14 @@ _HINTS: dict[str, str] = {
     "interaction_model": (
         "Для Mini App уточните: только приложение, или ещё диалог в чате бота."
     ),
+    "customer_intro": (
+        "Нужны имя или как обращаться, контакт и компания либо явно "
+        "«нет названия / физлицо»."
+    ),
+    "have_brief": (
+        "Если постановка есть — прикрепите файл или вставьте текст. "
+        "Если нет — так и скажите, пройдём задачу в разговоре."
+    ),
 }
 
 
@@ -243,6 +251,21 @@ def _content_rule_ok(
             return True
         return not topic.needs_substance
 
+    if topic.id == "customer_intro":
+        from discovery.stakeholders import parse_stakeholder_text
+
+        facts = parse_stakeholder_text(blob, choice_ids=list(hit_ids))
+        return facts.has_name() and facts.has_contact() and facts.has_org()
+
+    if topic.id == "have_brief":
+        if "brief_none" in hit_ids:
+            return True
+        if _FILE_RE.search(blob) or blob.lstrip().startswith("[Файл"):
+            return True
+        if _extra_ok(extra) and len(blob) >= 80:
+            return True
+        return False
+
     return True
 
 
@@ -263,6 +286,11 @@ def should_reask(
     """Return a customer-facing hint when the answer is not enough to implement."""
     extra = leftover_without_labels(regular_hits, leftover_text)
     identity_ok = topic.id == "public_identity" and looks_like_identity(description or extra)
+
+    if topic.id in {"customer_intro", "have_brief"}:
+        if _content_rule_ok(topic, regular_hits, extra, description):
+            return None
+        return reask_hint(topic)
 
     if _writein_pending(regular_hits, extra) and not identity_ok:
         return reask_hint(topic)

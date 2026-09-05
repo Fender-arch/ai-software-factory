@@ -29,12 +29,15 @@ from knowledge.types import normalize_requirement_status
 
 
 def _seed_project(client, *, name="Cafe", uid="9001", product_type="website"):
+    from tests.test_discovery import _complete_intro
+
     created = client.post(
         "/projects",
         json={"name": name, "customer_telegram_id": uid, "product_type": product_type},
     )
     assert created.status_code == 201
     pid = created.json()["id"]
+    _complete_intro(client, pid)
     msg = client.post(
         f"/projects/{pid}/messages",
         params={"customer_telegram_id": uid},
