@@ -5,7 +5,7 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.4 |
+| Version | 0.5 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -21,7 +21,7 @@ ADR: [DEC-009](../../decisions/DEC-009-Agent-Toolkit-Reuse.md). Экономия
 | `docs/00–16` | Vision, scope, architecture, Discovery, KG, Mini App UX, консоль ТЗ владельца, деплой VPS |
 | `docs/13-Dev-Setup.md` | Запуск / тесты / env |
 | `docs/16-VPS-Deploy.md` | VPS рядом с существующим сайтом |
-| `decisions/` | Зафиксированные ADR (в т.ч. DEC-009 toolkit, DEC-010 `mobile_native`) |
+| `decisions/` | Зафиксированные ADR (в т.ч. DEC-009 toolkit, DEC-010 `mobile_native`, DEC-011 Experience Layer) |
 | `tasks/EPIC-*` | Слайсы поставки |
 | `prompts/` | Промпты режимов Coordinator (`discovery-interview.md` — интервьюер) |
 | `schemas/` | Контракты структурированного I/O |
@@ -52,7 +52,7 @@ ADR: [DEC-009](../../decisions/DEC-009-Agent-Toolkit-Reuse.md). Экономия
 | `docs-ru-sync.mdc` | Правки английских `docs/*.md` → `docs/ru/` |
 | `design-anti-slop.mdc` | CSS/JS/HTML Mini App / консоли |
 | `security-basics.mdc` | `apps/api`, `core`, `integrations` |
-| `miniapp-ux.mdc` | UX Mini App; маскот/Rive — Future |
+| `miniapp-ux.mdc` | UX Mini App; маскот Experience Layer — DEC-011 |
 
 ## Project skills (по требованию)
 
@@ -120,7 +120,7 @@ ADR: [DEC-009](../../decisions/DEC-009-Agent-Toolkit-Reuse.md). Экономия
 | Always-on mega rules | DEC-009 / экономия токенов |
 | Оптовый вендор чужих skill-репозиториев | Дрейф + лицензия |
 | git subtree spec-kit | Только проекция и заготовки |
-| Рантайм маскота Rive | Future (`miniapp-ux.mdc`) |
+| Оптовые Rive-киты / lip-sync TTS-маскот | Слайс рантайма — DEC-011; lip-sync остаётся Future |
 | Runbooks Redis / GraphDB | Future |
 
 ## Минимальный чеклист сессии

@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.4 |
+| Version | 0.5 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -27,7 +27,7 @@ Definition of done for the *platform* MVP: Telegram Mini App → quality TZ → 
 | Area | Details |
 |------|---------|
 | Channels | Telegram Mini App (fullscreen customer UI) + bot DM (onboarding, notifications); **voice via Whisper STT** |
-| Customer UX | RU onboarding; create / change / implementation-feedback; project workspace in Mini App |
+| Customer UX | RU onboarding; create / change / implementation-feedback; project workspace in Mini App; Experience Layer mascot ([DEC-011](../decisions/DEC-011-Experience-Layer-Mascot.md)) |
 | Discovery | Adaptive questioning, draft TZ / artifacts |
 | Memory | Logical Knowledge Graph in PostgreSQL (`entity`, `relation`, JSONB) |
 | AI | One **AI Coordinator** with modes (not many OS processes) |

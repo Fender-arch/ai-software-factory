@@ -18,3 +18,4 @@ Ideas explicitly **out of MVP**. Do not implement without a new Accepted ADR.
 - Separate Telegram DM or forum topic per project (use Mini App project workspace instead)
 - Full owner review portal inside the Mini App
 - Standalone “second chat with the user” outside the main ASF bot
+- Mascot lip-sync / TTS-driven mouth shapes (Experience Layer runtime itself is DEC-011)

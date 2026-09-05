@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.4 |
+| Version | 0.5 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -19,7 +19,7 @@ ADR: [DEC-009](../decisions/DEC-009-Agent-Toolkit-Reuse.md). Token-economy rules
 | `docs/00–16` | Vision, scope, architecture, Discovery, KG, Mini App UX, owner TZ console, VPS deploy |
 | `docs/13-Dev-Setup.md` | Run / test / env |
 | `docs/16-VPS-Deploy.md` | VPS next to an existing website |
-| `decisions/` | Locked ADR choices (incl. DEC-009 toolkit, DEC-010 `mobile_native`) |
+| `decisions/` | Locked ADR choices (incl. DEC-009 toolkit, DEC-010 `mobile_native`, DEC-011 Experience Layer) |
 | `tasks/EPIC-*` | Delivery slices |
 | `prompts/` | Coordinator mode prompts (`discovery-interview.md` is the interviewer) |
 | `schemas/` | Structured I/O contracts |
@@ -50,7 +50,7 @@ Do not preload every skill. Do not paste this table into prompts.
 | `docs-ru-sync.mdc` | English `docs/*.md` edits → `docs/ru/` |
 | `design-anti-slop.mdc` | Mini App / console CSS/JS/HTML |
 | `security-basics.mdc` | `apps/api`, `core`, `integrations` |
-| `miniapp-ux.mdc` | Mini App UX; mascot/Rive is Future |
+| `miniapp-ux.mdc` | Mini App UX; Experience Layer mascot is DEC-011 |
 
 ## Project skills (on demand)
 
@@ -118,7 +118,7 @@ Optional. Settings → Plugins → enable **continual-learning** if the team wan
 | Always-on mega rules | DEC-009 / token economy |
 | Wholesale vendor of external skill repos | Drift + license |
 | Spec Kit git subtree | Mapping + stubs only |
-| Rive mascot runtime | Future (`miniapp-ux.mdc`) |
+| Wholesale Rive kits / lip-sync TTS puppet | Runtime slice is DEC-011; lip-sync stays Future |
 | Redis / GraphDB runbooks | Future |
 
 ## Minimum session checklist

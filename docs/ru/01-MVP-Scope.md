@@ -5,7 +5,7 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.4 |
+| Version | 0.5 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -29,7 +29,7 @@ Definition of done для *платформенного* MVP: Telegram Mini App 
 | Область | Детали |
 |---------|--------|
 | Каналы | Telegram Mini App (полноэкранный UI заказчика) + DM бота (онбординг, уведомления); **голос через Whisper STT** |
-| UX заказчика | Онбординг на RU; создать / изменить / замечания к реализации; project workspace в Mini App |
+| UX заказчика | Онбординг на RU; создать / изменить / замечания к реализации; project workspace в Mini App; маскот Experience Layer ([DEC-011](../../decisions/DEC-011-Experience-Layer-Mascot.md)) |
 | Discovery | Адаптивные вопросы, черновик ТЗ / артефакты |
 | Память | Логический Knowledge Graph в PostgreSQL (`entity`, `relation`, JSONB) |
 | AI | Один **AI Coordinator** с режимами (не множество OS-процессов) |

@@ -5,8 +5,8 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.3 |
-| Updated | 2026-08-16 |
+| Version | 0.4 |
+| Updated | 2026-09-05 |
 | Owner | ASF Core |
 
 ## Стиль
@@ -43,7 +43,7 @@ Telegram Mini App (fullscreen) ── text | voice
 | AI Coordinator | Один worker с режимами: Discovery, Reviewer, Architect, Planner, Developer, QA |
 | Knowledge Graph | Логический SoT: entities + relations в PostgreSQL |
 | STT | Голос → текст (Whisper); далее тот же путь, что у текста |
-| Telegram Mini App | Основной UI заказчика: home-действия, project workspace |
+| Telegram Mini App | Основной UI заказчика: home-действия, project workspace; клиентский Experience Layer (DEC-011) |
 | Telegram-бот | Вход, уведомления; команды owner HITL в MVP |
 | Консоль ТЗ владельца | Внутренний граф требований + статусы/связи (DEC-007); не UI заказчика |
 | Artifact generator | Markdown из графа (ТЗ, решения, экспорт backlog) |
@@ -77,7 +77,7 @@ Telegram Mini App (fullscreen) ── text | voice
 
 ## События
 
-В MVP — **статусы задач/проектов** в PostgreSQL. Более богатая event bus может появиться позже без смены доменной модели. Концептуальные события: `ProjectCreated`, `MessageReceived`, `DiscoveryReady`, `HumanDecisionRequired`, `TaskCompleted`.
+В MVP — **статусы задач/проектов** в PostgreSQL. Более богатая **серверная** event bus может появиться позже без смены доменной модели. Концептуальные события: `ProjectCreated`, `MessageReceived`, `DiscoveryReady`, `HumanDecisionRequired`, `TaskCompleted`. В Mini App есть ещё **клиентская** UX-шина для маскота (DEC-011) — не Redis и не event sourcing.
 
 ## Раскладка пакетов
 
