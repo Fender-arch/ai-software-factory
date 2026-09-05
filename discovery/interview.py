@@ -1212,6 +1212,11 @@ def _match_choices(text: str, choices: list[Choice]) -> tuple[list[Choice], str]
     if exact_line:
         return _unique_choices(exact_line), rest.strip()
 
+    token_hits, token_extra = _match_label_tokens(compact, choices)
+    if token_hits:
+        extra = " ".join(part for part in (rest.strip(), token_extra) if part).strip()
+        return token_hits, extra
+
     lowered = raw.lower()
     found = [
         choice
@@ -1223,11 +1228,6 @@ def _match_choices(text: str, choices: list[Choice]) -> tuple[list[Choice], str]
     if found:
         leftover = raw
         return _unique_choices(found), leftover
-
-    token_hits, token_extra = _match_label_tokens(compact, choices)
-    if token_hits:
-        extra = " ".join(part for part in (rest.strip(), token_extra) if part).strip()
-        return token_hits, extra
 
     single, extra = _match_choice(raw, choices)
     if single:
