@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.2 |
+| Version | 0.3 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -26,9 +26,26 @@ Cyan `#00D2FF` · purple `#9D50BB`. No navy rectangle behind the lockup — the 
 
 ## Mini App
 
-- Home header: full lockup (wordmark on short viewports)
-- Workspace chrome: compact mark — does not replace the mascot slot
-- Mascot: Uni 4 IT unicorn in a hoodie + VR visor; CSS motion on the same DEC-011 beats (`idle`, `listening`, `thinking`, `got_*`, `draft_ready`, `error`) — breathe, glance, periodic wave. Optional `mascot.riv` remains progressive enhancement. No Rive Editor required for this slice.
+- Home header: full lockup on its own row (wordmark on short viewports); hook copy under the lockup
+- Workspace chrome: compact mark centered between back and calm — does not replace the mascot slot
+- Mascot: Uni 4 IT unicorn in a hoodie + VR visor; CSS motion on the same DEC-011 beats (`idle`, `listening`, `thinking`, `got_*`, `draft_ready`, `error`) — breathe, glance, periodic wave. Slot is a reserved box so motion does not shove the composer. Optional `mascot.riv` remains progressive enhancement. No Rive Editor required for this slice.
+
+## Brand tokens (Mini App)
+
+Canonical values live in `apps/miniapp/DESIGN.md`. Do not invent a second palette.
+
+| Token | Value | Role |
+|-------|-------|------|
+| `--bg` | `#07060b` | Deep foundry ground |
+| `--text` | `#f4efe6` | Cream ink (wordmark) |
+| `--muted` | `#a89888` | Soft warm gray |
+| `--accent` | `#e8c36a` | Foundry gold — primary CTA |
+| `--ember` | `#ff6b2c` | Heat / error |
+| `--brand-cyan` | `#00d2ff` | Uni 4 IT mark |
+| `--brand-purple` | `#9d50bb` | Uni 4 IT mark |
+| `--brand-grad` | cyan→purple | Mark + hairline pairing, not a SaaS hero |
+
+Unexpected pairing: gold/ember CTA + cyan→purple mark. Layout rhythm (`--space-*`, `--radius`, `--fs-*`) is spacing only.
 
 ## Console
 

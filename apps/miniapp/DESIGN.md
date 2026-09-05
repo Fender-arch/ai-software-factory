@@ -35,6 +35,27 @@ Platform chrome (not a customer-MVP stamp). Tokens match the foundry voice and t
 
 Unexpected pairing: warm gold/ember foundry + cyan→purple Uni 4 IT mark (pixel U+4, not a SaaS indigo hero).
 
+## Rhythm (layout tokens — not a second palette)
+
+```css
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --fs-xs: 0.68rem;
+  --fs-sm: 0.78rem;
+  --fs-md: 0.9rem;
+  --fs-lg: 1.05rem;
+}
+```
+
+Home lockup sits on its own row; the hook line is underneath, not beside the mark. Workspace mark is centered in chrome. Mascot slot is a reserved box (`contain: layout`, overflow clipped) so breathe / glance / wave cannot shift the thread or composer. Progress HUD stays gray track + green fill (DEC-014).
+
 ## Brand assets
 
 Canonical files: `apps/miniapp/brand/` (same SVGs copied to `apps/console/brand/` for the owner header).
