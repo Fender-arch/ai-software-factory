@@ -127,10 +127,13 @@ html.asf-workspace body {
 }
 .brand-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-3);
   min-height: var(--logo-home-h);
+}
+.brand-row > .calm-toggle {
+  margin-top: 10px;
 }
 .brand-lockup {
   min-width: 0;
@@ -260,6 +263,7 @@ html.asf-workspace body {
 }
 .ws-chrome {
   flex-shrink: 0;
+  margin-bottom: var(--space-1);
 }
 .ws-chrome-top {
   display: grid;
@@ -283,7 +287,7 @@ html.asf-workspace body {
 .ws-stage {
   display: flex;
   align-items: flex-start;
-  gap: var(--space-2);
+  gap: var(--space-3);
   margin-top: var(--space-2);
 }
 .ws-stage .ws-head {
@@ -483,7 +487,7 @@ html.asf-reduced .mascot-rive { display: none !important; }
 html.asf-calm .foundry-field,
 html.asf-reduced .foundry-field { opacity: 0.14; }
 
-h1 { font-size: var(--fs-lg); margin: var(--space-1) 0 var(--space-2); }
+h1 { font-size: var(--fs-lg); margin: var(--space-2) 0 var(--space-3); }
 
 .linkback {
   border: 0;
@@ -496,6 +500,9 @@ h1 { font-size: var(--fs-lg); margin: var(--space-1) 0 var(--space-2); }
   font-family: inherit;
   text-align: left;
 }
+.view > .linkback + h1 {
+  margin-top: var(--space-1);
+}
 
 .field {
   display: grid;
@@ -507,7 +514,7 @@ h1 { font-size: var(--fs-lg); margin: var(--space-1) 0 var(--space-2); }
 .field input, .composer textarea {
   width: 100%;
   border-radius: 10px;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(255, 214, 160, 0.28);
   background: var(--panel);
   color: var(--text);
   padding: 10px;
