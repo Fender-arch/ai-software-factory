@@ -9,6 +9,11 @@ if [[ "$DEPLOY_PATH" == "SET_ME" || -z "$DEPLOY_PATH" ]]; then
 fi
 OVERRIDE="${DEPLOY_PATH}/docker-compose.telegram-egress.yml"
 
+if grep -q 'network_mode: host' "${DEPLOY_PATH}/docker-compose.prod.yml" 2>/dev/null; then
+  echo "hotfix: api/bot already use host network — extra_hosts unused, skip"
+  exit 0
+fi
+
 ipv4="$(getent ahostsv4 api.telegram.org 2>/dev/null | awk '{print $1; exit}')"
 if [[ -z "$ipv4" ]]; then
   echo "hotfix: no A record for api.telegram.org"

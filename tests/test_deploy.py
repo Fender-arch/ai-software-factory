@@ -38,6 +38,9 @@ def test_build_env_values_sets_production_and_quoted_db_url():
     assert values["MINIAPP_URL"] == "https://mini.example.com/miniapp/"
     assert "s3cret" in values["DATABASE_URL"]
     assert values["ASF_HOST_PORT"] == "18000"
+    assert values["ASF_DB_HOST_PORT"] == "15432"
+    assert "127.0.0.1:15432" in values["DATABASE_URL"]
+    assert "@db:" not in values["DATABASE_URL"]
     assert values["DISCOVERY_ENGINE"] == "auto"
 
 
@@ -70,7 +73,7 @@ def test_telegram_proxy_and_ip_mode_go_to_env():
     assert values["HTTP_PROXY"] == "http://127.0.0.1:8888"
     assert values["TELEGRAM_PROXY"] == "http://127.0.0.1:8888"
     assert values["ASF_TELEGRAM_IP"] == "4"
-    assert values["NO_PROXY"] == "localhost,127.0.0.1,db"
+    assert values["NO_PROXY"] == "localhost,127.0.0.1"
     bad = build_env_values(_base_raw(ASF_TELEGRAM_IP="99"))
     assert bad["ASF_TELEGRAM_IP"] == "auto"
 
@@ -119,6 +122,7 @@ def test_render_env_file_contains_keys():
     assert "STUDIO_NAME=" in text
     assert "OWNER_CONTACT_NAME=" in text
     assert "ASF_INTERVENTION_TTL_HOURS=72" in text
+    assert "ASF_DB_HOST_PORT=15432" in text
     assert "CURSOR_CLOUD_API_URL=https://api.cursor.com" in text
 
 
@@ -157,11 +161,32 @@ def test_normalize_domain_strips_url():
     assert normalize_domain("https://TZ.Example.com/console/") == "tz.example.com"
 
 
+def test_legacy_docker_dns_database_url_rewritten_for_host_network():
+    values = build_env_values(
+        _base_raw(DATABASE_URL="postgresql+psycopg://asf:s3cret@db:5432/asf")
+    )
+    assert "127.0.0.1:15432" in values["DATABASE_URL"]
+    assert "@db:" not in values["DATABASE_URL"]
+
+
+def test_prod_compose_api_bot_use_host_network():
+    text = Path("docker-compose.prod.yml").read_text(encoding="utf-8")
+    assert "network_mode: host" in text
+    assert text.count("network_mode: host") == 2
+    assert "127.0.0.1:${ASF_HOST_PORT:-18000}:8000" not in text
+    assert "127.0.0.1:${ASF_DB_HOST_PORT:-15432}:5432" in text
+    assert "--host 127.0.0.1 --port ${ASF_HOST_PORT:-18000}" in text
+    assert "asf_internal" in text
+
+
 def test_telegram_egress_scripts_do_not_print_secrets():
     diagnose = Path("deploy/diagnose_telegram_egress.sh").read_text(encoding="utf-8")
     hotfix = Path("deploy/hotfix_telegram_ipv4.sh").read_text(encoding="utf-8")
     assert "api.telegram.org" in diagnose
+    assert "vpn_ifaces=" in diagnose
+    assert "NAMES only" in diagnose
     assert "VERDICT=" in diagnose
     assert "TELEGRAM_BOT_TOKEN" not in diagnose
+    assert "printenv" not in diagnose
     assert "TELEGRAM_BOT_TOKEN" not in hotfix
     assert "extra_hosts" in hotfix

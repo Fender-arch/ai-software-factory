@@ -15,13 +15,13 @@
 #   CONSOLE_TOKEN       Shared token for /console/ (X-Console-Token)
 #   TELEGRAM_BOT_TOKEN  From @BotFather — MUST be the same bot that has the Mini App URL
 #                       (sendDocument uses this token from the VPS, not from the WebView)
-#   HTTPS_PROXY         Preferred. Same outbound hop Groq/OpenAI/STT already use
-#                       (httpx trust_env). Put the existing AI/foreign-channel
-#                       proxy URL here — do not invent a second secret. Never commit.
-#   HTTP_PROXY / ALL_PROXY / LLM_HTTP_PROXY  Aliases; write_env copies the first
-#                       non-empty value into HTTPS_PROXY/HTTP_PROXY for api+bot.
-#   TELEGRAM_PROXY      Only if Telegram must use a different hop than AI.
+#   HTTPS_PROXY         Optional HTTP(S) proxy URL only if a proxy process
+#                       actually listens (not this VPS: AI uses a host VPN).
+#                       Do not create this secret for a WireGuard/tun channel.
+#   HTTP_PROXY / ALL_PROXY / LLM_HTTP_PROXY / TELEGRAM_PROXY
+#                       Aliases; leave empty when the hop is a host VPN.
 #   ASF_TELEGRAM_IP     auto (default, prefer IPv4) | 4 | 6
+#   ASF_DB_HOST_PORT    Default 15432 (localhost only; never 5432)
 #   OWNER_TELEGRAM_ID   Owner Telegram numeric id (HITL)
 #   STUDIO_NAME / OWNER_CONTACT_*  Optional studio contacts printed on the client TZ
 #   GROQ_API_KEY        Server STT (and optional LLM)

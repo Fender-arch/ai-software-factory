@@ -80,9 +80,10 @@ if [[ -f docker-compose.telegram-egress.yml ]]; then
   COMPOSE_FILES+=(-f docker-compose.telegram-egress.yml)
   echo "Using local telegram egress override (IPv4 extra_hosts)"
 fi
-compose "${COMPOSE_FILES[@]}" --env-file .env up -d --build
+# Force recreate so api/bot actually leave the old bridge network for host mode.
+compose "${COMPOSE_FILES[@]}" --env-file .env up -d --build --force-recreate
 
-echo "ASF listening on 127.0.0.1:${ASF_HOST_PORT} (not 80/443)"
+echo "ASF listening on 127.0.0.1:${ASF_HOST_PORT} (host network api/bot, db on 127.0.0.1:15432, not 80/443)"
 compose "${COMPOSE_FILES[@]}" --env-file .env ps
 
 chmod +x "${DEPLOY_PATH}/deploy/"*.sh 2>/dev/null || true

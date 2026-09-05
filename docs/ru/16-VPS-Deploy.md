@@ -5,7 +5,7 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.6 |
+| Version | 0.7 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -13,14 +13,14 @@
 
 Запустить ASF на VPS, который **уже отдаёт сайт**, не подменяя этот сайт.
 
-ASF не занимает порты хоста **80**, **443** и **5432**. API слушает `127.0.0.1:18000` (можно сменить `ASF_HOST_PORT`). Новые vhost nginx добавляются только для указанных вами имён ASF.
+ASF не занимает порты хоста **80**, **443** и **5432**. API слушает `127.0.0.1:18000` (можно сменить `ASF_HOST_PORT`). Postgres публикуется только на `127.0.0.1:15432` (`ASF_DB_HOST_PORT`), чтобы `api`/`bot` в host-сети до него достучались. Новые vhost nginx добавляются только для указанных вами имён ASF.
 
 ## Состав
 
 | Часть | Роль |
 |-------|------|
 | `docker-compose.yml` | Локальная разработка (reload, порты 8000/5432) |
-| `docker-compose.prod.yml` | VPS: `db` + `api` + `bot`, проект `asf` |
+| `docker-compose.prod.yml` | VPS: `db` (bridge) + `api`/`bot` (`network_mode: host`), чтобы они видели VPN/туннель хоста |
 | `deploy/` | Рендер `.env`, фрагменты nginx, удалённый старт |
 | `.github/workflows/deploy-vps.yml` | Деплой по SSH/SCP из GitHub Actions |
 | `.github/SECRETS.md` | Имена секретов, которые нужно заполнить |
@@ -100,14 +100,15 @@ curl -sS http://127.0.0.1:18000/health/telegram
 
 ## Исходящий доступ к Telegram Bot API (sendDocument)
 
-`sendDocument` / `getMe` идут из **контейнера API** (сеть Docker `asf_internal`, bridge) через NAT хоста. Входящий HTTPS Mini App здесь ни при чём.
+`sendDocument` / `getMe` идут из **процесса API**. На VPS это `network_mode: host`, чтобы разделить VPN/туннель хоста (Docker bridge NAT его не видит). nginx по-прежнему на `127.0.0.1:18000`. Входящий HTTPS Mini App здесь ни при чём.
 
 Типичный сбой (на проде `ConnectError`, пустой `bot_username`):
 
 | Проверка | Смысл |
 |----------|--------|
-| С хоста `curl -4 https://api.telegram.org` ок, из контейнера нет | IPv6/AAAA в Docker или DNS контейнера. Приложение предпочитает IPv4 (`ASF_TELEGRAM_IP=auto`/`4`). Локальный override `docker-compose.telegram-egress.yml` (`extra_hosts`, не в git). |
-| `curl https://example.org` ок, Telegram нет | **Блок Telegram у хостера** (на FirstVDS: DNS и IPv4-маршрут есть, `curl -4 https://api.telegram.org` таймаут, ufw OUTPUT = allow). **Не** открывайте тикет FirstVDS, если на VPS уже есть зарубежный канал для Groq/OpenAI: тот же URL задайте как `HTTPS_PROXY` (ниже). IPv4 `extra_hosts` такой путь не лечит. |
+| С хоста `curl -4 https://api.telegram.org` ок, из контейнера на bridge нет | Контейнер ещё в `asf_internal`. Пересоздайте `api`/`bot` с host-сетью (текущий `docker-compose.prod.yml`). |
+| Дефолтный маршрут хоста таймаутит, iface `tun`/`wg` живой | Split-tunnel VPN. Host-сеть всё равно нужна; проверьте, что таблица VPN покрывает Telegram. |
+| `curl https://example.org` ок, Telegram нет, VPN-iface нет | **Блок Telegram у хостера**. **Не** выдумывайте `HTTPS_PROXY`. Если diagnose видит локальный HTTP/SOCKS-порт — только тогда `HTTPS_PROXY=http://127.0.0.1:<порт>`. |
 | Нет исходящего HTTPS вообще | Закрыт OUTPUT 443 (`ufw` / iptables / панель). Разрешите 443/tcp наружу. |
 
 На VPS (в выводе нет секретов):
@@ -122,42 +123,17 @@ curl -sS http://127.0.0.1:18000/health/telegram
 
 GitHub: **Actions → Telegram egress → Run workflow** (те же SSH-секреты, что у Deploy VPS; токен бота не печатается). В compose DNS контейнеров — `8.8.8.8` / `1.1.1.1`. `ASF_TELEGRAM_IP=4` принудительно IPv4; `6` — dual-stack.
 
-## Тот же прокси, что у AI (FirstVDS / зарубежный канал)
+## VPN на хосте (FirstVDS / зарубежный канал) — не HTTPS_PROXY
 
-В репозитории **нет** отдельного `OPENAI_BASE_URL` и WireGuard-sidecar. Groq LLM и Groq/OpenAI STT ходят обычным httpx (`trust_env=True`) и уже читают `HTTPS_PROXY` / `HTTP_PROXY` / `ALL_PROXY`, если они есть **в контейнере**. Telegram Bot API берёт **тот же** URL:
+Владелец подтвердил: зарубежный канал — **VPN/туннель на хосте VPS**, не Docker `HTTPS_PROXY`. Контейнеры в bridge эту маршрутизацию не наследуют. Поэтому после #19 `/health/telegram` давал `via_proxy=false` и `getMe` `ConnectError`, даже если Groq из того же процесса API мог пройти (другой endpoint, часто не фильтруется).
 
-`TELEGRAM_PROXY` → `HTTPS_PROXY` → `HTTP_PROXY` → `ALL_PROXY` → `LLM_HTTP_PROXY`
+В `docker-compose.prod.yml` **`api` и `bot` идут с `network_mode: host`**. nginx не меняется (`127.0.0.1:18000`). `db` остаётся в `asf_internal`; `DATABASE_URL` — `127.0.0.1:15432`.
 
-**Не создавайте второй секрет**, если Telegram может идти тем же хопом, что Groq.
+`via_proxy` остаётся `false`, пока нет HTTP(S) URL прокси. Успех — **непустой `bot_username`**, не `via_proxy=true`.
 
-### Предпочтительно: секрет GitHub Actions (переживает Deploy VPS)
+**Не создавайте** секрет GitHub `HTTPS_PROXY` для этого VPS. HTTP-прокси в env — только если diagnose видит слушатель на `127.0.0.1` / `172.17.0.1`.
 
-1. Репозиторий → **Settings → Secrets and variables → Actions**
-2. Задайте **`HTTPS_PROXY`** — HTTP(S) URL того же канала, которым уже ходит AI (формат, не реальный адрес: `http://user:pass@203.0.113.10:3128`). В git не коммитить.
-3. `TELEGRAM_PROXY` оставьте пустым.
-4. **Actions → Deploy VPS → Run workflow** (или push в `main`). `write_env.py` пишет `/opt/asf/.env`; compose прокидывает переменные в `api` и `bot`.
-5. На VPS:
-
-```bash
-curl -sS http://127.0.0.1:18000/health/telegram
-# ждать egress_ok=true, via_proxy=true и непустой bot_username
-```
-
-### Если прокси только на сервере (не в GitHub)
-
-Deploy VPS переписывает `/opt/asf/.env` из секретов. Пустой GitHub `HTTPS_PROXY` больше не затирает прокси, который уже лежит в этом файле. Подключить существующий AI-канал без нового секрета:
-
-```bash
-# на VPS — тот же URL, что уже использует AI; не печатайте его в чат/логи
-# /opt/asf/.env  (добавить или поправить, не коммитить)
-# HTTPS_PROXY=<существующий-ai-прокси>
-# HTTP_PROXY=<существующий-ai-прокси>
-cd /opt/asf
-docker compose -f docker-compose.prod.yml --env-file .env up -d --no-build --force-recreate api bot
-curl -sS http://127.0.0.1:18000/health/telegram
-```
-
-Host-level WireGuard / split-tunnel **без** HTTP-прокси контейнеру не виден: нужен HTTP(S) URL в `HTTPS_PROXY`, как выше. После следующего **Deploy VPS** либо оставьте строку в `/opt/asf/.env`, либо скопируйте её в секрет GitHub, чтобы перезапись не разъехалась.
+LLM/STT (`integrations/llm/groq.py`) вызываются **из контейнера `api`** (теперь host-сеть), не отдельным демоном на хосте.
 
 ## Откат только ASF
 

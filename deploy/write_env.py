@@ -48,6 +48,7 @@ ENV_KEYS = (
     "UPLOAD_DIR",
     "MAX_UPLOAD_BYTES",
     "ASF_HOST_PORT",
+    "ASF_DB_HOST_PORT",
     "DOMAIN_MINIAPP",
     "DOMAIN_CONSOLE",
     "HTTP_PROXY",
@@ -92,8 +93,24 @@ def miniapp_https_url(domain: str) -> str:
     return f"https://{host}/miniapp/"
 
 
-def database_url(password: str) -> str:
-    return f"postgresql+psycopg://asf:{quote_plus(password)}@db:5432/asf"
+def database_url(
+    password: str,
+    *,
+    host: str = "127.0.0.1",
+    port: str = "15432",
+) -> str:
+    """Prod api/bot use host network; Postgres is published on localhost only."""
+    return f"postgresql+psycopg://asf:{quote_plus(password)}@{host}:{port}/asf"
+
+
+def _host_network_database_url(
+    existing: str | None, password: str, port: str
+) -> str:
+    """Keep an explicit URL unless it still points at Docker DNS name `db`."""
+    text = (existing or "").strip()
+    if text and "@db:" not in text and "@db/" not in text:
+        return text
+    return database_url(password, port=port)
 
 
 def build_env_values(raw: dict[str, str] | None = None) -> dict[str, str]:
@@ -121,6 +138,9 @@ def build_env_values(raw: dict[str, str] | None = None) -> dict[str, str]:
     host_port = src.get("ASF_HOST_PORT") or "18000"
     if not host_port.isdigit() or not (1 <= int(host_port) <= 65535):
         host_port = "18000"
+    db_port = src.get("ASF_DB_HOST_PORT") or "15432"
+    if not db_port.isdigit() or not (1 <= int(db_port) <= 65535) or db_port == "5432":
+        db_port = "15432"
     stt_provider = src.get("STT_PROVIDER") or "groq"
     stt_model = src.get("STT_MODEL") or "whisper-large-v3-turbo"
     llm_provider = src.get("LLM_PROVIDER") or "stub"
@@ -139,7 +159,9 @@ def build_env_values(raw: dict[str, str] | None = None) -> dict[str, str]:
         "ASF_ENV": src.get("ASF_ENV") or "production",
         "ASF_DEBUG": src.get("ASF_DEBUG") or "false",
         "POSTGRES_PASSWORD": postgres,
-        "DATABASE_URL": src.get("DATABASE_URL") or database_url(postgres),
+        "DATABASE_URL": _host_network_database_url(
+            src.get("DATABASE_URL"), postgres, db_port
+        ),
         "TELEGRAM_BOT_TOKEN": src.get("TELEGRAM_BOT_TOKEN") or "",
         "GROQ_API_KEY": src.get("GROQ_API_KEY") or "",
         "OPENAI_API_KEY": src.get("OPENAI_API_KEY") or "",
@@ -168,6 +190,7 @@ def build_env_values(raw: dict[str, str] | None = None) -> dict[str, str]:
         "UPLOAD_DIR": src.get("UPLOAD_DIR") or "/data/uploads",
         "MAX_UPLOAD_BYTES": src.get("MAX_UPLOAD_BYTES") or "20971520",
         "ASF_HOST_PORT": host_port,
+        "ASF_DB_HOST_PORT": db_port,
         "DOMAIN_MINIAPP": domain_miniapp,
         "DOMAIN_CONSOLE": domain_console,
         "HTTP_PROXY": src.get("HTTP_PROXY") or proxy,
@@ -175,7 +198,7 @@ def build_env_values(raw: dict[str, str] | None = None) -> dict[str, str]:
         "ALL_PROXY": src.get("ALL_PROXY") or "",
         "TELEGRAM_PROXY": src.get("TELEGRAM_PROXY") or "",
         "LLM_HTTP_PROXY": src.get("LLM_HTTP_PROXY") or "",
-        "NO_PROXY": src.get("NO_PROXY") or "localhost,127.0.0.1,db",
+        "NO_PROXY": src.get("NO_PROXY") or "localhost,127.0.0.1",
         "ASF_TELEGRAM_IP": ip_mode,
     }
     return values
