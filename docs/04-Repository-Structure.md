@@ -32,11 +32,12 @@ ai-software-factory/
 │   ├── api/              # FastAPI entrypoint
 │   ├── miniapp/          # Telegram Mini App frontend (customer UI)
 │   └── console/          # Owner TZ graph console (DEC-007)
-├── core/                 # config, db, models, coordinator, estimate, client_estimate
+├── core/                 # config, db, models, coordinator, estimate, client_estimate, factory
 ├── knowledge/            # entity/relation repositories
 ├── discovery/            # Discovery FSM, interview, draft TZ
 ├── integrations/
 │   ├── telegram/         # Bot polling, Menu/WebApp hooks, owner HITL + notify
+│   ├── cursor/           # Cloud Agent executor (HTTP or stub)
 │   └── stt/
 ├── shared/
 ├── alembic/

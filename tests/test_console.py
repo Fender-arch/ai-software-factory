@@ -55,6 +55,8 @@ def test_console_static_served(client):
     assert "Смета клиенту" in js.text
     assert "Authorization" in js.text
     assert "Токен неверный" in js.text
+    assert "Создать MVP" in js.text
+    assert "Intervention Queue" in js.text
 
 
 def test_console_lists_projects_without_token_in_local_debug(client):

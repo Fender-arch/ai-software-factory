@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.5 |
+| Version | 0.6 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -20,7 +20,7 @@ ADR: [DEC-009](../decisions/DEC-009-Agent-Toolkit-Reuse.md). Token-economy rules
 | `core/estimate.py` + `core/client_estimate.py` | Dual estimate: owner heuristic vs client market quote (DEC-012) |
 | `docs/13-Dev-Setup.md` | Run / test / env |
 | `docs/16-VPS-Deploy.md` | VPS next to an existing website |
-| `decisions/` | Locked ADR choices (incl. DEC-009 toolkit, DEC-010 `mobile_native`, DEC-011 Experience Layer, DEC-012 client estimate) |
+| `decisions/` | Locked ADR choices (incl. DEC-009–013: toolkit, mobile_native, Experience Layer, client estimate, factory) |
 | `tasks/EPIC-*` | Delivery slices |
 | `prompts/` | Coordinator mode prompts (`discovery-interview.md` is the interviewer) |
 | `schemas/` | Structured I/O contracts |

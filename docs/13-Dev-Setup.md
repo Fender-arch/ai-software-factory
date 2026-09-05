@@ -58,6 +58,11 @@ pytest
 | `ASF_MARKET_RATES_ALLOWLIST` | Comma-separated hosts allowed for that fetch (SSRF guard) |
 | `MINIAPP_URL` | HTTPS URL of Mini App (e.g. `https://host/miniapp/`) for Menu Button / WebApp |
 | `CONSOLE_TOKEN` | Owner TZ console (`X-Console-Token`). Empty allowed only if `ASF_ENV=local` and `ASF_DEBUG=true` |
+| `ASF_INTERVENTION_KEY` | Seals Intervention Queue secrets (DEC-013). Empty → derived local key |
+| `ASF_INTERVENTION_TTL_HOURS` | Open intervention TTL (default `72`) |
+| `CURSOR_API_KEY` | Optional Cursor Cloud Agent. Empty → stub + export deep-link |
+| `CURSOR_CLOUD_API_URL` | Cursor API base (default `https://api.cursor.com`) |
+| `CURSOR_AGENT_REPO` | Optional target repo URL for the Cloud Agent |
 | `UPLOAD_DIR` | Project file attachments (default `data/uploads`) |
 | `MAX_UPLOAD_BYTES` | Max attachment size (default 20 MiB) |
 

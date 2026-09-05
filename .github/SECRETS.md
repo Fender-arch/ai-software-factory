@@ -30,3 +30,10 @@
 #   DISCOVERY_ENGINE    auto | llm | fsm (default auto = llm when LLM_PROVIDER is not stub)
 #   ASF_ESTIMATE_HOURLY_RATE  Owner TZ cost heuristic (default 3000)
 #   ASF_ESTIMATE_CURRENCY     Currency for that estimate (default RUB)
+#   ASF_MARKET_RATES_URL      Optional HTTPS JSON of public market bands (DEC-012)
+#   ASF_MARKET_RATES_ALLOWLIST  Comma-separated hosts allowed for that fetch
+#   ASF_INTERVENTION_KEY      Seals Intervention Queue secrets (DEC-013)
+#   ASF_INTERVENTION_TTL_HOURS  Default 72
+#   CURSOR_API_KEY            Optional Cursor Cloud Agent
+#   CURSOR_CLOUD_API_URL      Default https://api.cursor.com
+#   CURSOR_AGENT_REPO         Optional repo URL for the agent

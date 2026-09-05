@@ -34,6 +34,12 @@ class Settings(BaseSettings):
     # Host must be listed in ASF_MARKET_RATES_ALLOWLIST (comma-separated). HTTPS only.
     asf_market_rates_url: str = ""
     asf_market_rates_allowlist: str = ""
+    # DEC-013: Intervention Queue + Cursor executor (optional).
+    asf_intervention_key: str = ""
+    asf_intervention_ttl_hours: int = 72
+    cursor_api_key: str = ""
+    cursor_cloud_api_url: str = "https://api.cursor.com"
+    cursor_agent_repo: str = ""
 
 
 @lru_cache

@@ -61,11 +61,13 @@ Knowledge Graph — это **единственный источник исти�
 
 `Project` · `Message` · `Requirement` · `OpenQuestion` · `Decision` · `Task` · `Artifact` · `Risk` (опционально) · `Feedback` (замечания к реализации)
 
-`Artifact` payload `kind`: `draft_tz` (сгенерированный markdown) или `uploaded_file` (вложение заказчика/консоли; байты на диске в `UPLOAD_DIR`, не в JSONB).
+`Artifact` payload `kind`: `draft_tz` (сгенерированный markdown), `uploaded_file` (вложение заказчика/консоли; байты на диске в `UPLOAD_DIR`, не в JSONB) или `cursor_brief` (файлы Spec Kit + экспорт задач для BuildJob).
 
 У `draft_tz` также хранится `payload.estimate`: детерминированная **owner**-эвристика стоимости поставки (`hours`, `cost`, `currency`, `hourly_rate`, `rationale`, счётчики требований/рисков). После approve владельца туда же пишутся `payload.client_estimate` + `payload.client_estimate_report`: рыночная смета, источники и русский отчёт (DEC-012). Отдельная таблица не нужна. Два ключа специально — эвристику владельца не затираем.
 
-Операционные таблицы `projects` / `messages` / `tasks` могут зеркалить горячие пути; сущности графа хранят семантические связи.
+`payload.in_mvp` у Requirement помечает утверждённый срез MVP для фабрики (DEC-013). Запасной путь: `scope_in` / `scope=in`, затем `priority=must`. **Секреты не пишутся в payload сущности.**
+
+Операционные таблицы `projects` / `messages` / `tasks` / `build_jobs` / `interventions` могут зеркалить горячие пути; сущности графа хранят семантические связи. Секретные ответы Intervention живут только в зашифрованном `interventions.answer_ciphertext`.
 
 ## Типы связей (MVP)
 

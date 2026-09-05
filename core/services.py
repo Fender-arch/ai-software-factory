@@ -161,7 +161,7 @@ def delete_project(
     """Hard-delete project and all related messages/entities/relations/tasks."""
     from sqlalchemy import delete as sql_delete
 
-    from core.models import Entity, EntityHistory, Relation, Task
+    from core.models import BuildJob, Entity, EntityHistory, Intervention, Relation, Task
 
     project = get_project(db, project_id)
     if project is None:
@@ -176,6 +176,8 @@ def delete_project(
     pid = project.id
     # Order: history → relations → entities/messages/tasks → project (SQLite-safe).
     db.execute(sql_delete(EntityHistory).where(EntityHistory.project_id == pid))
+    db.execute(sql_delete(Intervention).where(Intervention.project_id == pid))
+    db.execute(sql_delete(BuildJob).where(BuildJob.project_id == pid))
     db.execute(sql_delete(Relation).where(Relation.project_id == pid))
     db.execute(sql_delete(Entity).where(Entity.project_id == pid))
     db.execute(sql_delete(Message).where(Message.project_id == pid))
@@ -802,6 +804,86 @@ async def run_project_planner(
             "llm": llm_result.output,
         },
     }
+
+
+def create_project_mvp_job(
+    db: Session,
+    project_id: str | uuid.UUID,
+    *,
+    actor_telegram_id: str | None = None,
+    force: bool = False,
+) -> dict:
+    from core.factory import create_mvp_job, snapshot_as_dict
+
+    project = get_project(db, project_id)
+    if project is None:
+        raise ValueError("project not found")
+    snap = create_mvp_job(
+        db, project, actor_telegram_id=actor_telegram_id, force=force
+    )
+    db.commit()
+    return snapshot_as_dict(snap)
+
+
+def get_project_mvp(
+    db: Session, project_id: str | uuid.UUID
+) -> dict:
+    from core.factory import factory_snapshot, latest_build_job, refresh_build_job, snapshot_as_dict
+
+    project = get_project(db, project_id)
+    if project is None:
+        raise ValueError("project not found")
+    job = latest_build_job(db, project.id)
+    if job is not None:
+        refresh_build_job(db, job)
+    snap = factory_snapshot(db, project)
+    return snapshot_as_dict(snap)
+
+
+def list_project_interventions(
+    db: Session,
+    project_id: str | uuid.UUID,
+    *,
+    status: str | None = "open",
+) -> list[dict]:
+    from core.factory import list_interventions, serialize_intervention
+
+    project = get_project(db, project_id)
+    if project is None:
+        raise ValueError("project not found")
+    return [serialize_intervention(r) for r in list_interventions(db, project.id, status=status)]
+
+
+def resolve_project_intervention(
+    db: Session,
+    intervention_id: str | uuid.UUID,
+    answer: str,
+    *,
+    actor_telegram_id: str | None = None,
+) -> dict:
+    from core.factory import resolve_intervention, snapshot_as_dict
+
+    snap = resolve_intervention(
+        db, intervention_id, answer, actor_telegram_id=actor_telegram_id
+    )
+    db.commit()
+    return snapshot_as_dict(snap)
+
+
+def send_project_mvp_to_client(
+    db: Session,
+    project_id: str | uuid.UUID,
+    *,
+    actor_telegram_id: str | None = None,
+) -> dict:
+    from core.factory import send_mvp_to_client, snapshot_as_dict
+
+    project = get_project(db, project_id)
+    if project is None:
+        raise ValueError("project not found")
+    snap = send_mvp_to_client(db, project, actor_telegram_id=actor_telegram_id)
+    db.commit()
+    return snapshot_as_dict(snap)
 
 
 def export_project_tasks(

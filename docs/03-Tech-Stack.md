@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.8 |
+| Version | 0.9 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -20,12 +20,12 @@ Locked choices for MVP. Alternatives belong in Future, not in endless bake-offs.
 | Owner UI | Internal TZ graph console (`apps/console/`, vis-network); [DEC-007](../decisions/DEC-007-Owner-TZ-Console.md) |
 | STT | Mini App in Telegram: **Groq Whisper** via recorded audio; Web Speech only outside Telegram. Also `whisper` (OpenAI) / `stub` |
 | LLM | Pluggable router; `stub` or **Groq** JSON (`LLM_PROVIDER=groq`) to adapt TZ outline, extra subsections, and next-question choice chips |
-| Coding executor | Cursor (rules + task export); CLI integration later |
+| Coding executor | Cursor Cloud Agent if `CURSOR_API_KEY`, else stub + Spec Kit/task export ([DEC-013](../decisions/DEC-013-MVP-Factory-Interventions.md)) |
 | Containers | Docker + Docker Compose (local `docker-compose.yml`; VPS `docker-compose.prod.yml`) |
 | Tests | Pytest |
 
 ## Environment variables
 
-See `.env.example`: `DATABASE_URL`, `TELEGRAM_BOT_TOKEN`, `GROQ_API_KEY`, `OPENAI_API_KEY`, `STT_PROVIDER` (`stub`\|`groq`\|`whisper`), `STT_MODEL`, `LLM_PROVIDER` (`stub`\|`groq`), `LLM_MODEL`, `OWNER_TELEGRAM_ID`, `ASF_ESTIMATE_HOURLY_RATE`, `ASF_ESTIMATE_CURRENCY`, `MINIAPP_URL`, `CONSOLE_TOKEN`.
+See `.env.example`: `DATABASE_URL`, `TELEGRAM_BOT_TOKEN`, `GROQ_API_KEY`, `OPENAI_API_KEY`, `STT_PROVIDER` (`stub`\|`groq`\|`whisper`), `STT_MODEL`, `LLM_PROVIDER` (`stub`\|`groq`), `LLM_MODEL`, `OWNER_TELEGRAM_ID`, `ASF_ESTIMATE_HOURLY_RATE`, `ASF_ESTIMATE_CURRENCY`, `MINIAPP_URL`, `CONSOLE_TOKEN`, `ASF_INTERVENTION_KEY`, `CURSOR_API_KEY`.
 
 VPS deploy (existing website kept): [16-VPS-Deploy.md](16-VPS-Deploy.md), secrets [`.github/SECRETS.md`](../.github/SECRETS.md).

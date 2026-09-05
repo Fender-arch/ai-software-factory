@@ -26,6 +26,8 @@
 | Owner TZ console | Внутренний граф требований ТЗ для владельца/аналитика (`/console/`, DEC-007) |
 | Project workspace | UI/лента Mini App, привязанная к одному `project_id` («чат проекта») |
 | Implementation feedback | Замечания заказчика после ознакомления с поставленным MVP |
+| BuildJob | Запись фабрики об одной сборке MVP (Cursor или stub) |
+| Intervention Queue | Вопросы владельцу, которые фабрика не должна угадывать (токены, DNS, магазины); секреты остаются зашифрованными |
 | Foundation | Базовый набор документации |
 | Future | Отложенные идеи в `backlog/Future.md` |
 | ADR / DEC | Architecture Decision Record в `decisions/` |

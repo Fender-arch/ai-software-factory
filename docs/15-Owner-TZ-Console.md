@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.7 |
+| Version | 0.8 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -43,6 +43,8 @@ The sheet is a directory: group cards list children; tapping a child focuses it 
 Section nodes use a vendored [Lucide](https://lucide.dev/) (ISC) pictogram set in `apps/console/icons/`. The node **is** the pictogram (no extra circle); a soft glow uses the stage colour. Product hub icon follows type (`website` / `telegram_bot` / `rest_service` / `ai_automation` / `mobile_native`). Mapping: `apps/console/icons/map.json`.
 
 The project sheet has **Export full TZ**: Markdown, Word (`docx`), PDF — generated live from the KG (`GET /console/api/projects/{id}/tz-export?format=md|docx|pdf`). Clicking the **project hub** (graph center) also shows **two estimates**: the owner HITL heuristic (`payload.estimate` / live `core/estimate.py`) and, after approve, the **client market estimate** + report (`payload.client_estimate`, DEC-012) with sources and confirmation status. They stay side by side; the heuristic is never the customer price.
+
+The same sheet has **MVP Factory** (DEC-013): **Создать MVP** after owner approve **and** client estimate confirm (`READY`), Intervention Queue answers (text / secret; secrets are not shown back), build status, and **Отправить клиенту на review**. APIs: `GET/POST /console/api/projects/{id}/mvp`, `POST .../mvp/send-to-client`, `GET .../interventions`, `POST /console/api/interventions/{id}/resolve`.
 
 The same sheet lists **project files** (customer Mini App attachments and console uploads) with the Discovery stage they were provided on. Analysts can add or delete files; `entity_history` records `created` / `deleted`. Bytes live on disk under `UPLOAD_DIR` (default `data/uploads`); KG `Artifact` rows with `payload.kind=uploaded_file` are the index. Download: `GET /console/api/projects/{id}/files/{file_id}/content`.
 

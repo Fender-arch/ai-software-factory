@@ -29,4 +29,5 @@ When implementing tasks exported from ASF Planner:
 
 - Markdown: `GET /projects/{id}/export/tasks?format=markdown`
 - JSON: `GET /projects/{id}/export/tasks?format=json`
+- Factory brief: Spec Kit stubs on the BuildJob (`cursor_brief` artifact) + Intervention Queue for secrets (DEC-013)
 - Platform rules still apply: `AGENTS.md`, `.cursor/rules/asf.mdc`

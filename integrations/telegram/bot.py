@@ -4,7 +4,7 @@ Run (optional):
   python -m integrations.telegram.bot
 
 Requires TELEGRAM_BOT_TOKEN. Voice messages go through STT then the same
-ingest path as text. Owner HITL: /review /approve /changes /reject /plan /export.
+ingest path as text. Owner HITL: /review /approve /changes /reject /plan /export /mvp /queue /answer /secret.
 """
 
 from __future__ import annotations
@@ -15,6 +15,7 @@ import logging
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command, CommandObject
 from aiogram.types import (
+    CallbackQuery,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     MenuButtonWebApp,
@@ -26,15 +27,21 @@ from core.config import get_settings
 from core.db import SessionLocal
 from core.estimate import format_estimate_review_block
 from core.export import ExportError
-from core.hitl import HitlAction, HitlError
 from core.planner import PlannerError
+from core.factory import FactoryError
+from core.hitl import HitlAction, HitlError
 from core.services import (
     create_project,
+    create_project_mvp_job,
     export_project_tasks,
     get_owner_review,
+    get_project_mvp,
     ingest_text_message,
     ingest_voice_message,
+    list_project_interventions,
+    resolve_project_intervention,
     run_project_planner,
+    send_project_mvp_to_client,
     submit_hitl_decision,
 )
 
@@ -42,6 +49,8 @@ logger = logging.getLogger(__name__)
 
 # Simple in-memory map chat -> project (stub; production will use DB)
 _CHAT_PROJECT: dict[int, str] = {}
+# Owner is answering an intervention with the next message (no plaintext logs).
+_PENDING_INTERVENTION: dict[int, str] = {}
 
 
 def _session():
@@ -77,7 +86,8 @@ async def cmd_start(message: Message) -> None:
         "• Изменить проект\n"
         "• Замечания к реализации\n\n"
         "Пока Mini App недоступен, можно временно: /new Название · /use <id> · текст/голос.\n"
-        "Владелец: /review · /approve · /changes · /reject · /plan · /export"
+        "Владелец: /review · /approve · /changes · /reject · /plan · /export · "
+        "/mvp · /queue · /answer · /secret · /sendreview"
     )
     url = (settings.miniapp_url or "").strip()
     if url:
@@ -270,7 +280,178 @@ async def cmd_export(message: Message, command: CommandObject) -> None:
     await message.answer(body)
 
 
+async def cmd_mvp(message: Message, command: CommandObject) -> None:
+    project_id = _resolve_project_id(message, command)
+    if not project_id:
+        await message.answer("Использование: /mvp <project_id>")
+        return
+    try:
+        with _session() as db:
+            snap = create_project_mvp_job(
+                db, project_id, actor_telegram_id=_actor_id(message)
+            )
+    except (ValueError, FactoryError, HitlError) as exc:
+        await message.answer(f"Не удалось создать MVP: {exc}")
+        return
+    _CHAT_PROJECT[message.chat.id] = str(snap["project_id"])
+    job = snap.get("job") or {}
+    open_iv = [i for i in snap.get("interventions") or [] if i.get("status") == "open"]
+    lines = [
+        snap.get("message") or "BuildJob создан.",
+        f"Статус сборки: `{job.get('status')}`",
+        f"Исполнитель: `{job.get('executor')}`",
+    ]
+    if job.get("deep_link"):
+        lines.append(f"Brief/export: {job['deep_link']}")
+    if open_iv:
+        lines.append(f"Открытых вопросов: {len(open_iv)}. Смотрите /queue")
+    await message.answer("\n".join(lines), parse_mode="Markdown")
+
+
+async def cmd_queue(message: Message, command: CommandObject) -> None:
+    project_id = _resolve_project_id(message, command)
+    if not project_id:
+        await message.answer("Использование: /queue <project_id>")
+        return
+    try:
+        with _session() as db:
+            items = list_project_interventions(db, project_id, status="open")
+            snap = get_project_mvp(db, project_id)
+    except ValueError:
+        await message.answer("Проект не найден.")
+        return
+    job = (snap.get("job") or {}) if snap else {}
+    if not items:
+        status = job.get("status") or "нет BuildJob"
+        await message.answer(f"Открытых вмешательств нет. Сборка: `{status}`", parse_mode="Markdown")
+        return
+    lines = [f"Intervention Queue — {len(items)}"]
+    for item in items:
+        cmd = "/secret" if item.get("answer_type") == "secret" else "/answer"
+        lines.append(
+            f"• {item.get('kind_label')}: {item.get('question')}\n"
+            f"  {cmd} `{item['id']}` <значение>"
+        )
+    await message.answer("\n".join(lines), parse_mode="Markdown")
+
+
+def _split_intervention_args(command: CommandObject) -> tuple[str | None, str | None]:
+    raw = (command.args or "").strip()
+    if not raw:
+        return None, None
+    parts = raw.split(maxsplit=1)
+    iid = parts[0]
+    answer = parts[1].strip() if len(parts) > 1 else None
+    return iid, answer
+
+
+async def _apply_intervention_answer(
+    message: Message, intervention_id: str, answer: str, *, secret: bool
+) -> None:
+    try:
+        with _session() as db:
+            snap = resolve_project_intervention(
+                db,
+                intervention_id,
+                answer,
+                actor_telegram_id=_actor_id(message),
+            )
+    except (ValueError, FactoryError, HitlError) as exc:
+        await message.answer(f"Не принял ответ: {exc}")
+        return
+    if secret:
+        try:
+            await message.delete()
+        except Exception:  # noqa: BLE001 — private chats may forbid delete
+            logger.info("Could not delete secret reply message")
+        confirm = "Секрет принят. Значение не сохранено в ТЗ и не повторяется здесь."
+    else:
+        confirm = "Ответ принят."
+    job = snap.get("job") or {}
+    extra = snap.get("message") or ""
+    await message.answer(
+        f"{confirm}\n{extra}\nСтатус сборки: `{job.get('status')}`",
+        parse_mode="Markdown",
+    )
+
+
+async def cmd_answer(message: Message, command: CommandObject) -> None:
+    iid, answer = _split_intervention_args(command)
+    if not iid:
+        await message.answer("Использование: /answer <intervention_id> <текст>")
+        return
+    if not answer:
+        _PENDING_INTERVENTION[message.chat.id] = iid
+        await message.answer("Пришлите текст следующим сообщением.")
+        return
+    await _apply_intervention_answer(message, iid, answer, secret=False)
+
+
+async def cmd_secret(message: Message, command: CommandObject) -> None:
+    iid, answer = _split_intervention_args(command)
+    if not iid:
+        await message.answer("Использование: /secret <intervention_id> <значение>")
+        return
+    if not answer:
+        _PENDING_INTERVENTION[message.chat.id] = iid
+        await message.answer(
+            "Пришлите секрет следующим сообщением. "
+            "Он не будет повторён в чате и не попадёт в ТЗ."
+        )
+        return
+    await _apply_intervention_answer(message, iid, answer, secret=True)
+
+
+async def cmd_sendreview(message: Message, command: CommandObject) -> None:
+    project_id = _resolve_project_id(message, command)
+    if not project_id:
+        await message.answer("Использование: /sendreview <project_id>")
+        return
+    try:
+        with _session() as db:
+            snap = send_project_mvp_to_client(
+                db, project_id, actor_telegram_id=_actor_id(message)
+            )
+    except (ValueError, FactoryError, HitlError) as exc:
+        await message.answer(f"Не отправил клиенту: {exc}")
+        return
+    await message.answer(snap.get("message") or "Отправлено.")
+
+
+async def on_intervention_callback(query: CallbackQuery) -> None:
+    data = (query.data or "").strip()
+    if not data.startswith("iva:"):
+        await query.answer()
+        return
+    iid = data[4:].strip()
+    if not iid:
+        await query.answer()
+        return
+    _PENDING_INTERVENTION[query.message.chat.id if query.message else 0] = iid
+    await query.answer("Жду ответ следующим сообщением")
+    if query.message:
+        await query.message.answer(
+            "Пришлите ответ следующим сообщением. "
+            "Секреты не повторяются в чате и не пишутся в ТЗ."
+        )
+
+
 async def on_text(message: Message) -> None:
+    pending = _PENDING_INTERVENTION.pop(message.chat.id, None)
+    if pending:
+        text = message.text or ""
+        secret = True
+        try:
+            with _session() as db:
+                row = None
+                from core.factory import get_intervention
+
+                row = get_intervention(db, pending)
+                secret = bool(row and row.answer_type == "secret")
+        except Exception:  # noqa: BLE001
+            secret = True
+        await _apply_intervention_answer(message, pending, text, secret=secret)
+        return
     project_id = _CHAT_PROJECT.get(message.chat.id)
     if not project_id:
         await message.answer("Create a project first: /new My Project")
@@ -336,6 +517,12 @@ async def run_bot() -> None:
     dp.message.register(cmd_reject, Command("reject"))
     dp.message.register(cmd_plan, Command("plan"))
     dp.message.register(cmd_export, Command("export"))
+    dp.message.register(cmd_mvp, Command("mvp"))
+    dp.message.register(cmd_queue, Command("queue"))
+    dp.message.register(cmd_answer, Command("answer"))
+    dp.message.register(cmd_secret, Command("secret"))
+    dp.message.register(cmd_sendreview, Command("sendreview"))
+    dp.callback_query.register(on_intervention_callback, F.data.startswith("iva:"))
     dp.message.register(on_voice, F.voice)
     dp.message.register(on_text, F.text)
 
