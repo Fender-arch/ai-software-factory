@@ -257,7 +257,6 @@ def test_tz_send_posts_document_to_customer_chat(client, monkeypatch):
         return {"ok": True, "chat_id": str(chat_id), "message_id": 101, "bot_username": "asf_bot"}
 
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "test-token")
-    monkeypatch.setenv("OWNER_TELEGRAM_ID", "1")
     get_settings.cache_clear()
     monkeypatch.setattr(
         "integrations.telegram.notify.send_customer_telegram_document",

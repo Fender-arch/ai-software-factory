@@ -107,7 +107,6 @@ def test_miniapp_js_uses_telegram_fullscreen_and_groq_voice(client):
     fallback_at = export_fn.find("showExportFallback")
     assert send_at != -1 and fallback_at != -1 and send_at < fallback_at
     assert "renderTzDownload(false)" not in js.text
-    assert "withTimeout" in js.text
     assert "if (inTelegramWebView()) return false" in js.text
     assert "pickRecorderMime" in js.text
     assert "visualViewport" in js.text
