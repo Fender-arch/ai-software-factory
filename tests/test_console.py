@@ -462,6 +462,9 @@ def test_console_tz_export_md_docx_pdf(client):
     text = md.content.decode("utf-8")
     assert "Техническое задание" in text
     assert "Cafe" in text
+    assert "## Оглавление" in text
+    assert "Appendix" not in text
+    assert "Draft TZ" not in text
     assert "attachment" in md.headers.get("content-disposition", "")
 
     docx = client.get(f"/console/api/projects/{pid}/tz-export?format=docx")

@@ -19,6 +19,12 @@ class Settings(BaseSettings):
     stt_provider: str = "stub"
     stt_model: str = "whisper-1"
     owner_telegram_id: str = ""
+    # Printed on the client TZ (not secrets; HITL still uses owner_telegram_id).
+    studio_name: str = ""
+    owner_contact_name: str = ""
+    owner_contact_email: str = ""
+    owner_contact_phone: str = ""
+    owner_contact_telegram: str = ""
     llm_provider: str = "stub"
     llm_model: str = ""
     discovery_engine: str = "auto"

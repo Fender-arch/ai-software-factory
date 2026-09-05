@@ -67,6 +67,8 @@ def test_render_env_file_contains_keys():
     assert "MINIAPP_URL=https://mini.example.com/miniapp/" in text
     assert "ASF_ESTIMATE_HOURLY_RATE=3000" in text
     assert "ASF_ESTIMATE_CURRENCY=RUB" in text
+    assert "STUDIO_NAME=" in text
+    assert "OWNER_CONTACT_NAME=" in text
     assert "ASF_INTERVENTION_TTL_HOURS=72" in text
     assert "CURSOR_CLOUD_API_URL=https://api.cursor.com" in text
 

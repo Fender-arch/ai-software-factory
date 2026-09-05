@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.11 |
+| Version | 0.12 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -52,6 +52,11 @@ pytest
 | `LLM_MODEL` | Groq chat model (default `llama-3.3-70b-versatile`; ignored for stub) |
 | `DISCOVERY_ENGINE` | `auto` \| `llm` \| `fsm` — DEC-008. `auto` = LLM-driven turns when `LLM_PROVIDER` is not `stub`; `fsm` forces the deterministic fallback (no catalog heading menu, DEC-014) |
 | `OWNER_TELEGRAM_ID` | HITL owner chat |
+| `STUDIO_NAME` | Studio name printed on the client TZ (optional) |
+| `OWNER_CONTACT_NAME` | Owner/studio person on the client TZ (optional) |
+| `OWNER_CONTACT_EMAIL` | Owner/studio email on the client TZ (optional) |
+| `OWNER_CONTACT_PHONE` | Owner/studio phone on the client TZ (optional) |
+| `OWNER_CONTACT_TELEGRAM` | Owner/studio Telegram handle on the client TZ (optional) |
 | `ASF_ESTIMATE_HOURLY_RATE` | Hourly rate for owner TZ cost estimate (default `3000`) |
 | `ASF_ESTIMATE_CURRENCY` | Currency code for that estimate (default `RUB`) |
 | `ASF_MARKET_RATES_URL` | Optional HTTPS JSON of public market bands (client estimate). Empty = builtin table |
