@@ -30,7 +30,7 @@ Telegram Mini App (fullscreen) ── text | voice
         │
    Artifacts (Markdown, derived)
         │
-   Owner HITL (бот) → Planner → Cursor → Product MVP
+   Owner HITL (бот) → смета клиенту (Mini App) → Planner → Cursor → Product MVP
         │
    Консоль ТЗ владельца (`/console/`) ← вид KG (DEC-007)
 ```

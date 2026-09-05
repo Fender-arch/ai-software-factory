@@ -19,8 +19,29 @@ class ProjectStatus(str, enum.Enum):
     ANALYZING = "ANALYZING"
     WAITING_CUSTOMER = "WAITING_CUSTOMER"
     WAITING_OWNER = "WAITING_OWNER"
+    WAITING_CLIENT_ESTIMATE = "WAITING_CLIENT_ESTIMATE"
     READY = "READY"
     ARCHIVED = "ARCHIVED"
+
+
+# Discovery must not overwrite these after the owner approved the draft TZ.
+POST_TZ_HOLD_STATUSES = frozenset(
+    {
+        ProjectStatus.WAITING_CLIENT_ESTIMATE,
+        ProjectStatus.READY,
+        ProjectStatus.ARCHIVED,
+    }
+)
+
+# Statuses where the customer may download the same draft TZ the owner saw.
+TZ_DOWNLOAD_STATUSES = frozenset(
+    {
+        ProjectStatus.WAITING_OWNER,
+        ProjectStatus.WAITING_CLIENT_ESTIMATE,
+        ProjectStatus.READY,
+        ProjectStatus.ARCHIVED,
+    }
+)
 
 
 class TaskStatus(str, enum.Enum):

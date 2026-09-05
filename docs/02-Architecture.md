@@ -28,7 +28,7 @@ Telegram Mini App (fullscreen) ── text | voice
         │
    Artifacts (Markdown, derived)
         │
-   Owner HITL (bot) → Planner → Cursor → Product MVP
+   Owner HITL (bot) → client estimate (Mini App) → Planner → Cursor → Product MVP
         │
    Owner TZ console (`/console/`) ← KG view (DEC-007)
 ```

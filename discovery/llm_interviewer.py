@@ -19,7 +19,13 @@ from typing import Any, Callable
 
 from sqlalchemy.orm import Session
 
-from core.models import Message, Project, ProjectStatus
+from core.models import (
+    Message,
+    POST_TZ_HOLD_STATUSES,
+    Project,
+    ProjectStatus,
+    TZ_DOWNLOAD_STATUSES,
+)
 from discovery.adapt import ADAPT_AFTER_TOPIC_IDS
 from discovery.fsm import DiscoveryStage, parse_stage, stage_after_project_created
 from discovery.literacy import ITLiteracy, infer_literacy
@@ -504,7 +510,7 @@ def run_llm_turn(
                 f"{reply}\n\nЧтобы закрыть черновик, осталось пройти разделы: "
                 f"{names}."
             )
-        if leftover:
+        if leftover and project.status not in POST_TZ_HOLD_STATUSES:
             stage = leftover[0].stage
         choices = with_discuss(turn.chips)
         if not leftover:
@@ -512,9 +518,10 @@ def run_llm_turn(
         elif not turn.chips:
             choices = with_discuss(apply_choice_overrides(leftover[0], plan))
 
-    if stage == DiscoveryStage.READY_FOR_OWNER:
-        if project.status not in {ProjectStatus.READY, ProjectStatus.ARCHIVED}:
-            project.status = ProjectStatus.WAITING_OWNER
+    if project.status in POST_TZ_HOLD_STATUSES:
+        pass
+    elif stage == DiscoveryStage.READY_FOR_OWNER:
+        project.status = ProjectStatus.WAITING_OWNER
     elif stage == DiscoveryStage.REVIEW:
         project.status = ProjectStatus.ANALYZING
     else:
@@ -551,7 +558,7 @@ def run_llm_turn(
     )
     db.flush()
 
-    tz_available = project.status in {ProjectStatus.WAITING_OWNER, ProjectStatus.READY}
+    tz_available = project.status in TZ_DOWNLOAD_STATUSES
     return DiscoveryTurnResult(
         reply_to_customer=reply,
         stage=stage,

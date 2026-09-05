@@ -14,6 +14,8 @@ from sqlalchemy.orm import Session
 
 from apps.api.console import router as console_router
 from apps.api.schemas import (
+    ClientEstimateDecisionRequest,
+    ClientEstimateDecisionResponse,
     FeedbackRequest,
     FeedbackResponse,
     HealthResponse,
@@ -35,9 +37,10 @@ from core.config import get_settings
 from core.coordinator import AICoordinator, LLMRouter
 from core.db import get_db
 from core.export import ExportError
+from core.client_estimate import ClientEstimateError
 from core.hitl import HitlError
+from core.models import TZ_DOWNLOAD_STATUSES
 from core.planner import PlannerError
-from core.models import ProjectStatus
 from core.project_files import FileError
 from core.tz_document import TzExportError, export_tz_file
 from core.services import (
@@ -55,6 +58,7 @@ from core.services import (
     run_project_discovery,
     run_project_planner,
     send_customer_tz_file,
+    submit_client_estimate_decision,
     submit_hitl_decision,
     submit_project_feedback,
     TzSendError,
@@ -210,6 +214,7 @@ def api_project_workspace(
         allow_multiple=bool(ws.get("allow_multiple")),
         tz_available=bool(ws.get("tz_available")),
         discovery_progress=ws.get("discovery_progress"),
+        client_estimate=ws.get("client_estimate"),
     )
 
 
@@ -420,6 +425,8 @@ def api_get_draft_tz(project_id: uuid.UUID, db: Session = Depends(get_db)) -> di
         "status": latest.status,
         "content": payload.get("content", ""),
         "estimate": payload.get("estimate"),
+        "client_estimate": payload.get("client_estimate"),
+        "client_estimate_report": payload.get("client_estimate_report"),
     }
 
 
@@ -437,11 +444,7 @@ def api_customer_tz_export(
         assert_project_owner(project, customer_telegram_id)
     except PermissionError as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
-    if project.status not in {
-        ProjectStatus.WAITING_OWNER,
-        ProjectStatus.READY,
-        ProjectStatus.ARCHIVED,
-    }:
+    if project.status not in TZ_DOWNLOAD_STATUSES:
         raise HTTPException(status_code=409, detail="draft TZ is not ready yet")
     try:
         payload, media, filename = export_tz_file(db, project, format)
@@ -522,6 +525,107 @@ def api_hitl_decision(
         decision_id=result.decision_id,
         message=result.message,
         human_decision_required=result.human_decision_required,
+    )
+
+
+@app.get("/projects/{project_id}/client-estimate")
+def api_get_client_estimate(
+    project_id: uuid.UUID,
+    customer_telegram_id: str | None = None,
+    db: Session = Depends(get_db),
+) -> dict:
+    try:
+        ws = get_project_workspace(
+            db,
+            project_id,
+            customer_telegram_id=customer_telegram_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    estimate = ws.get("client_estimate")
+    if not estimate:
+        raise HTTPException(status_code=404, detail="client estimate not found")
+    return {
+        "project_id": str(ws["project"].id),
+        "status": ws["project"].status.value,
+        "client_estimate": estimate,
+    }
+
+
+@app.post(
+    "/projects/{project_id}/client-estimate/confirm",
+    response_model=ClientEstimateDecisionResponse,
+)
+def api_confirm_client_estimate(
+    project_id: uuid.UUID,
+    body: ClientEstimateDecisionRequest | None = None,
+    customer_telegram_id: str | None = None,
+    db: Session = Depends(get_db),
+) -> ClientEstimateDecisionResponse:
+    payload = body or ClientEstimateDecisionRequest(action="confirm")
+    return _client_estimate_decision(
+        db,
+        project_id,
+        "confirm",
+        customer_telegram_id=payload.customer_telegram_id or customer_telegram_id,
+        note=payload.note,
+    )
+
+
+@app.post(
+    "/projects/{project_id}/client-estimate/discuss",
+    response_model=ClientEstimateDecisionResponse,
+)
+def api_discuss_client_estimate(
+    project_id: uuid.UUID,
+    body: ClientEstimateDecisionRequest | None = None,
+    customer_telegram_id: str | None = None,
+    db: Session = Depends(get_db),
+) -> ClientEstimateDecisionResponse:
+    payload = body or ClientEstimateDecisionRequest(action="discuss")
+    return _client_estimate_decision(
+        db,
+        project_id,
+        "discuss",
+        customer_telegram_id=payload.customer_telegram_id or customer_telegram_id,
+        note=payload.note,
+    )
+
+
+def _client_estimate_decision(
+    db: Session,
+    project_id: uuid.UUID,
+    action: str,
+    *,
+    customer_telegram_id: str | None,
+    note: str | None,
+) -> ClientEstimateDecisionResponse:
+    try:
+        result = submit_client_estimate_decision(
+            db,
+            project_id,
+            action,
+            customer_telegram_id=customer_telegram_id,
+            note=note,
+        )
+    except ValueError as exc:
+        if str(exc) == "project not found":
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except ClientEstimateError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return ClientEstimateDecisionResponse(
+        project_id=result.project_id,
+        action=result.action.value,
+        project_status=result.project_status.value,
+        artifact_id=result.artifact_id,
+        decision_id=result.decision_id,
+        message=result.message,
+        client_estimate=result.client_estimate,
     )
 
 

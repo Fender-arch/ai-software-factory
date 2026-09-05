@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.6 |
+| Version | 0.7 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -32,7 +32,7 @@ ai-software-factory/
 │   ├── api/              # FastAPI entrypoint
 │   ├── miniapp/          # Telegram Mini App frontend (customer UI)
 │   └── console/          # Owner TZ graph console (DEC-007)
-├── core/                 # config, db, models, coordinator, estimate
+├── core/                 # config, db, models, coordinator, estimate, client_estimate
 ├── knowledge/            # entity/relation repositories
 ├── discovery/            # Discovery FSM, interview, draft TZ
 ├── integrations/

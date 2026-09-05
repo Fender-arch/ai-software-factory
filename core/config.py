@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     # Env: ASF_ESTIMATE_HOURLY_RATE, ASF_ESTIMATE_CURRENCY
     asf_estimate_hourly_rate: float = 3000
     asf_estimate_currency: str = "RUB"
+    # Optional public JSON of market bands for the client estimate (DEC-012).
+    # Host must be listed in ASF_MARKET_RATES_ALLOWLIST (comma-separated). HTTPS only.
+    asf_market_rates_url: str = ""
+    asf_market_rates_allowlist: str = ""
 
 
 @lru_cache

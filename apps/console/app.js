@@ -762,7 +762,7 @@
         )} ч)</span>`
       : "";
     return `
-      <h3>Оценка стоимости</h3>
+      <h3>Оценка владельца (эвристика)</h3>
       <p class="hint">Подсказка для HITL владельца, не цена клиенту.</p>
       <div class="estimate-hero">
         <div class="estimate-cost">${escapeHtml(est.formatted_cost || "—")}</div>
@@ -789,6 +789,50 @@
     `;
   }
 
+  function clientEstimateHtml(est) {
+    if (!est) {
+      return `<h3>Смета клиенту</h3>
+        <p class="hint">Появится после утверждения ТЗ владельцем (DEC-012).</p>`;
+    }
+    const sources = (est.sources || [])
+      .map((src) => {
+        const name = escapeHtml(src.name || "источник");
+        const kind = escapeHtml(src.kind || "config");
+        const note = escapeHtml(src.note || "");
+        return `<li><b>${name}</b> · ${kind}${note ? ` — ${note}` : ""}</li>`;
+      })
+      .join("");
+    const report = est.report || {};
+    const statusRu = {
+      pending: "ждёт клиента",
+      confirmed: "клиент подтвердил",
+      discuss_requested: "клиент хочет обсудить",
+    };
+    return `
+      <h3>Смета клиенту (рынок)</h3>
+      <p class="hint">${escapeHtml(est.disclaimer || "Ориентир рынка, не оферта.")}</p>
+      <div class="estimate-hero client-estimate-hero">
+        <div class="estimate-cost">${escapeHtml(est.formatted_cost || "—")}</div>
+        <div class="estimate-hours">вилка ${escapeHtml(
+          est.formatted_cost_low || "—"
+        )} – ${escapeHtml(est.formatted_cost_high || "—")} · ~${escapeHtml(
+          est.formatted_hours || "—"
+        )} ч × ${escapeHtml(est.formatted_rate_mid || "—")}</div>
+      </div>
+      <div class="meta">
+        <div>Статус сметы: <b>${escapeHtml(statusRu[est.status] || est.status || "—")}</b></div>
+        <div>Метод: <b>${escapeHtml(est.method || "market_v1")}</b> / отчёт <b>${escapeHtml(
+          est.report_method || (report.method || "—")
+        )}</b></div>
+        <div>Ориентир заказчика: <b>${escapeHtml(est.customer_budget_label || "не указан")}</b></div>
+      </div>
+      <h3>Отчёт клиенту</h3>
+      <pre class="client-estimate-report">${escapeHtml(report.body || "—")}</pre>
+      <h3>Источники ставок</h3>
+      <ul class="estimate-rationale">${sources || "<li>—</li>"}</ul>
+    `;
+  }
+
   function renderGroupPanel(node) {
     const leaves = requirementLeaves(node.id);
     const kids = childrenOf(node.id);
@@ -809,6 +853,7 @@
           <div>Статус проекта: <b>${escapeHtml(info.status || "—")}</b></div>
         </div>
         ${estimateHtml(info.estimate)}
+        ${clientEstimateHtml(info.client_estimate)}
         <h3>Выгрузить полное ТЗ</h3>
         <div class="export-row">
           <button type="button" class="btn" data-tz-export="md">Markdown</button>

@@ -27,6 +27,7 @@ Two audiences:
 - Telegram + Whisper STT are in MVP
 - Product types: `website` | `telegram_bot` | `rest_service` | `ai_automation` | `mobile_native` (DEC-010)
 - HITL gate after draft TZ; escalate instead of guessing
+- Client market estimate confirm before Planner (DEC-012); owner heuristic stays separate
 - Token economy: always-on rules stay tiny; details live in skills; no catalog dumps
 - Secrets never go in this file’s Learned sections
 
