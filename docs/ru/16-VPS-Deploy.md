@@ -5,7 +5,7 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.7 |
+| Version | 0.8 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -172,6 +172,8 @@ Host-level WireGuard / split-tunnel **без** HTTP-прокси контейн�
 4. `HTTPS_PROXY=http://egress:8888` для `api` и `bot`. `NO_PROXY` исключает `db`, localhost и сам `egress`.
 
 Секреты GitHub: `EGRESS_SSH_HOST`, `EGRESS_SSH_USER` (по умолчанию `root`), `EGRESS_SSH_PORT` (по умолчанию `22`). `EGRESS_SSH_PASSWORD` — **только первый деплой** (поставить tinyproxy и pubkey); в `/opt/asf/.env` пароль не пишется. Дальше достаточно ключа. Пустой `EGRESS_SSH_HOST` — прямой исходящий трафик, как раньше.
+
+`asf_sudo` вызывает apt через `env`, чтобы `DEBIAN_FRONTEND=noninteractive` был префиксом окружения, а не командой. Если первый заход на выходной хост всё равно не выходит, добавьте `/opt/asf-secrets/egress_id_ed25519.pub` в `authorized_keys` того хоста и перезапустите **Deploy VPS** (пароль можно оставить пустым).
 
 Smoke на VPS ASF после деплоя:
 

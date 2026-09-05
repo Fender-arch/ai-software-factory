@@ -12,15 +12,16 @@ if [[ -z "${ASF_HOST_PORT:-}" || "${ASF_HOST_PORT}" == "SET_ME" || ! "${ASF_HOST
 fi
 export ASF_HOST_PORT
 
+# env so `asf_sudo VAR=value cmd` works as root (`"$@"` would exec VAR=value).
 asf_sudo() {
   if [[ "$(id -u)" -eq 0 ]]; then
-    "$@"
+    env "$@"
   elif sudo -n true 2>/dev/null; then
-    sudo "$@"
+    sudo env "$@"
   elif [[ -n "${VPS_PASSWORD:-}" ]]; then
-    printf '%s\n' "$VPS_PASSWORD" | sudo -S -p "" "$@"
+    printf '%s\n' "$VPS_PASSWORD" | sudo -S -p "" env "$@"
   else
-    "$@"
+    env "$@"
   fi
 }
 

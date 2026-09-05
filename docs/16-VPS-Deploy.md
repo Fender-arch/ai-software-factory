@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.7 |
+| Version | 0.8 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -170,6 +170,8 @@ Flow:
 4. `HTTPS_PROXY=http://egress:8888` for `api` and `bot`. `NO_PROXY` keeps `db`, localhost, and `egress` itself off the proxy.
 
 GitHub secrets: `EGRESS_SSH_HOST`, `EGRESS_SSH_USER` (default `root`), `EGRESS_SSH_PORT` (default `22`). `EGRESS_SSH_PASSWORD` is **first deploy only** (install tinyproxy + the pubkey); it is not written to `/opt/asf/.env`. After that, key-only SSH is enough. Leave `EGRESS_SSH_HOST` empty to keep today’s direct outbound.
+
+`asf_sudo` runs apt via `env` so `DEBIAN_FRONTEND=noninteractive` is an env prefix, not a command. If first-time install still cannot reach the exit host, add `/opt/asf-secrets/egress_id_ed25519.pub` to that host’s `authorized_keys` and re-run **Deploy VPS** (password can stay empty).
 
 Smoke on the ASF VPS after deploy:
 
