@@ -409,6 +409,24 @@ input[type="file"]::file-selector-button {
   gap: 6px;
 }
 .estimate-rationale li { color: var(--muted); }
+.client-estimate-hero {
+  border-color: rgba(92, 225, 230, 0.28);
+  background: rgba(92, 225, 230, 0.06);
+}
+.client-estimate-report {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  max-height: 240px;
+  overflow: auto;
+}
 
 .status-pill {
   display: inline-flex;

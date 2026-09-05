@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.3 |
-| Updated | 2026-08-16 |
+| Version | 0.4 |
+| Updated | 2026-09-05 |
 | Owner | ASF Core |
 
 ## Style
@@ -28,7 +28,7 @@ Telegram Mini App (fullscreen) ── text | voice
         │
    Artifacts (Markdown, derived)
         │
-   Owner HITL (bot) → Planner → Cursor → Product MVP
+   Owner HITL (bot) → client estimate (Mini App) → Planner → Cursor → Product MVP
         │
    Owner TZ console (`/console/`) ← KG view (DEC-007)
 ```

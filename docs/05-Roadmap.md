@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.3 |
-| Updated | 2026-08-16 |
+| Version | 0.4 |
+| Updated | 2026-09-05 |
 | Owner | ASF Core |
 
 ## Now — Foundation
@@ -13,6 +13,7 @@
 - Runnable skeleton: API + Postgres + Telegram bot stub + STT
 - Migrations for projects, messages, entities, relations, tasks
 - Epics 01–06 delivered (infra → Discovery → KG → HITL/planner/export → Mini App → owner TZ console)
+- Dual estimate: owner heuristic + client market quote/report before Planner (DEC-012)
 
 ## Week-oriented MVP delivery
 

@@ -39,8 +39,24 @@ def test_hitl_approve_sets_ready(client):
     assert hitl.status_code == 200
     body = hitl.json()
     assert body["action"] == "approve"
-    assert body["project_status"] == "READY"
+    assert body["project_status"] == "WAITING_CLIENT_ESTIMATE"
     assert body["human_decision_required"] is False
+
+    project = client.get(f"/projects/{project_id}").json()
+    assert project["status"] == "WAITING_CLIENT_ESTIMATE"
+
+    still_blocked = client.post(
+        f"/projects/{project_id}/coordinator/planner",
+        json={},
+    )
+    assert still_blocked.status_code == 400
+
+    confirmed = client.post(
+        f"/projects/{project_id}/client-estimate/confirm",
+        json={"action": "confirm"},
+    )
+    assert confirmed.status_code == 200
+    assert confirmed.json()["project_status"] == "READY"
 
     project = client.get(f"/projects/{project_id}").json()
     assert project["status"] == "READY"
@@ -108,6 +124,13 @@ def test_planner_and_export_formats(client):
         ).status_code
         == 200
     )
+    assert (
+        client.post(
+            f"/projects/{project_id}/client-estimate/confirm",
+            json={"action": "confirm"},
+        ).status_code
+        == 200
+    )
 
     planned = client.post(
         f"/projects/{project_id}/coordinator/planner",
@@ -155,7 +178,13 @@ def test_website_mvp_smoke_end_to_end(client):
         json={"action": "approve", "note": "Ship brochure MVP"},
     )
     assert hitl.status_code == 200
-    assert hitl.json()["project_status"] == "READY"
+    assert hitl.json()["project_status"] == "WAITING_CLIENT_ESTIMATE"
+    confirmed = client.post(
+        f"/projects/{project_id}/client-estimate/confirm",
+        json={"action": "confirm"},
+    )
+    assert confirmed.status_code == 200
+    assert confirmed.json()["project_status"] == "READY"
 
     planned = client.post(
         f"/projects/{project_id}/coordinator/planner",

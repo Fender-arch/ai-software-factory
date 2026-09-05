@@ -271,6 +271,7 @@
     showSendHint("");
     const box = $("composer-text");
     if (box) box.value = "";
+    renderClientEstimate(null, "");
   }
 
   document.querySelectorAll("[data-back]").forEach((btn) => {
@@ -421,11 +422,14 @@
           ? "Что исправить или добавить в реализации…"
           : (ws.discovery_choices || []).length
             ? "Ответьте текстом или откройте варианты…"
+          : ws.status === "WAITING_CLIENT_ESTIMATE"
+            ? "Смета ниже — подтвердите или напишите, что обсудить…"
           : ws.status === "WAITING_OWNER" || ws.status === "READY"
             ? "Можно добавить уточнение…"
             : "Ответьте текстом или откройте варианты…";
       $("composer-text").placeholder = placeholder;
       renderTzDownload(Boolean(ws.tz_available));
+      renderClientEstimate(ws.client_estimate, ws.status);
       scrollThreadToLatest();
     } catch (err) {
       if (isAbortError(err) || requestId !== state.wsRequestId) return;
@@ -586,6 +590,98 @@
     const bar = $("tz-download");
     if (!bar) return;
     bar.classList.toggle("hidden", !available);
+  }
+
+  function renderClientEstimate(est, projectStatus) {
+    const card = $("client-estimate");
+    if (!card) return;
+    if (!est) {
+      card.classList.add("hidden");
+      return;
+    }
+    card.classList.remove("hidden");
+    const cost = $("ce-cost");
+    const hours = $("ce-hours");
+    const disc = $("ce-disclaimer");
+    const reportBody = $("ce-report-body");
+    const actions = $("ce-actions");
+    const statusEl = $("ce-status");
+    if (cost) {
+      cost.textContent = est.formatted_cost
+        ? `${est.formatted_cost}`
+        : "—";
+    }
+    if (hours) {
+      const range =
+        est.formatted_cost_low && est.formatted_cost_high
+          ? `Вилка ${est.formatted_cost_low} – ${est.formatted_cost_high}`
+          : "";
+      hours.textContent = [
+        est.formatted_hours ? `~${est.formatted_hours} ч` : "",
+        est.formatted_rate_mid ? `середина ${est.formatted_rate_mid}` : "",
+        range,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+    }
+    if (disc) disc.textContent = est.disclaimer || "";
+    if (reportBody) {
+      const report = est.report || {};
+      reportBody.textContent = report.body || "";
+    }
+    const pending = est.status === "pending" || est.status === "discuss_requested";
+    const canDecide =
+      pending &&
+      (projectStatus === "WAITING_CLIENT_ESTIMATE" ||
+        projectStatus === "WAITING_CUSTOMER");
+    if (actions) actions.classList.toggle("hidden", !canDecide);
+    if (statusEl) {
+      if (est.status === "confirmed") {
+        statusEl.textContent = "Смета подтверждена. Можно ждать сборку MVP.";
+      } else if (est.status === "discuss_requested") {
+        statusEl.textContent = "Запрос на обсуждение отправлен разработчику.";
+      } else if (projectStatus === "WAITING_CLIENT_ESTIMATE") {
+        statusEl.textContent = "Подтвердите ориентир — и только потом начнём MVP.";
+      } else {
+        statusEl.textContent = "";
+      }
+    }
+  }
+
+  async function decideClientEstimate(action) {
+    if (!state.projectId || !requireUser() || state.sending) return;
+    state.sending = true;
+    const confirmBtn = $("ce-confirm");
+    const discussBtn = $("ce-discuss");
+    if (confirmBtn) confirmBtn.disabled = true;
+    if (discussBtn) discussBtn.disabled = true;
+    try {
+      const qs = new URLSearchParams({ customer_telegram_id: userId });
+      await api(`/projects/${state.projectId}/client-estimate/${action}?${qs}`, {
+        method: "POST",
+        body: JSON.stringify({
+          action,
+          customer_telegram_id: userId,
+        }),
+      });
+      haptic("medium");
+      await openWorkspace(state.projectId, state.listMode || "change");
+    } catch (err) {
+      alert(err.message || String(err));
+    } finally {
+      state.sending = false;
+      if (confirmBtn) confirmBtn.disabled = false;
+      if (discussBtn) discussBtn.disabled = false;
+    }
+  }
+
+  const ceConfirm = $("ce-confirm");
+  const ceDiscuss = $("ce-discuss");
+  if (ceConfirm) {
+    ceConfirm.addEventListener("click", () => decideClientEstimate("confirm"));
+  }
+  if (ceDiscuss) {
+    ceDiscuss.addEventListener("click", () => decideClientEstimate("discuss"));
   }
 
   async function downloadTz(fmt) {

@@ -5,8 +5,8 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.3 |
-| Updated | 2026-08-16 |
+| Version | 0.4 |
+| Updated | 2026-09-05 |
 | Owner | ASF Core |
 
 ## Сейчас — Foundation
@@ -15,6 +15,7 @@
 - Запускаемый скелет: API + Postgres + stub Telegram-бота + STT
 - Миграции для projects, messages, entities, relations, tasks
 - Эпики 01–06 поставлены (infra → Discovery → KG → HITL/planner/export → Mini App → консоль ТЗ владельца)
+- Две оценки: эвристика владельца + рыночная смета/отчёт клиенту до Planner (DEC-012)
 
 ## Поставка MVP по неделям
 

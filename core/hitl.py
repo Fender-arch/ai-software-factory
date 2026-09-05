@@ -8,6 +8,12 @@ from enum import Enum
 
 from sqlalchemy.orm import Session
 
+from core.client_estimate import (
+    attach_client_estimate_to_draft,
+    client_estimate_from_artifact,
+    client_estimate_report_from_artifact,
+    customer_estimate_view,
+)
 from core.config import get_settings
 from core.estimate import estimate_from_artifact
 from core.models import Entity, Project, ProjectStatus
@@ -63,7 +69,7 @@ def apply_hitl_decision(
     note: str | None = None,
     actor_telegram_id: str | None = None,
 ) -> HitlResult:
-    """Apply owner decision. Planning starts only after ``approve``."""
+    """Apply owner decision. Client estimate gate runs after ``approve``."""
     assert_owner_actor(actor_telegram_id)
 
     if project.status != ProjectStatus.WAITING_OWNER:
@@ -103,7 +109,7 @@ def _approve(
         name="Owner approved draft TZ",
         status="accepted",
         payload={
-            "summary": note or "Draft TZ approved; planning may proceed",
+            "summary": note or "Draft TZ approved; client estimate sent for confirmation",
             "kind": "tz_approval",
             "artifact_id": str(draft.id),
             "action": HitlAction.APPROVE.value,
@@ -130,7 +136,8 @@ def _approve(
             payload={"role": "tz_gate"},
         )
 
-    project.status = ProjectStatus.READY
+    attach_client_estimate_to_draft(kg, project, draft)
+    project.status = ProjectStatus.WAITING_CLIENT_ESTIMATE
     _sync_project_entity(
         kg,
         project,
@@ -144,7 +151,10 @@ def _approve(
         project_status=project.status,
         artifact_id=draft.id,
         decision_id=decision.id,
-        message="Draft TZ approved. Project is READY for Planner.",
+        message=(
+            "Draft TZ approved. Client market estimate is ready — "
+            "customer must confirm before Planner."
+        ),
         human_decision_required=False,
     )
 
@@ -309,4 +319,8 @@ def owner_review_summary(db: Session, project: Project) -> dict:
         "contradictions": quality.get("contradictions") or [],
         "owner_recommendations": quality.get("owner_recommendations") or [],
         "estimate": estimate.as_dict() if estimate else None,
+        "client_estimate": customer_estimate_view(
+            client_estimate_from_artifact(draft),
+            client_estimate_report_from_artifact(draft),
+        ),
     }

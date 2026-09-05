@@ -50,7 +50,9 @@ def test_console_static_served(client):
     js = client.get("/console/app.js")
     assert js.status_code == 200
     assert "estimateHtml" in js.text
+    assert "clientEstimateHtml" in js.text
     assert "Оценка стоимости" in js.text
+    assert "Смета клиенту" in js.text
 
 
 def test_console_lists_projects_without_token_in_local_debug(client):
@@ -115,6 +117,12 @@ def test_tz_graph_includes_delivery_estimate(client):
     assert estimate["rationale"]
     assert "must_count" in estimate
     assert estimate["budget_fit_label"]
+    client_est = graph["project"]["client_estimate"]
+    assert client_est
+    assert client_est["cost"] > 0
+    assert client_est["method"] == "market_v1"
+    assert client_est["sources"]
+    assert all("Admin analytics" not in str(src) for src in client_est["sources"])
 
 
 def test_status_history_and_rejected_requires_reason(client):

@@ -82,6 +82,7 @@ def compute_discovery_progress(
 
     if status_value in {
         ProjectStatus.WAITING_OWNER,
+        ProjectStatus.WAITING_CLIENT_ESTIMATE,
         ProjectStatus.READY,
         ProjectStatus.ARCHIVED,
     } or stage == DiscoveryStage.READY_FOR_OWNER:

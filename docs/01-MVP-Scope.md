@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.4 |
+| Version | 0.5 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -15,12 +15,13 @@ Get the first real customer flow working:
 2. Platform collects requirements (Discovery) in a per-project Mini App workspace
 3. Draft specification is produced
 4. Owner reviews and approves (HITL)
-5. Work is broken into tasks
-6. Cursor can implement a **simple** MVP from those tasks
+5. Customer sees a **market estimate + narrative report** and confirms (DEC-012)
+6. Work is broken into tasks
+7. Cursor can implement a **simple** MVP from those tasks
 
 Customer home (Russian UI): **create project**, **change project**, **implementation feedback**. Details: [14-Telegram-Customer-UX.md](14-Telegram-Customer-UX.md), [DEC-006](../decisions/DEC-006-Telegram-Mini-App.md).
 
-Definition of done for the *platform* MVP: Telegram Mini App → quality TZ → HITL → tasks → Cursor can build a simple product — not “perfect autonomous company”.
+Definition of done for the *platform* MVP: Telegram Mini App → quality TZ → HITL → client estimate confirm → tasks → Cursor can build a simple product — not “perfect autonomous company”.
 
 ## In scope
 
@@ -32,6 +33,7 @@ Definition of done for the *platform* MVP: Telegram Mini App → quality TZ → 
 | Memory | Logical Knowledge Graph in PostgreSQL (`entity`, `relation`, JSONB) |
 | AI | One **AI Coordinator** with modes (not many OS processes) |
 | HITL | Spec review in owner bot path; `HumanDecisionRequired` on forks |
+| Client estimate | Market-band quote + RU report after owner approve; customer confirm before Planner ([DEC-012](../decisions/DEC-012-Client-Market-Estimate.md)) |
 | Owner TZ console | Internal graph of requirements (`/console/`); [DEC-007](../decisions/DEC-007-Owner-TZ-Console.md), [15-Owner-TZ-Console.md](15-Owner-TZ-Console.md) |
 | Product types | `website`, `telegram_bot`, `rest_service`, `ai_automation`, `mobile_native` ([DEC-010](../decisions/DEC-010-Mobile-Native.md)) |
 | Delivery | Task export + Cursor rules; human/Cursor execution |

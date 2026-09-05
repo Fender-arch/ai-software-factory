@@ -5,7 +5,7 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.4 |
+| Version | 0.5 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -17,12 +17,13 @@
 2. Платформа собирает требования (Discovery) в project workspace Mini App
 3. Формируется черновик спецификации
 4. Владелец ревьюит и утверждает (HITL)
-5. Работа разбивается на задачи
-6. Cursor может реализовать **простой** MVP по этим задачам
+5. Заказчик видит **рыночную смету + отчёт с обоснованием** и подтверждает (DEC-012)
+6. Работа разбивается на задачи
+7. Cursor может реализовать **простой** MVP по этим задачам
 
 Home заказчика (UI на русском): **создать проект**, **изменить проект**, **замечания к реализации**. Детали: [14-Telegram-Customer-UX.md](14-Telegram-Customer-UX.md), [DEC-006](../../decisions/DEC-006-Telegram-Mini-App.md).
 
-Definition of done для *платформенного* MVP: Telegram Mini App → качественное ТЗ → HITL → задачи → Cursor может собрать простой продукт — не «идеальная автономная компания».
+Definition of done для *платформенного* MVP: Telegram Mini App → качественное ТЗ → HITL → подтверждение клиентской сметы → задачи → Cursor может собрать простой продукт — не «идеальная автономная компания».
 
 ## В объёме
 
@@ -34,6 +35,7 @@ Definition of done для *платформенного* MVP: Telegram Mini App 
 | Память | Логический Knowledge Graph в PostgreSQL (`entity`, `relation`, JSONB) |
 | AI | Один **AI Coordinator** с режимами (не множество OS-процессов) |
 | HITL | Ревью спецификации в боте владельца; `HumanDecisionRequired` на развилках |
+| Клиентская смета | Рыночный ориентир + отчёт на русском после approve владельца; подтверждение до Planner ([DEC-012](../../decisions/DEC-012-Client-Market-Estimate.md)) |
 | Консоль ТЗ владельца | Внутренний граф требований (`/console/`); [DEC-007](../../decisions/DEC-007-Owner-TZ-Console.md), [15-Owner-TZ-Console.md](15-Owner-TZ-Console.md) |
 | Типы продуктов | `website`, `telegram_bot`, `rest_service`, `ai_automation`, `mobile_native` ([DEC-010](../../decisions/DEC-010-Mobile-Native.md)) |
 | Поставка | Экспорт задач + правила Cursor; исполнение человеком/Cursor |
