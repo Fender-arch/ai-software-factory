@@ -107,7 +107,7 @@ curl -sS http://127.0.0.1:18000/health/telegram
 | Проверка | Смысл |
 |----------|--------|
 | С хоста `curl -4 https://api.telegram.org` ок, из контейнера нет | IPv6/AAAA в Docker или DNS контейнера. Приложение предпочитает IPv4 (`ASF_TELEGRAM_IP=auto`/`4`). Локальный override `docker-compose.telegram-egress.yml` (`extra_hosts`, не в git). |
-| `curl https://example.org` ок, Telegram нет | Провайдер/файрвол режет Telegram. Разрешите `api.telegram.org:443` **или** задайте секрет `HTTPS_PROXY` / `TELEGRAM_PROXY` (не коммитить) и задеплойте снова. |
+| `curl https://example.org` ок, Telegram нет | **Блок Telegram у хостера** (на FirstVDS: DNS и IPv4-маршрут есть, `curl -4 https://api.telegram.org` таймаут, ufw OUTPUT = allow). Попросите хостера открыть `api.telegram.org:443` (сети Telegram `149.154.160.0/20`, `91.108.4.0/22`) **или** задайте секрет `HTTPS_PROXY` / `TELEGRAM_PROXY` (не коммитить) и задеплойте снова. IPv4 `extra_hosts` такой путь не лечит. |
 | Нет исходящего HTTPS вообще | Закрыт OUTPUT 443 (`ufw` / iptables / панель). Разрешите 443/tcp наружу. |
 
 На VPS (в выводе нет секретов):

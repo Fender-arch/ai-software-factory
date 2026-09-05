@@ -141,7 +141,7 @@ if tg4 or tg:
     print("HINT=If /health/telegram is still down, recreate api/bot with ASF_TELEGRAM_IP=4 and DNS 8.8.8.8")
 elif ex and not tg4 and not tg:
     print("VERDICT=telegram_blocked")
-    print("HINT=HTTPS works, Telegram does not. Allow egress to api.telegram.org:443 or set HTTPS_PROXY / TELEGRAM_PROXY secret and redeploy.")
+    print("HINT=HTTPS works, Telegram TCP/443 times out. Not ufw (if OUTPUT allow) and not Mini App. Ask the VPS hoster to allow api.telegram.org:443 or set HTTPS_PROXY / TELEGRAM_PROXY and redeploy.")
 elif not ex and not tg:
     print("VERDICT=egress_blocked")
     print("HINT=Outgoing 443 looks blocked (ufw/iptables/provider). Allow OUTPUT 443/tcp.")

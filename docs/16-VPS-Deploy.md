@@ -105,7 +105,7 @@ Typical failure (prod `ConnectError`, empty `bot_username`):
 | Check | Meaning |
 |-------|---------|
 | Host `curl -4 https://api.telegram.org` works, container does not | Docker IPv6/AAAA or container DNS. App prefers IPv4 (`ASF_TELEGRAM_IP=auto`/`4`). Optional local override `docker-compose.telegram-egress.yml` (`extra_hosts`, not committed). |
-| Host `curl https://example.org` works, Telegram does not | Provider/firewall blocks Telegram. Allow `api.telegram.org:443` **or** set GitHub secret `HTTPS_PROXY` / `TELEGRAM_PROXY` (never commit it) and redeploy. |
+| Host `curl https://example.org` works, Telegram does not | **Provider-level Telegram block** (seen on FirstVDS: DNS + IPv4 route OK, `curl -4 https://api.telegram.org` times out, ufw OUTPUT is allow). Ask the hoster to allow `api.telegram.org:443` (Telegram ranges `149.154.160.0/20`, `91.108.4.0/22`) **or** set GitHub secret `HTTPS_PROXY` / `TELEGRAM_PROXY` (never commit it) and redeploy. IPv4 extra_hosts cannot fix a filtered path. |
 | Neither host HTTPS works | Outgoing 443 denied (`ufw` / iptables / panel). Allow OUTPUT 443/tcp. |
 
 Runbook on the VPS (no secrets in the output):
