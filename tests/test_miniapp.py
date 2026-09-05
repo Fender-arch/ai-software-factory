@@ -25,7 +25,7 @@ def test_miniapp_static_served(client):
     assert "String(ws.project_id) !== pid" in js.text
     assert "renderProgress" in js.text
     assert "discovery_progress" in js.text
-    assert "20260829-tz" in res.text
+    assert "20260905-xp" in res.text
     assert "ws-progress" in res.text
     assert "foundry-field" in res.text
     assert "tz-download" in res.text
@@ -59,6 +59,50 @@ def test_miniapp_js_uses_telegram_fullscreen_and_groq_voice(client):
     assert "contentSafeAreaInset" in js.text
     assert "applyWelcomeGate" in js.text
     assert "openChoicesModal" in js.text
+
+
+def test_miniapp_experience_layer_slot_and_calm_mode(client):
+    res = client.get("/miniapp/")
+    assert res.status_code == 200
+    assert "mascot-slot" in res.text
+    assert "mascot-status" in res.text
+    assert "Спокойный режим" in res.text
+    assert "data-calm-toggle" in res.text
+    assert "experience.js" in res.text
+    assert "flex: 0 0 24%" in client.get("/miniapp/styles.css").text
+
+    xp = client.get("/miniapp/experience.js")
+    assert xp.status_code == 200
+    assert "asf-calm-mode" in xp.text
+    assert "prefers-reduced-motion" in xp.text
+    for event in (
+        "idle",
+        "listening",
+        "thinking",
+        "got_answer",
+        "got_voice",
+        "got_file",
+        "draft_ready",
+        "error",
+    ):
+        assert event in xp.text
+    assert "@rive-app/canvas" in xp.text
+    assert "mascot.riv" in xp.text
+
+    js = client.get("/miniapp/app.js")
+    assert "ASFExperience" in js.text
+    assert 'xp("got_voice")' in js.text
+    assert 'xp("got_file")' in js.text
+    assert 'xp("got_answer")' in js.text
+
+    css = client.get("/miniapp/styles.css")
+    assert "asf-calm" in css.text
+    assert ".mascot-slot" in css.text
+    assert "prefers-reduced-motion" in css.text
+
+    foundry = client.get("/miniapp/foundry.js")
+    assert "setPaused" in foundry.text
+    assert "pulse" in foundry.text
 
 
 def test_create_project_welcome_and_russian_question(client):

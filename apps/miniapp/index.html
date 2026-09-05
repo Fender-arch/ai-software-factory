@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>ASF</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="./styles.css?v=20260829-tz" />
+  <link rel="stylesheet" href="./styles.css?v=20260905-xp" />
+  <meta name="asf-mascot-riv" content="./mascot.riv" />
+  <meta name="asf-mascot-sm" content="Mascot" />
 </head>
 <body>
   <canvas id="foundry-field" class="foundry-field" aria-hidden="true"></canvas>
@@ -21,6 +23,9 @@
           <div class="brand">ASF</div>
           <p class="hook" id="subtitle">ТЗ, от которого не хочется зевать.</p>
         </div>
+        <button type="button" id="btn-calm" class="calm-toggle" data-calm-toggle aria-pressed="false" title="Отключить анимации маскота и фона">
+          Спокойный режим
+        </button>
       </div>
     </header>
 
@@ -70,16 +75,38 @@
 
     <section id="view-workspace" class="view hidden">
       <div class="ws-chrome">
-        <button type="button" class="linkback" data-back-workspace>← К проектам</button>
-        <div class="ws-head">
-          <h1 id="ws-name">Проект</h1>
-          <div id="ws-progress" class="ws-progress hidden" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Сбор требований">
-            <div class="ws-progress-track">
-              <div id="ws-progress-fill" class="ws-progress-fill"></div>
+        <div class="ws-chrome-top">
+          <button type="button" class="linkback" data-back-workspace>← К проектам</button>
+          <button type="button" id="btn-calm-ws" class="calm-toggle" data-calm-toggle aria-pressed="false" title="Отключить анимации маскота и фона">
+            Спокойный режим
+          </button>
+        </div>
+        <div class="ws-stage">
+          <aside id="mascot-slot" class="mascot-slot" data-state="idle" aria-live="polite">
+            <canvas id="mascot-rive" class="mascot-rive hidden" width="128" height="128" aria-hidden="true"></canvas>
+            <div id="mascot-fallback" class="mascot-fallback" aria-hidden="true">
+              <svg class="mascot-svg" viewBox="0 0 64 64" role="img" aria-label="Компаньон интервью">
+                <ellipse class="mascot-ember" cx="32" cy="56" rx="13" ry="4" />
+                <g class="mascot-body">
+                  <path class="mascot-side" d="M18 24 L32 16 L46 24 L46 40 L32 48 L18 40 Z" />
+                  <path class="mascot-lid" d="M18 24 L32 16 L46 24 L32 32 Z" />
+                  <circle class="mascot-lens" cx="32" cy="33" r="6.2" />
+                  <circle class="mascot-pupil" cx="33.2" cy="33" r="2.3" />
+                </g>
+              </svg>
             </div>
-            <div id="ws-progress-label" class="ws-progress-label"></div>
+            <p id="mascot-status" class="mascot-status">На связи</p>
+          </aside>
+          <div class="ws-head">
+            <h1 id="ws-name">Проект</h1>
+            <div id="ws-progress" class="ws-progress hidden" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Сбор требований">
+              <div class="ws-progress-track">
+                <div id="ws-progress-fill" class="ws-progress-fill"></div>
+              </div>
+              <div id="ws-progress-label" class="ws-progress-label"></div>
+            </div>
+            <div id="ws-meta" class="muted"></div>
           </div>
-          <div id="ws-meta" class="muted"></div>
         </div>
       </div>
       <div id="thread" class="thread"></div>
@@ -132,7 +159,8 @@
       </div>
     </div>
   </div>
-  <script src="./foundry.js?v=20260828-ask"></script>
-  <script src="./app.js?v=20260828-ask"></script>
+  <script src="./foundry.js?v=20260905-xp"></script>
+  <script src="./experience.js?v=20260905-xp"></script>
+  <script src="./app.js?v=20260905-xp"></script>
 </body>
 </html>

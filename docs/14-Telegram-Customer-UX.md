@@ -3,11 +3,11 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.6 |
-| Updated | 2026-08-28 |
+| Version | 0.7 |
+| Updated | 2026-09-05 |
 | Owner | ASF Core |
 
-ADR: [DEC-006](../decisions/DEC-006-Telegram-Mini-App.md)
+ADR: [DEC-006](../decisions/DEC-006-Telegram-Mini-App.md), [DEC-011](../decisions/DEC-011-Experience-Layer-Mascot.md)
 
 ## Goal
 
@@ -21,7 +21,7 @@ All customer interaction with ASF happens in a **fullscreen Telegram Mini App** 
 | Mini App (fullscreen) | Home actions, project list, project workspace (Discovery / change / implementation feedback) |
 | Owner HITL (bot) | `/review`, `/approve`, `/changes`, `/reject`, `/plan`, `/export` (MVP) |
 
-On phone, the Mini App calls `Telegram.WebApp.expand()` and `requestFullscreen()` (Bot API 8.0) so the UI uses the full screen, with `safeAreaInset` / `contentSafeAreaInset` padding. Layout is compact: one viewport for home actions; workspace is a flex column (thread scrolls, composer is **20–25%** of the workspace with File / Voice / Send inside that box). Answer options open in a **popup** from «Варианты ответа», not as chips in the chat. New projects start with a **welcome popup** («Поехали»); TZ questions appear after that. `expand()` alone only grows the bottom sheet — that is why older builds overflowed.
+On phone, the Mini App calls `Telegram.WebApp.expand()` and `requestFullscreen()` (Bot API 8.0) so the UI uses the full screen, with `safeAreaInset` / `contentSafeAreaInset` padding. Layout is compact: one viewport for home actions; workspace is a flex column (thread scrolls, composer is **20–25%** of the workspace with File / Voice / Send inside that box). A compact **Experience Layer** mascot sits in the workspace chrome (not in the composer): Rive when `mascot.riv` is present, otherwise a gold/cyan SVG companion. Answer options open in a **popup** from «Варианты ответа», not as chips in the chat. New projects start with a **welcome popup** («Поехали»); TZ questions appear after that. `expand()` alone only grows the bottom sheet — that is why older builds overflowed.
 
 ## Why not a separate Telegram chat per project
 
@@ -59,6 +59,23 @@ Then three actions (Russian labels in product UI):
 3. System classifies: defect / change request / new requirement.
 4. Check against approved TZ / KG; on contradiction or blocking ambiguity → `HumanDecisionRequired` / owner path.
 5. Persist as structured entities/relations (not free-form chat loss).
+
+## Experience Layer (mascot)
+
+Client-only companion for the interview (DEC-011). It does **not** change Discovery or HTTP contracts.
+
+| Beat | When |
+|------|------|
+| `idle` | Workspace ready; back home |
+| `listening` | Voice recording |
+| `thinking` | Send / STT / workspace load |
+| `got_answer` | Customer text (or choice) accepted |
+| `got_voice` | Transcript inserted into the composer |
+| `got_file` | File ingest succeeded |
+| `draft_ready` | TZ download bar is shown |
+| `error` | Failed request / mic / STT |
+
+**Calm:** button **«Спокойный режим»** persists in `localStorage` (`asf-calm-mode`). `prefers-reduced-motion` freezes or hides the mascot and foundry field; status text stays. Replace the placeholder: drop `apps/miniapp/mascot.riv` (state machine `Mascot`, inputs named like the beats). See `apps/miniapp/README.md`. Lip-sync / TTS mouth shapes are Future.
 
 ## Language
 

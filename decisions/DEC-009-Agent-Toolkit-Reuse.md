@@ -24,7 +24,7 @@ Two audiences must share conventions without sharing the factory internals: (A) 
 | security-review / OWASP Top 10 shape | Read-mostly skill + `security-basics.mdc` (Telegram token, Mini App initData) |
 | autodoc | Skill + existing `docs-ru-sync` hook |
 | Spec Kit | Export mapping skill + `templates/speckit/*` stubs; **do not** vendor spec-kit |
-| Rive / Experience Layer | `miniapp-ux.mdc` points to Future — no mascot runtime in MVP |
+| Rive / Experience Layer | Mini App mascot slice is [DEC-011](DEC-011-Experience-Layer-Mascot.md); do not vendor external Rive kits |
 | Customer pack | `mvp-customer-pack` stamps a slim `templates/customer-agents/AGENTS.md` |
 
 Product type `mobile_native` is in scope (see [DEC-010](DEC-010-Mobile-Native.md)).
