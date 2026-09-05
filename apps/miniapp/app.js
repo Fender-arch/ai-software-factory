@@ -759,16 +759,20 @@
 
   function hideExportFallback() {
     const box = $("export-fallback");
+    const textEl = $("export-fallback-text");
     if (box) box.classList.add("hidden");
+    if (textEl) textEl.textContent = "";
     state.exportRetry = null;
   }
 
   function showExportFallback(reason, kind, fmt, exportPath) {
     const why = String(reason || "").trim() || "Не удалось отправить файл в чат бота.";
-    showSendHint(why);
     const box = $("export-fallback");
+    const textEl = $("export-fallback-text");
     const open = $("export-open");
+    if (textEl) textEl.textContent = why;
     if (box) box.classList.remove("hidden");
+    showSendHint(why);
     state.exportRetry = { kind, fmt, exportPath };
     if (open) {
       if (exportPath) {

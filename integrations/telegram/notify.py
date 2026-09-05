@@ -310,7 +310,7 @@ def send_customer_telegram_document(
     if not data:
         return {"ok": False, "description": "пустой файл"}
     ascii_name, mime = _telegram_upload_filename(filename)
-    payload: dict[str, str] = {"chat_id": dest}
+    payload: dict[str, str | int] = {"chat_id": int(dest)}
     if caption:
         payload["caption"] = caption[:1024]
     try:

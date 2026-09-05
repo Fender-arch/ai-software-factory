@@ -705,12 +705,27 @@ h1 { font-size: 1.05rem; margin: 4px 0 8px; }
 }
 .export-fallback {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 6px;
   margin: 0 0 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: rgba(20, 16, 10, 0.92);
 }
 .export-fallback.hidden {
   display: none;
+}
+.export-fallback-text {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  color: var(--text, #f3ead8);
+}
+.export-fallback-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 .export-fallback .btn {
   flex: 1 1 auto;

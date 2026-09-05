@@ -109,8 +109,8 @@ def test_send_document_requires_ok_message_id_and_customer_chat(monkeypatch, cap
     assert result["filename"] == "tz.md"
 
     send = next(item for item in posted if item["url"].endswith("/sendDocument"))
-    assert send["data"]["chat_id"] == "88001"
-    assert send["data"]["chat_id"] != "1"
+    assert int(send["data"]["chat_id"]) == 88001
+    assert int(send["data"]["chat_id"]) != 1
     name, payload, mime = send["files"]["document"]
     assert name == "tz.md"
     assert payload == b"# TZ\n"

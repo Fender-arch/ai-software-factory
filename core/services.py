@@ -191,14 +191,27 @@ def delete_project(
     return pid
 
 
+def _same_telegram_user(left: str | None, right: str | None) -> bool:
+    a = str(left or "").strip()
+    b = str(right or "").strip()
+    if not a or not b:
+        return False
+    if a == b:
+        return True
+    try:
+        ia, ib = int(a), int(b)
+    except ValueError:
+        return False
+    return ia > 0 and ia == ib
+
+
 def assert_project_owner(
     project: Project, customer_telegram_id: str | None
 ) -> None:
     if not customer_telegram_id:
         return
-    if (
-        project.customer_telegram_id
-        and str(project.customer_telegram_id) != str(customer_telegram_id)
+    if project.customer_telegram_id and not _same_telegram_user(
+        project.customer_telegram_id, customer_telegram_id
     ):
         raise PermissionError("project not owned by customer")
 
@@ -1003,16 +1016,27 @@ class TzSendError(ValueError):
 
 def _humanize_telegram_send_error(description: str) -> str:
     low = (description or "").lower()
-    if "can't initiate" in low or "bot can't initiate" in low:
-        return (
-            "бот не может написать первым — откройте чат с ботом, нажмите /start "
-            "и повторите"
+    if any(
+        token in low
+        for token in (
+            "can't initiate",
+            "cannot initiate",
+            "chat not found",
+            "bot was blocked",
+            "forbidden",
+            "have no access",
         )
-    if "chat not found" in low:
-        return "Telegram не нашёл чат — откройте бота, нажмите /start и повторите"
-    if "bot was blocked" in low:
-        return "бот заблокирован — разблокируйте бота ASF и повторите"
+    ):
+        return "напишите боту /start и нажмите снова"
     return description or "не удалось отправить файл в чат бота"
+
+
+def _humanize_export_error(detail: str, fmt: str) -> str:
+    kind = (fmt or "файл").upper()
+    low = (detail or "").lower()
+    if "ttf" in low or "font" in low or "unicode" in low:
+        return f"не удалось собрать {kind} (нет шрифта) — выберите Markdown или повторите"
+    return f"не удалось собрать {kind} — выберите Markdown или повторите"
 
 
 def _deliver_customer_document(
@@ -1083,7 +1107,10 @@ def send_customer_tz_file(
     try:
         payload, _media, filename = export_tz_file(db, project, fmt)
     except TzExportError as exc:
-        raise TzSendError(str(exc)) from exc
+        raise TzSendError(_humanize_export_error(str(exc), fmt)) from exc
+    except Exception as exc:
+        logger.exception("TZ export failed format=%s", fmt)
+        raise TzSendError(_humanize_export_error(str(exc), fmt)) from exc
     return _deliver_customer_document(
         project,
         customer_telegram_id=customer_telegram_id,
@@ -1116,7 +1143,10 @@ def send_customer_estimate_file(
     try:
         payload, _media, filename = export_client_estimate_file(db, project, fmt)
     except TzExportError as exc:
-        raise TzSendError(str(exc)) from exc
+        raise TzSendError(_humanize_export_error(str(exc), fmt)) from exc
+    except Exception as exc:
+        logger.exception("estimate export failed format=%s", fmt)
+        raise TzSendError(_humanize_export_error(str(exc), fmt)) from exc
     return _deliver_customer_document(
         project,
         customer_telegram_id=customer_telegram_id,

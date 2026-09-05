@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
+
 from core.config import get_settings
 from core.estimate import (
     SIMPLE_MVP_HOUR_CAP,
@@ -404,8 +406,108 @@ def test_tz_send_surfaces_telegram_start_required(client, monkeypatch):
     )
     assert sent.status_code == 409
     detail = sent.json()["detail"]
-    assert "/start" in detail
+    assert detail == "напишите боту /start и нажмите снова"
     assert "test-token" not in detail
+    get_settings.cache_clear()
+
+
+@pytest.mark.parametrize(
+    "telegram_description",
+    [
+        "Forbidden: bot was blocked by the user",
+        "Bad Request: chat not found",
+        "Forbidden: bot can't initiate conversation with a user",
+    ],
+)
+def test_tz_send_start_required_for_blocked_or_missing_chat(
+    client, monkeypatch, telegram_description
+):
+    def fake_doc(chat_id, *, data, filename, caption=None):
+        return {"ok": False, "chat_id": str(chat_id), "description": telegram_description}
+
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "test-token")
+    get_settings.cache_clear()
+    monkeypatch.setattr(
+        "integrations.telegram.notify.send_customer_telegram_document",
+        fake_doc,
+    )
+
+    created = client.post(
+        "/projects",
+        json={
+            "name": "Blocked Chat",
+            "product_type": "website",
+            "customer_telegram_id": "88012",
+        },
+    )
+    project_id = created.json()["id"]
+    last = _drive_discovery_to_owner(client, project_id)
+    assert last.json()["project_status"] == "WAITING_OWNER"
+
+    sent = client.post(
+        f"/projects/{project_id}/tz-send",
+        params={"format": "md", "customer_telegram_id": "88012"},
+    )
+    assert sent.status_code == 409
+    assert sent.json()["detail"] == "напишите боту /start и нажмите снова"
+    get_settings.cache_clear()
+
+
+def test_tz_send_owner_mismatch_is_explicit(client, monkeypatch):
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "test-token")
+    get_settings.cache_clear()
+
+    created = client.post(
+        "/projects",
+        json={
+            "name": "Other User",
+            "product_type": "website",
+            "customer_telegram_id": "88013",
+        },
+    )
+    project_id = created.json()["id"]
+    last = _drive_discovery_to_owner(client, project_id)
+    assert last.json()["project_status"] == "WAITING_OWNER"
+
+    sent = client.post(
+        f"/projects/{project_id}/tz-send",
+        params={"format": "md", "customer_telegram_id": "99999"},
+    )
+    assert sent.status_code == 403
+    assert "не ваш проект" in sent.json()["detail"]
+    get_settings.cache_clear()
+
+
+def test_tz_send_pdf_export_error_is_explicit(client, monkeypatch):
+    from core.tz_document import TzExportError
+
+    def boom(*_args, **_kwargs):
+        raise TzExportError("no Unicode TTF found for PDF export")
+
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "test-token")
+    get_settings.cache_clear()
+    monkeypatch.setattr("core.tz_document.export_tz_file", boom)
+
+    created = client.post(
+        "/projects",
+        json={
+            "name": "PDF fail",
+            "product_type": "website",
+            "customer_telegram_id": "88014",
+        },
+    )
+    project_id = created.json()["id"]
+    last = _drive_discovery_to_owner(client, project_id)
+    assert last.json()["project_status"] == "WAITING_OWNER"
+
+    sent = client.post(
+        f"/projects/{project_id}/tz-send",
+        params={"format": "pdf", "customer_telegram_id": "88014"},
+    )
+    assert sent.status_code == 409
+    detail = sent.json()["detail"]
+    assert "не удалось собрать PDF" in detail
+    assert "Markdown" in detail
     get_settings.cache_clear()
 
 
@@ -469,8 +571,8 @@ def test_tz_send_httpx_posts_customer_chat_not_owner(client, monkeypatch, caplog
     assert body["chat_id"] == "88021"
     assert body["bot_username"] == "asf_factory_bot"
     send = next(item for item in posted if str(item["url"]).endswith("/sendDocument"))
-    assert send["data"]["chat_id"] == "88021"
-    assert send["data"]["chat_id"] != "1"
+    assert int(send["data"]["chat_id"]) == 88021
+    assert int(send["data"]["chat_id"]) != 1
     name, _payload, mime = send["files"]["document"]
     assert name == "tz.md"
     assert mime == "text/markdown"

@@ -29,7 +29,7 @@ def test_miniapp_static_served(client):
     assert "Ещё пара уточнений" in js.text
     assert "Сбор требований: ${percent}%" in js.text
     assert "из ${total}" not in js.text
-    assert "20260905-tzsend" in res.text
+    assert "20260905-tzsend2" in res.text
     assert "customerWorkspaceHud" in js.text
     assert "customer_hud" in js.text
     assert "ждём ваш ответ" in js.text
@@ -100,12 +100,17 @@ def test_miniapp_js_uses_telegram_fullscreen_and_groq_voice(client):
     assert "Файл в личке с ботом" in js.text
     assert "Закройте Mini App" in js.text
     assert "Отправляем файл в чат бота" in js.text
-    assert "Ещё раз в бота" in client.get("/miniapp/").text
-    assert 'id="export-fallback"' in client.get("/miniapp/").text
+    html = client.get("/miniapp/").text
+    assert "Ещё раз в бота" in html
+    assert 'id="export-fallback"' in html
+    assert 'id="export-fallback-text"' in html
+    assert "dismissExportHint" not in js.text
     export_fn = js.text.split("async function downloadExport")[1]
     send_at = export_fn.find("await api(sendPath")
     fallback_at = export_fn.find("showExportFallback")
     assert send_at != -1 and fallback_at != -1 and send_at < fallback_at
+    assert "1400" not in export_fn
+    assert "setTimeout(() => showSendHint" not in js.text
     assert "renderTzDownload(false)" not in js.text
     assert "if (inTelegramWebView()) return false" in js.text
     assert "pickRecorderMime" in js.text
