@@ -1,0 +1,92 @@
+# SSH diagnose + safe hotfix for VPS → api.telegram.org.
+# Never logs TELEGRAM_BOT_TOKEN / passwords / .env.
+name: Telegram egress
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "cursor/telegram-egress-*"
+
+concurrency:
+  group: asf-telegram-egress
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    name: Diagnose and hotfix Telegram egress
+    runs-on: ubuntu-latest
+    env:
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      VPS_PASSWORD: ${{ secrets.VPS_PASSWORD }}
+      VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT }}
+      VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH }}
+    steps:
+      - name: Check VPS_HOST is filled
+        id: gate
+        run: |
+          if [ -z "$VPS_HOST" ] || [ "$VPS_HOST" = "SET_ME" ]; then
+            echo "VPS_HOST empty — skip"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        if: steps.gate.outputs.ready == 'true'
+        uses: actions/checkout@v4
+
+      - name: Copy diagnose scripts
+        if: steps.gate.outputs.ready == 'true'
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_SSH_PORT || 22 }}
+          source: deploy/diagnose_telegram_egress.sh,deploy/hotfix_telegram_ipv4.sh
+          target: /tmp/asf-telegram-egress
+          overwrite: true
+          timeout: 60s
+
+      - name: Run diagnose, apply safe remediations, re-check
+        if: steps.gate.outputs.ready == 'true'
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_SSH_PORT || 22 }}
+          command_timeout: 15m
+          envs: VPS_PASSWORD,VPS_DEPLOY_PATH
+          script: |
+            set -u
+            DEPLOY_PATH="${VPS_DEPLOY_PATH:-/opt/asf}"
+            if [ -z "$DEPLOY_PATH" ] || [ "$DEPLOY_PATH" = "SET_ME" ]; then
+              DEPLOY_PATH=/opt/asf
+            fi
+            mkdir -p "$DEPLOY_PATH/deploy"
+            cp /tmp/asf-telegram-egress/deploy/diagnose_telegram_egress.sh "$DEPLOY_PATH/deploy/" || true
+            cp /tmp/asf-telegram-egress/deploy/hotfix_telegram_ipv4.sh "$DEPLOY_PATH/deploy/" || true
+            chmod +x "$DEPLOY_PATH/deploy/"*.sh
+            echo "===== BEFORE ====="
+            bash "$DEPLOY_PATH/deploy/diagnose_telegram_egress.sh" | tee /tmp/asf-tg-before.txt
+            verdict="$(grep '^VERDICT=' /tmp/asf-tg-before.txt | tail -1 || true)"
+            echo "parsed ${verdict}"
+            if echo "$verdict" | grep -q 'egress_blocked'; then
+              if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -qi 'Status: active'; then
+                echo "ufw active: allow outgoing 443/tcp and 53"
+                ufw allow out 443/tcp || true
+                ufw allow out 53 || true
+              fi
+            fi
+            if echo "$verdict" | grep -Eq 'host_can_reach_telegram|unknown|telegram_blocked|egress_blocked'; then
+              echo "Trying IPv4 extra_hosts hotfix if host IPv4 works..."
+              bash "$DEPLOY_PATH/deploy/hotfix_telegram_ipv4.sh" || echo "hotfix skipped or failed (ok if host cannot reach Telegram)"
+            fi
+            echo "===== AFTER ====="
+            bash "$DEPLOY_PATH/deploy/diagnose_telegram_egress.sh"
+            echo "Public check: curl http://127.0.0.1:${ASF_HOST_PORT:-18000}/health/telegram"
+            curl -sS --max-time 8 "http://127.0.0.1:${ASF_HOST_PORT:-18000}/health/telegram" || true
+            echo

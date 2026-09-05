@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+import os
+import socket
 
 import httpx
 
@@ -32,6 +34,31 @@ MSG_TELEGRAM_START_REQUIRED = "Напишите боту /start в личке и
 MSG_TELEGRAM_BAD_TOKEN = "бот на сервере настроен неверно"
 
 
+def _has_ipv4_default_route() -> bool:
+    try:
+        probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        probe.settimeout(1)
+        probe.connect(("1.1.1.1", 443))
+        probe.close()
+        return True
+    except OSError:
+        return False
+
+
+def telegram_http_client(timeout: float) -> httpx.Client:
+    """HTTP client for api.telegram.org.
+
+    Dual-stack Docker often resolves AAAA first and then ConnectError (no IPv6
+    NAT). Prefer IPv4 when the box has an IPv4 route. Respects HTTPS_PROXY /
+    HTTP_PROXY from the environment (trust_env). Never logs the bot token.
+    """
+    mode = (os.environ.get("ASF_TELEGRAM_IP") or "auto").strip().lower()
+    kwargs: dict = {"timeout": timeout, "trust_env": True}
+    if mode == "4" or (mode != "6" and _has_ipv4_default_route()):
+        kwargs["transport"] = httpx.HTTPTransport(local_address="0.0.0.0")
+    return httpx.Client(**kwargs)
+
+
 def send_owner_telegram(
     text: str,
     *,
@@ -50,7 +77,7 @@ def send_owner_telegram(
     if reply_markup:
         payload["reply_markup"] = reply_markup
     try:
-        with httpx.Client(timeout=_TIMEOUT_S) as client:
+        with telegram_http_client(_TIMEOUT_S) as client:
             response = client.post(
                 _TELEGRAM_API.format(token=token),
                 json=payload,
@@ -70,7 +97,7 @@ def send_customer_telegram(chat_id: str, text: str) -> bool:
     if not token or not dest or not (text or "").strip():
         return False
     try:
-        with httpx.Client(timeout=_TIMEOUT_S) as client:
+        with telegram_http_client(_TIMEOUT_S) as client:
             response = client.post(
                 _TELEGRAM_API.format(token=token),
                 json={"chat_id": dest, "text": text},
@@ -155,7 +182,7 @@ def send_telegram_text(
     if parse_mode:
         payload["parse_mode"] = parse_mode
     try:
-        with httpx.Client(timeout=_TIMEOUT_S) as client:
+        with telegram_http_client(_TIMEOUT_S) as client:
             response = client.post(
                 _TELEGRAM_API.format(token=token),
                 json=payload,
@@ -266,7 +293,7 @@ def reset_telegram_identity_cache() -> None:
 def probe_telegram_bot_api() -> dict:
     """VPS egress to api.telegram.org (no bot token). Used by deploy/ops."""
     try:
-        with httpx.Client(timeout=_TIMEOUT_S) as client:
+        with telegram_http_client(_TIMEOUT_S) as client:
             response = client.get(_TELEGRAM_ORIGIN)
         return {"ok": True, "http_status": response.status_code, "error": None}
     except httpx.RequestError as exc:
@@ -294,7 +321,7 @@ def diagnose_telegram_bot_api() -> dict:
         result["bot_description"] = "token_missing"
         return result
     try:
-        with httpx.Client(timeout=_TIMEOUT_S) as client:
+        with telegram_http_client(_TIMEOUT_S) as client:
             response = client.post(f"{_TELEGRAM_ORIGIN}/bot{token}/getMe")
     except httpx.RequestError as exc:
         logger.warning("Telegram getMe transport failed error=%s", type(exc).__name__)
@@ -373,7 +400,7 @@ def telegram_bot_username() -> str | None:
         _bot_identity = {}
         return None
     try:
-        with httpx.Client(timeout=_TIMEOUT_S) as client:
+        with telegram_http_client(_TIMEOUT_S) as client:
             response = client.post(f"{_TELEGRAM_ORIGIN}/bot{token}/getMe")
         body = response.json()
     except Exception as exc:  # noqa: BLE001 — identity is optional for send
@@ -427,7 +454,7 @@ def send_customer_telegram_document(
     if caption:
         payload["caption"] = caption[:1024]
     try:
-        with httpx.Client(timeout=30.0) as client:
+        with telegram_http_client(30.0) as client:
             response = client.post(
                 f"{_TELEGRAM_ORIGIN}/bot{token}/sendDocument",
                 data=payload,

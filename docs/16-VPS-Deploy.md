@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.4 |
+| Version | 0.5 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -95,6 +95,30 @@ curl -sS http://127.0.0.1:18000/health/telegram
 ```
 
 Expect egress HTTP from `api.telegram.org` and `bot_ok: true` with the Mini App bot username. `401` / `Unauthorized` = wrong or placeholder token. Transport / timeout = firewall, DNS, or IPv6 egress — not the customer’s phone. Logs for `sendDocument` include `http` status + Telegram `description` and never the token.
+
+## Telegram Bot API egress (sendDocument)
+
+`sendDocument` / `getMe` leave the **API container** on Docker network `asf_internal` (bridge) via the host NAT. Incoming Mini App HTTPS is unrelated.
+
+Typical failure (prod `ConnectError`, empty `bot_username`):
+
+| Check | Meaning |
+|-------|---------|
+| Host `curl -4 https://api.telegram.org` works, container does not | Docker IPv6/AAAA or container DNS. App prefers IPv4 (`ASF_TELEGRAM_IP=auto`/`4`). Optional local override `docker-compose.telegram-egress.yml` (`extra_hosts`, not committed). |
+| Host `curl https://example.org` works, Telegram does not | **Provider-level Telegram block** (seen on FirstVDS: DNS + IPv4 route OK, `curl -4 https://api.telegram.org` times out, ufw OUTPUT is allow). Ask the hoster to allow `api.telegram.org:443` (Telegram ranges `149.154.160.0/20`, `91.108.4.0/22`) **or** set GitHub secret `HTTPS_PROXY` / `TELEGRAM_PROXY` (never commit it) and redeploy. IPv4 extra_hosts cannot fix a filtered path. |
+| Neither host HTTPS works | Outgoing 443 denied (`ufw` / iptables / panel). Allow OUTPUT 443/tcp. |
+
+Runbook on the VPS (no secrets in the output):
+
+```bash
+sudo bash /opt/asf/deploy/diagnose_telegram_egress.sh
+# if host IPv4 to Telegram works:
+sudo bash /opt/asf/deploy/hotfix_telegram_ipv4.sh
+curl -sS http://127.0.0.1:18000/health/telegram
+# expect egress_ok=true and a non-empty bot_username
+```
+
+GitHub: **Actions → Telegram egress → Run workflow** (uses the same SSH secrets as Deploy VPS; does not print the bot token). Compose also sets container DNS to `8.8.8.8` / `1.1.1.1`. `ASF_TELEGRAM_IP=4` forces IPv4; `6` leaves dual-stack.
 
 ## Rollback ASF only
 

@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.13 |
+| Version | 0.14 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -44,6 +44,8 @@ pytest
 |----------|---------|
 | `DATABASE_URL` | SQLAlchemy URL |
 | `TELEGRAM_BOT_TOKEN` | Bot polling **and** Mini App `sendDocument`. Must be the same BotFather bot that opens the Mini App |
+| `HTTPS_PROXY` / `TELEGRAM_PROXY` | Optional proxy when the VPS cannot reach `api.telegram.org` |
+| `ASF_TELEGRAM_IP` | `auto` (prefer IPv4) \| `4` \| `6` |
 | `GROQ_API_KEY` | Groq Whisper STT (recommended server fallback) |
 | `OPENAI_API_KEY` | OpenAI Whisper if `STT_PROVIDER=whisper` (+ future LLM) |
 | `STT_PROVIDER` | `stub` \| `groq` \| `whisper` |

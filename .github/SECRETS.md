@@ -15,6 +15,9 @@
 #   CONSOLE_TOKEN       Shared token for /console/ (X-Console-Token)
 #   TELEGRAM_BOT_TOKEN  From @BotFather — MUST be the same bot that has the Mini App URL
 #                       (sendDocument uses this token from the VPS, not from the WebView)
+#   HTTPS_PROXY / TELEGRAM_PROXY  Optional HTTP(S) proxy if the VPS cannot reach
+#                       api.telegram.org (never commit). HTTP_PROXY is set to the same value.
+#   ASF_TELEGRAM_IP     auto (default, prefer IPv4) | 4 | 6
 #   OWNER_TELEGRAM_ID   Owner Telegram numeric id (HITL)
 #   STUDIO_NAME / OWNER_CONTACT_*  Optional studio contacts printed on the client TZ
 #   GROQ_API_KEY        Server STT (and optional LLM)

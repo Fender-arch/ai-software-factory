@@ -75,10 +75,15 @@ if ! docker info >/dev/null 2>&1 && ! asf_sudo docker info >/dev/null 2>&1; then
   exit 1
 fi
 
-compose -f docker-compose.prod.yml --env-file .env up -d --build
+COMPOSE_FILES=(-f docker-compose.prod.yml)
+if [[ -f docker-compose.telegram-egress.yml ]]; then
+  COMPOSE_FILES+=(-f docker-compose.telegram-egress.yml)
+  echo "Using local telegram egress override (IPv4 extra_hosts)"
+fi
+compose "${COMPOSE_FILES[@]}" --env-file .env up -d --build
 
 echo "ASF listening on 127.0.0.1:${ASF_HOST_PORT} (not 80/443)"
-compose -f docker-compose.prod.yml --env-file .env ps
+compose "${COMPOSE_FILES[@]}" --env-file .env ps
 
 chmod +x "${DEPLOY_PATH}/deploy/"*.sh 2>/dev/null || true
 DOMAIN_MINIAPP="${DOMAIN_MINIAPP}" \
@@ -89,11 +94,6 @@ VPS_PASSWORD="${VPS_PASSWORD:-}" \
 bash "${DEPLOY_PATH}/deploy/setup_proxy.sh"
 
 echo "Probing VPS → https://api.telegram.org (sendDocument goes from this host, not from Mini App)..."
-if compose -f docker-compose.prod.yml --env-file .env exec -T api \
-  python -c "from integrations.telegram.notify import diagnose_telegram_bot_api; import json; print(json.dumps(diagnose_telegram_bot_api(), ensure_ascii=False))"; then
-  :
-else
-  echo "WARN: could not run Telegram Bot API diagnostic inside api container"
-fi
+bash "${DEPLOY_PATH}/deploy/diagnose_telegram_egress.sh" || true
 echo "TELEGRAM_BOT_TOKEN must be the same BotFather bot that opens the Mini App."
 echo "Deploy finished. Existing default website was not modified."
