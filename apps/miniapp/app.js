@@ -476,10 +476,16 @@
     fill.style.width = `${percent}%`;
     bar.setAttribute("aria-valuenow", String(percent));
     bar.setAttribute("aria-valuemax", "100");
+    const remaining = Math.max(
+      0,
+      Number(progress.remaining != null ? progress.remaining : total - done)
+    );
     if (progress.phase === "done" || percent >= 100) {
-      label.textContent = `Сбор требований: готово (${done} из ${total})`;
+      label.textContent = "Сбор требований: готово";
+    } else if (remaining <= 3) {
+      label.textContent = "Ещё пара уточнений";
     } else {
-      label.textContent = `Сбор требований: ${done} из ${total}`;
+      label.textContent = `Сбор требований: ${percent}%`;
     }
   }
 

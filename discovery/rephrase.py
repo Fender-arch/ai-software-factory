@@ -13,17 +13,9 @@ from dataclasses import replace
 from discovery.fsm import DiscoveryStage
 from discovery.literacy import ITLiteracy
 from discovery.quality import is_underspecified
-from discovery.tz_outline import Choice, OutlinePlan, TzTopic, topic_by_id
+from discovery.tz_outline import Choice, OutlinePlan, TzTopic
 
 _Q = ITLiteracy
-
-CAPABILITY_TOPIC_IDS: tuple[str, ...] = (
-    "booking_rules",
-    "notification_rules",
-    "api_consumers",
-    "voice_input",
-    "failure_path",
-)
 
 LOCKED_OVERRIDE_TOPIC_IDS = frozenset({"design_direction"})
 FROZEN_CHOICE_TOPIC_IDS = frozenset(
@@ -852,31 +844,11 @@ def topic_title(topic: TzTopic, plan: OutlinePlan | None) -> str:
 
 
 def format_outline_announcement(plan: OutlinePlan) -> str:
-    brief = plan.task_brief or "описанную задачу"
-    added: list[str] = []
-    for topic_id in CAPABILITY_TOPIC_IDS:
-        topic = topic_by_id(topic_id)
-        if topic is None or topic_id in plan.skipped_ids:
-            continue
-        if topic.capabilities and topic.capabilities & plan.capabilities:
-            added.append(topic.title_ru)
-    for extra in plan.extra_topics:
-        added.append(extra.title_ru)
-    skipped: list[str] = []
-    for topic_id in plan.skipped_ids:
-        topic = topic_by_id(topic_id, plan.extra_topics)
-        if topic:
-            skipped.append(topic.title_ru)
-    lines = [
-        f"По задаче «{brief}» собрал перечень разделов ТЗ — дальше вопросы "
-        "и варианты ответов уже про неё, а не общая анкета.",
-    ]
-    if added:
-        lines.append("Добавляю: " + "; ".join(list(dict.fromkeys(added))[:8]) + ".")
-    if skipped:
-        lines.append(
-            "Не спрашиваю (не про эту задачу): "
-            + "; ".join(list(dict.fromkeys(skipped))[:8])
-            + "."
+    """Short consultant beat after the idea is known. No catalog title list."""
+    brief = plan.task_brief
+    if brief:
+        return (
+            f"Понял задачу про «{brief}». Дальше спрошу именно про неё — "
+            "без общей анкеты."
         )
-    return "\n".join(lines)
+    return "Понял. Дальше уточню только то, без чего нельзя собрать первую версию."

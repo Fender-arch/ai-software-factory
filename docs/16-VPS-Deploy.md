@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.2 |
-| Updated | 2026-08-28 |
+| Version | 0.3 |
+| Updated | 2026-09-05 |
 | Owner | ASF Core |
 
 ## Goal
@@ -42,6 +42,8 @@ In @BotFather set the Mini App URL to `https://<DOMAIN_MINIAPP>/miniapp/`. The M
 ## GitHub secrets
 
 Create/replace secrets listed in [`.github/SECRETS.md`](../.github/SECRETS.md). Placeholders are `SET_ME`.
+
+**Discovery interview:** set `LLM_PROVIDER=groq` (with `GROQ_API_KEY`). Leaving the default `stub` keeps TZ coverage via the FSM fallback — the customer will not get the DEC-008 conversational path (DEC-014).
 
 The workflow **does nothing** until `VPS_HOST` is a real IP/hostname (not empty / not `SET_ME`). Then:
 

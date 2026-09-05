@@ -38,7 +38,8 @@ The **deterministic core keeps the guarantees** (unchanged):
   invented topic ids from the LLM are dropped.
 - Coverage gate: `ready_for_owner` executes only when the adapted outline has no
   remaining topics and the quality floor passes; otherwise the turn is forced
-  to continue with the missing sections listed.
+  to continue. The customer-facing override must **not** list catalog
+  `title_ru` — see [DEC-014](DEC-014-Customer-Never-Sees-Catalog-Menu.md).
 - Quality floor (`discovery/quality.py`), clarify quota, outline adaptation
   (`discovery/adapt.py`), draft TZ emission, and the owner HITL gate are
   unchanged.
@@ -54,7 +55,8 @@ The **deterministic core keeps the guarantees** (unchanged):
 ## Consequences
 
 - The interview feels like a guided conversation while TZ coverage stays
-  guaranteed; the outline remains the advantage over free-form chat.
+  guaranteed; the outline remains the advantage over free-form chat and
+  stays **internal** (DEC-014).
 - `prompts/discovery-interview.md` is the interviewer prompt;
   `prompts/discovery.md` is retired.
 - One LLM call per customer turn adds ~1–4 s latency and token cost; the

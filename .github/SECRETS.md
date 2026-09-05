@@ -25,7 +25,8 @@
 #   OPENAI_API_KEY      Only if STT_PROVIDER=whisper
 #   STT_PROVIDER        Default groq
 #   STT_MODEL           Default whisper-large-v3-turbo
-#   LLM_PROVIDER        Default stub (set groq to enable LLM-driven Discovery)
+#   LLM_PROVIDER        Default stub. MUST be groq (or another non-stub) for
+#                       conversational Discovery; stub/fsm = coverage-only fallback
 #   LLM_MODEL
 #   DISCOVERY_ENGINE    auto | llm | fsm (default auto = llm when LLM_PROVIDER is not stub)
 #   ASF_ESTIMATE_HOURLY_RATE  Owner TZ cost heuristic (default 3000)

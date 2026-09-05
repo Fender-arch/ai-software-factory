@@ -242,7 +242,13 @@ def test_discovery_does_not_finalize_after_one_answer(client):
     body = msg.json()
     assert body["project_status"] != "WAITING_OWNER"
     assert body["discovery_stage"] != DiscoveryStage.READY_FOR_OWNER.value
-    assert "Раздел ТЗ" in (body["discovery_reply"] or "")
+    reply = body["discovery_reply"] or ""
+    assert reply
+    assert "Раздел ТЗ" not in reply
+    assert "раздел:" not in reply.lower()
+    from discovery.customer_copy import looks_like_catalog_menu
+
+    assert not looks_like_catalog_menu(reply)
 
 
 def test_discovery_pause_keeps_interview_open(client):
@@ -256,7 +262,13 @@ def test_discovery_pause_keeps_interview_open(client):
     assert body["discovery_stage"] != DiscoveryStage.READY_FOR_OWNER.value
     resumed = client.post(f"/projects/{pid}/messages", json={"text": "продолжить"})
     assert resumed.json()["paused"] is False
-    assert "Раздел ТЗ" in (resumed.json()["discovery_reply"] or "")
+    resumed_reply = resumed.json()["discovery_reply"] or ""
+    assert resumed_reply
+    assert "Раздел ТЗ" not in resumed_reply
+    assert "раздел:" not in resumed_reply.lower()
+    from discovery.customer_copy import looks_like_catalog_menu
+
+    assert not looks_like_catalog_menu(resumed_reply)
 
 
 def test_is_ready_intent_matches_quoted_and_chip_wording():
@@ -888,11 +900,15 @@ def test_heuristic_rewrites_questions_and_option_chips():
         announce_outline=True,
     )
     blob = prompt.text.lower()
-    assert "функции записи" in blob
     assert "салон" in blob or "запис" in blob
-    assert "не спрашиваю" in blob
+    assert "раздел тз" not in blob
+    assert "не спрашиваю" not in blob
+    assert "добавляю:" not in blob
     assert "выберите вариант:" not in blob
     assert not any(ln.strip().startswith("1. ") for ln in prompt.text.splitlines())
+    from discovery.customer_copy import looks_like_catalog_menu
+
+    assert not looks_like_catalog_menu(prompt.text)
     labels = [c.label.lower() for c in prompt.choices]
     assert any("слот" in label or "запис" in label for label in labels)
 
@@ -912,10 +928,11 @@ def test_described_task_rewrites_next_question_and_chips(client):
     assert first.status_code == 201
     reply = (first.json().get("discovery_reply") or "").lower()
     assert first.json().get("topic_id") == "product_shape"
-    assert "вы описали" in reply or "по задаче" in reply
+    assert "вы описали" in reply or "понял задачу" in reply or "по задаче" in reply
     assert "салон" in reply or "запис" in reply
-    assert "добавляю" in reply
-    assert "не спрашиваю" in reply
+    assert "добавляю:" not in reply
+    assert "не спрашиваю" not in reply
+    assert "раздел тз" not in reply
     labels = " ".join(
         str(c.get("label") or "") for c in first.json().get("discovery_choices") or []
     ).lower()
@@ -1396,3 +1413,68 @@ def test_discovery_progress_recomputes_when_total_grows():
     assert done["done"] == done["total"]
     assert done["percent"] == 100
     assert done["remaining"] == 0
+
+
+def test_fsm_prompt_is_not_a_catalog_menu():
+    from discovery.customer_copy import looks_like_catalog_menu
+    from discovery.literacy import ITLiteracy
+    from discovery.questions import build_prompt
+
+    prompt = build_prompt(
+        stage=DiscoveryStage.UNDERSTANDING_IDEA,
+        literacy=ITLiteracy.LOW,
+        product_type="website",
+        topic_id="purpose_problem",
+    )
+    assert prompt.text
+    assert "Раздел ТЗ" not in prompt.text
+    assert "раздел:" not in prompt.text.lower()
+    assert not looks_like_catalog_menu(prompt.text)
+
+
+def test_narrow_internal_bot_skips_generic_spine_extras():
+    from discovery.adapt import heuristic_plan
+    from discovery.tz_outline import remaining_topics
+
+    plan = heuristic_plan(
+        product_type="telegram_bot",
+        task_shape="telegram_bot",
+        texts=["Нужен внутренний Telegram-бот учёта смен команды, без сайта и витрины."],
+    )
+    ids = {
+        topic.id
+        for topic in remaining_topics(
+            "telegram_bot",
+            task_shape="telegram_bot",
+            done_ids=set(),
+            plan=plan,
+        )
+    }
+    assert "purpose_problem" in ids
+    assert "legal_compliance" in ids
+    assert "locale_ux" not in ids
+    assert "ops_constraints" not in ids
+    assert "operator" not in ids
+    assert "public_identity" not in ids
+
+
+def test_greenfield_skips_as_is_process():
+    from discovery.adapt import heuristic_plan
+    from discovery.tz_outline import remaining_topics
+
+    plan = heuristic_plan(
+        product_type="telegram_bot",
+        task_shape="telegram_bot",
+        texts=["Делаем с нуля Telegram-бот для команды, процесса ещё нет."],
+    )
+    ids = {
+        topic.id
+        for topic in remaining_topics(
+            "telegram_bot",
+            task_shape="telegram_bot",
+            done_ids=set(),
+            plan=plan,
+        )
+    }
+    assert "as_is_process" not in ids
+    assert "must_features" in ids

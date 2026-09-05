@@ -142,14 +142,41 @@ DEFAULT_CAPABILITIES: dict[str, frozenset[str]] = {
     "ai_automation": frozenset({"ai"}),
 }
 
+# Re-adapt as soon as the idea (or shape) is captured — do not wait for
+# must-have / scenario before dropping N/A modules.
 ADAPT_AFTER_TOPIC_IDS = frozenset(
     {
         "purpose_problem",
         "product_shape",
         "as_is_process",
-        "must_features",
-        "primary_scenario",
     }
+)
+
+# Skippable extras that a narrow internal/automation task does not need.
+_NARROW_SKIPPABLE_IDS = ("locale_ux", "ops_constraints", "operator")
+_NARROW_TASK_SHAPES = frozenset(
+    {
+        "telegram_bot",
+        "telegram_miniapp",
+        "ai_agent",
+        "process_automation",
+        "database_tool",
+        "integration",
+    }
+)
+_NARROW_PRODUCT_TYPES = frozenset(
+    {"telegram_bot", "ai_automation", "rest_service"}
+)
+_GREENFIELD_SIGNALS = (
+    "с нуля",
+    "ничего нет",
+    "нет процесса",
+    "greenfield",
+    "ещё ничего нет",
+    "пока нет продукта",
+    "делаем с нуля",
+    "as-is нет",
+    "asis_none",
 )
 
 _PROMPT_PATH = Path(__file__).resolve().parents[1] / "prompts" / "discovery-outline.md"
@@ -221,6 +248,25 @@ def heuristic_plan(
         if "delivery_surface" not in locked:
             skipped.add("delivery_surface")
             reasons["delivery_surface"] = "Mini App surface already chosen."
+
+    narrow = (
+        "public_presence" not in caps
+        and (
+            (task_shape or "") in _NARROW_TASK_SHAPES
+            or (product_type or "") in _NARROW_PRODUCT_TYPES
+        )
+    )
+    if narrow:
+        for topic_id in _NARROW_SKIPPABLE_IDS:
+            if topic_id in locked:
+                continue
+            skipped.add(topic_id)
+            reasons[topic_id] = "Not needed for this narrow internal/automation task."
+
+    blob = " ".join(texts).lower()
+    if "as_is_process" not in locked and any(signal in blob for signal in _GREENFIELD_SIGNALS):
+        skipped.add("as_is_process")
+        reasons["as_is_process"] = "Customer said this is greenfield."
 
     extras: list[TzTopic] = list(previous.extra_topics) if previous else []
     brief = extract_task_brief(texts) or (previous.task_brief if previous else "")

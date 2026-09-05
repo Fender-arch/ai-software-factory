@@ -26,6 +26,9 @@ def test_miniapp_static_served(client):
     assert "renderProgress" in js.text
     assert "renderClientEstimate" in js.text
     assert "discovery_progress" in js.text
+    assert "Ещё пара уточнений" in js.text
+    assert "Сбор требований: ${percent}%" in js.text
+    assert "из ${total}" not in js.text
     assert "20260905-xpce" in res.text
     assert "experience.js" in res.text
     assert "client-estimate" in res.text

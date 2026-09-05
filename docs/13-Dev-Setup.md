@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.10 |
+| Version | 0.11 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -48,9 +48,9 @@ pytest
 | `OPENAI_API_KEY` | OpenAI Whisper if `STT_PROVIDER=whisper` (+ future LLM) |
 | `STT_PROVIDER` | `stub` \| `groq` \| `whisper` |
 | `STT_MODEL` | e.g. `whisper-large-v3-turbo` (Groq) or `whisper-1` (OpenAI) |
-| `LLM_PROVIDER` | `stub` \| `groq` (JSON outline, LLM interview turns, TZ polish) |
+| `LLM_PROVIDER` | `stub` \| `groq`. **Conversational Discovery (DEC-008/014) stays off on `stub`** — the customer gets the FSM fallback. Production: `groq` + `GROQ_API_KEY` |
 | `LLM_MODEL` | Groq chat model (default `llama-3.3-70b-versatile`; ignored for stub) |
-| `DISCOVERY_ENGINE` | `auto` \| `llm` \| `fsm` — DEC-008. `auto` = LLM-driven turns when `LLM_PROVIDER` is not `stub`; `fsm` forces the deterministic path |
+| `DISCOVERY_ENGINE` | `auto` \| `llm` \| `fsm` — DEC-008. `auto` = LLM-driven turns when `LLM_PROVIDER` is not `stub`; `fsm` forces the deterministic fallback (no catalog heading menu, DEC-014) |
 | `OWNER_TELEGRAM_ID` | HITL owner chat |
 | `ASF_ESTIMATE_HOURLY_RATE` | Hourly rate for owner TZ cost estimate (default `3000`) |
 | `ASF_ESTIMATE_CURRENCY` | Currency code for that estimate (default `RUB`) |

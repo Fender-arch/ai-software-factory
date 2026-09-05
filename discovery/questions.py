@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from discovery.customer_copy import READY_TOO_EARLY_RU, REVIEW_COVERED_RU
 from discovery.fsm import DiscoveryStage
 from discovery.literacy import ITLiteracy
-from discovery.rephrase import apply_choice_overrides, format_outline_announcement, topic_title
+from discovery.rephrase import apply_choice_overrides, format_outline_announcement
 from discovery.tz_outline import (
     Choice,
     READY_CHOICE,
@@ -19,18 +20,18 @@ from discovery.tz_outline import (
 
 WELCOME_CREATE_RU = (
     "Добро пожаловать в сессию сбора требований для проекта «{name}».\n\n"
-    "Это интервью: сначала пойму задачу. Затем соберу перечень разделов ТЗ "
-    "именно под неё — столько, сколько нужно, чтобы по ответам "
-    "можно было реализовать первую версию (сайт, бот, Mini App, "
-    "ИИ-агент, автоматизация, учёт или интеграция). Спрошу и то, "
-    "что меняет срок и стоимость: продвижение (SEO, реклама) и "
-    "законы РФ (например 152-ФЗ по персональным данным).\n\n"
-    "Каждый раз — один раздел. Если чего-то не хватит для этой задачи, "
-    "добавлю подраздел. Лишнее спрашивать не буду. Вопросы и варианты "
-    "ответов перепишу под вашу формулировку задачи.\n\n"
-    "Покрываем применимые разделы, пока вы не напишете «пауза» или не "
-    "попросите передать оставшееся разработчику.\n\n"
-    "Если не знаете точный ответ — выберите вариант или «Обсудить с "
+    "Я как консультант: сначала пойму вашу задачу своими словами, потом "
+    "задам по одному уточнению — ровно то, без чего нельзя собрать "
+    "первую версию (сайт, бот, Mini App, ИИ-агент, автоматизация, "
+    "учёт или интеграция).\n\n"
+    "Не буду зачитывать анкету и названия разделов. Если чего-то не "
+    "хватит именно для вашей задачи — спрошу. Лишнее пропускаю. "
+    "Спрошу и то, что меняет срок и стоимость: продвижение (SEO, реклама) "
+    "и законы РФ (например 152-ФЗ по персональным данным).\n\n"
+    "В конце соберём черновик ТЗ для разработчика. Пока вы не напишете "
+    "«пауза» или не попросите передать оставшееся разработчику, "
+    "продолжим разговор.\n\n"
+    "Если не знаете точный ответ — выберите подсказку или «Обсудить с "
     "разработчиком, что нужно зафиксировать».\n\n"
     "Можно отвечать текстом, голосом, кнопкой-вариантом или прикрепить файл."
 )
@@ -80,33 +81,20 @@ def build_prompt(
         leftover = remaining_topics(
             product_type, task_shape=task_shape, done_ids=done, plan=plan
         )
-        covered = [topic_title(t, plan) for t in all_topics if t.id in done]
         lines = [
-            f"Разделы ТЗ пройдены: {len(done)}/{total}.",
+            REVIEW_COVERED_RU if not leftover else READY_TOO_EARLY_RU,
             "",
+            "Напишите «готово», чтобы отправить черновик ТЗ владельцу на ревью.",
+            "После отправки можно скачать тот же черновик (Markdown, Word, PDF).",
+            "«пауза» — остановить интервью и вернуться позже.",
+            "Можно дописать уточнение своим текстом.",
         ]
-        if covered:
-            lines.append("Закрыто: " + "; ".join(covered[-8:]))
-            lines.append("")
         if leftover:
-            lines.append(
-                "Ещё не закрыто: " + "; ".join(topic_title(t, plan) for t in leftover) + "."
-            )
-            lines.append(
+            lines.insert(
+                1,
                 "Чтобы закрыть черновик сейчас, напишите «остальное с разработчиком» "
-                "— открытые разделы уйдут владельцу как вопросы."
+                "— открытые вопросы уйдут владельцу.",
             )
-        else:
-            lines.append("Критических пробелов по разделам нет.")
-        lines.extend(
-            [
-                "",
-                "Напишите «готово», чтобы отправить черновик ТЗ владельцу на ревью.",
-                "После отправки можно скачать тот же черновик (Markdown, Word, PDF).",
-                "«пауза» — остановить интервью и вернуться позже.",
-                "Можно дописать уточнение своим текстом.",
-            ]
-        )
         review_choices = [
             READY_CHOICE,
             Choice("escalate_remaining", "Остальное обсудить с разработчиком", exclusive=True),
@@ -138,16 +126,15 @@ def build_prompt(
 
     choices = with_discuss(apply_choice_overrides(topic, plan))
     index = next((i for i, t in enumerate(all_topics) if t.id == topic.id), 0)
-    header = f"Раздел ТЗ {index + 1}/{total} — {topic_title(topic, plan)}"
-    if topic.parent_id or topic.dynamic:
-        header = f"Подраздел ТЗ {index + 1}/{total} — {topic_title(topic, plan)}"
     override = (plan.question_overrides.get(topic.id) if plan else None)
     question = question_text(topic, literacy, product_type, override=override)
     lines: list[str] = []
     if announce_outline and plan:
-        lines.extend([format_outline_announcement(plan), ""])
+        note = format_outline_announcement(plan)
+        if note:
+            lines.extend([note, ""])
     _ = captured_snapshots
-    lines.extend([header, "", question])
+    lines.append(question)
     return DiscoveryPrompt(
         text="\n".join(lines),
         choices=choices,

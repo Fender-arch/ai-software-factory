@@ -27,6 +27,7 @@ from core.models import (
     TZ_DOWNLOAD_STATUSES,
 )
 from discovery.adapt import ADAPT_AFTER_TOPIC_IDS
+from discovery.customer_copy import coverage_continue_reply, strip_catalog_menu
 from discovery.fsm import DiscoveryStage, parse_stage, stage_after_project_created
 from discovery.literacy import ITLiteracy, infer_literacy
 from discovery.quality import (
@@ -34,7 +35,7 @@ from discovery.quality import (
     is_underspecified,
     quality_floor_messages,
 )
-from discovery.rephrase import apply_choice_overrides, topic_title
+from discovery.rephrase import apply_choice_overrides, extract_task_brief, topic_title
 from discovery.tz_outline import (
     DISCUSS_WITH_DEVELOPER_ID,
     Choice,
@@ -450,7 +451,10 @@ def run_llm_turn(
         done.add(topic_id)
 
     captured_ids = {c.topic_id for c in turn.captured}
-    if captured_ids & set(ADAPT_AFTER_TOPIC_IDS):
+    incoming_brief = extract_task_brief([text])
+    if captured_ids & set(ADAPT_AFTER_TOPIC_IDS) or (
+        incoming_brief and incoming_brief != plan.task_brief
+    ):
         plan = _refresh_outline_plan(
             kg,
             project,
@@ -471,7 +475,7 @@ def run_llm_turn(
     paused = False
     artifact_id: uuid.UUID | None = None
     notify_owner = False
-    reply = turn.reply
+    reply = strip_catalog_menu(turn.reply) or turn.reply
     action = turn.next_action
 
     if action == "pause":
@@ -505,11 +509,8 @@ def run_llm_turn(
             choices = _with_ready_chip(with_discuss(turn.chips))
     else:
         if action in {"ready_for_owner", "review"} and leftover:
-            names = "; ".join(topic_title(t, plan) for t in leftover[:8])
-            reply = (
-                f"{reply}\n\nЧтобы закрыть черновик, осталось пройти разделы: "
-                f"{names}."
-            )
+            # Coverage gate stays (DEC-008); titles stay internal (DEC-014).
+            reply = coverage_continue_reply(reply)
         if leftover and project.status not in POST_TZ_HOLD_STATUSES:
             stage = leftover[0].stage
         choices = with_discuss(turn.chips)
