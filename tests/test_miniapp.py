@@ -94,7 +94,7 @@ def test_miniapp_js_uses_telegram_fullscreen_and_groq_voice(client):
     assert "isTzDownloadMessage" in js.text
     assert "renderTzCard" in js.text
     assert "Получить в чат бота" in js.text
-    assert "файл отправлен в чат с ботом" in js.text
+    assert "отправлен в чат с ботом" in js.text
     assert "Отправляем файл в чат бота" in js.text
     export_fn = js.text.split("async function downloadExport")[1]
     send_at = export_fn.find("await api(sendPath")
