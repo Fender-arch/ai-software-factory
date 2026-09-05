@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import create_engine
@@ -199,7 +200,7 @@ def test_expired_intervention_cannot_resolve(client):
 
     db = next(client.app.dependency_overrides[get_db]())
     try:
-        row = db.get(Intervention, iid)
+        row = db.get(Intervention, uuid.UUID(str(iid)))
         row.ttl_expires_at = datetime.now(timezone.utc) - timedelta(hours=1)
         db.commit()
         n = expire_stale_interventions(db, row.project_id)
@@ -280,7 +281,7 @@ def test_peek_secret_does_not_write_plaintext_to_job(client):
 
     db = next(client.app.dependency_overrides[get_db]())
     try:
-        row = db.get(Intervention, iid)
+        row = db.get(Intervention, uuid.UUID(str(iid)))
         assert row.answer_ciphertext
         assert secret not in (row.answer_ciphertext or "")
         assert secret not in str(row.payload)
