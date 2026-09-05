@@ -29,7 +29,7 @@ def test_miniapp_static_served(client):
     assert "Ещё пара уточнений" in js.text
     assert "Сбор требований: ${percent}%" in js.text
     assert "из ${total}" not in js.text
-    assert "20260905-tzcard" in res.text
+    assert "20260905-tzsend" in res.text
     assert "customerWorkspaceHud" in js.text
     assert "customer_hud" in js.text
     assert "ждём ваш ответ" in js.text
@@ -85,20 +85,26 @@ def test_miniapp_js_uses_telegram_fullscreen_and_groq_voice(client):
     assert "${base}-send" in js.text
     assert "${base}-export" in js.text
     assert 'kind === "estimate"' in js.text
-    assert "downloadFile" in js.text
     assert "openLink" in js.text
-    assert "triggerBlobDownload" in js.text
-    assert "dismissExportHint" in js.text
-    assert "finishTzExportUi" in js.text
-    assert "fallbackDeviceExport" in js.text
+    assert "showExportFallback" in js.text
+    assert "openCustomerBotChat" in js.text
+    assert "sent !== true" in js.text
+    assert "message_id" in js.text
+    assert "triggerBlobDownload" not in js.text
+    assert "fallbackDeviceExport" not in js.text
+    assert "Скачиваем файл сюда" not in js.text
+    assert "Файл скачан на устройство" not in js.text
     assert "isTzDownloadMessage" in js.text
     assert "renderTzCard" in js.text
     assert "Получить в чат бота" in js.text
-    assert "отправлен в чат с ботом" in js.text
+    assert "Файл в личке с ботом" in js.text
+    assert "Закройте Mini App" in js.text
     assert "Отправляем файл в чат бота" in js.text
+    assert "Ещё раз в бота" in client.get("/miniapp/").text
+    assert 'id="export-fallback"' in client.get("/miniapp/").text
     export_fn = js.text.split("async function downloadExport")[1]
     send_at = export_fn.find("await api(sendPath")
-    fallback_at = export_fn.find("fallbackDeviceExport")
+    fallback_at = export_fn.find("showExportFallback")
     assert send_at != -1 and fallback_at != -1 and send_at < fallback_at
     assert "renderTzDownload(false)" not in js.text
     assert "withTimeout" in js.text

@@ -203,19 +203,113 @@ def notify_owner_client_estimate_decision(
     )
 
 
+def _private_user_chat_id(raw: str | int | None) -> str | None:
+    """Positive Telegram user id for a private DM. Groups/channels are negative."""
+    text = str(raw or "").strip()
+    if not text or text.startswith("@"):
+        return None
+    try:
+        value = int(text)
+    except ValueError:
+        return None
+    if value <= 0:
+        return None
+    return str(value)
+
+
+def customer_dm_chat_id(
+    *,
+    project_customer_telegram_id: str | None,
+    actor_telegram_id: str | None,
+    owner_telegram_id: str | None = None,
+) -> str | None:
+    """Customer↔bot DM id. Actor (Mini App user) wins; never owner fallback."""
+    del owner_telegram_id  # explicit: OWNER_TELEGRAM_ID is not a destination
+    return _private_user_chat_id(actor_telegram_id) or _private_user_chat_id(
+        project_customer_telegram_id
+    )
+
+
+def _telegram_upload_filename(filename: str) -> tuple[str, str]:
+    """ASCII name + MIME. Telegram/httpx break on Cyrillic filename* headers."""
+    lower = (filename or "tz.md").lower()
+    if lower.endswith(".pdf"):
+        ext, mime = "pdf", "application/pdf"
+    elif lower.endswith(".docx"):
+        ext, mime = (
+            "docx",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        )
+    else:
+        ext, mime = "md", "text/markdown"
+    kind = "smeta" if "smeta" in lower else "tz"
+    return f"{kind}.{ext}", mime
+
+
+_bot_identity: dict | None = None
+
+
+def reset_telegram_identity_cache() -> None:
+    global _bot_identity
+    _bot_identity = None
+
+
+def telegram_bot_username() -> str | None:
+    """Cached @username from getMe. Never logs token or API URL."""
+    global _bot_identity
+    if _bot_identity is not None:
+        return _bot_identity.get("username")
+    token = (get_settings().telegram_bot_token or "").strip()
+    if not token:
+        _bot_identity = {}
+        return None
+    try:
+        with httpx.Client(timeout=_TIMEOUT_S) as client:
+            response = client.post(f"https://api.telegram.org/bot{token}/getMe")
+        body = response.json()
+    except Exception:  # noqa: BLE001 — identity is optional for send
+        logger.warning("Telegram getMe failed")
+        _bot_identity = {}
+        return None
+    if not isinstance(body, dict) or not body.get("ok"):
+        logger.warning(
+            "Telegram getMe rejected http=%s description=%s",
+            response.status_code,
+            body.get("description") if isinstance(body, dict) else None,
+        )
+        _bot_identity = {}
+        return None
+    result = body.get("result") or {}
+    username = str(result.get("username") or "").strip() or None
+    _bot_identity = {"username": username, "id": result.get("id")}
+    return username
+
+
 def send_customer_telegram_document(
     chat_id: str,
     *,
     data: bytes,
     filename: str,
     caption: str | None = None,
-) -> bool:
-    """Send a file to the customer's Telegram chat. False if skipped or failed."""
+) -> dict | None:
+    """Send a file to the customer↔bot DM.
+
+    Success only when Telegram JSON has ok=true, message_id, and result.chat.id
+    matches the requested private user id. Never logs the bot token or API URL.
+    """
     settings = get_settings()
     token = (settings.telegram_bot_token or "").strip()
-    dest = (chat_id or "").strip()
-    if not token or not dest or not data:
-        return False
+    dest = _private_user_chat_id(chat_id)
+    if not token:
+        return {"ok": False, "description": "бот не настроен"}
+    if not dest:
+        return {
+            "ok": False,
+            "description": "нет chat_id — откройте Mini App из Telegram и нажмите /start",
+        }
+    if not data:
+        return {"ok": False, "description": "пустой файл"}
+    ascii_name, mime = _telegram_upload_filename(filename)
     payload: dict[str, str] = {"chat_id": dest}
     if caption:
         payload["caption"] = caption[:1024]
@@ -224,16 +318,73 @@ def send_customer_telegram_document(
             response = client.post(
                 f"https://api.telegram.org/bot{token}/sendDocument",
                 data=payload,
-                files={"document": (filename, data)},
+                files={"document": (ascii_name, data, mime)},
             )
-            response.raise_for_status()
-        return True
-    except httpx.HTTPStatusError as exc:
+    except httpx.RequestError:
+        logger.warning("Telegram sendDocument transport failed chat_id=%s", dest)
+        return {"ok": False, "chat_id": dest, "description": "сеть до Telegram недоступна"}
+    try:
+        body = response.json()
+    except Exception:  # noqa: BLE001
         logger.warning(
-            "Telegram sendDocument failed with status %s",
-            exc.response.status_code,
+            "Telegram sendDocument non-json chat_id=%s http=%s",
+            dest,
+            response.status_code,
         )
-        return False
-    except Exception:  # noqa: BLE001 — customer download must not crash Mini App
-        logger.exception("Failed to send customer Telegram document")
-        return False
+        return {
+            "ok": False,
+            "chat_id": dest,
+            "description": f"Telegram вернул не JSON (http={response.status_code})",
+        }
+    if not isinstance(body, dict) or not body.get("ok"):
+        desc = (
+            (body.get("description") if isinstance(body, dict) else None)
+            or f"Telegram отклонил файл (http={response.status_code})"
+        )
+        logger.warning(
+            "Telegram sendDocument rejected chat_id=%s http=%s description=%s",
+            dest,
+            response.status_code,
+            desc,
+        )
+        return {"ok": False, "chat_id": dest, "description": desc}
+    result = body.get("result") or {}
+    message_id = result.get("message_id")
+    result_chat = _private_user_chat_id((result.get("chat") or {}).get("id"))
+    if not message_id or not result_chat:
+        logger.warning(
+            "Telegram sendDocument missing message_id/chat chat_id=%s http=%s",
+            dest,
+            response.status_code,
+        )
+        return {
+            "ok": False,
+            "chat_id": dest,
+            "description": "Telegram не вернул message_id",
+        }
+    if result_chat != dest:
+        logger.warning(
+            "Telegram sendDocument chat mismatch requested=%s actual=%s message_id=%s",
+            dest,
+            result_chat,
+            message_id,
+        )
+        return {
+            "ok": False,
+            "chat_id": dest,
+            "description": "файл ушёл не в чат заказчика",
+        }
+    username = telegram_bot_username()
+    logger.info(
+        "Telegram sendDocument ok chat_id=%s message_id=%s bot=%s",
+        dest,
+        message_id,
+        username or "-",
+    )
+    return {
+        "ok": True,
+        "chat_id": dest,
+        "message_id": int(message_id),
+        "bot_username": username,
+        "filename": ascii_name,
+    }

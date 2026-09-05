@@ -1001,6 +1001,20 @@ class TzSendError(ValueError):
     """Customer TZ / estimate file could not be sent to Telegram."""
 
 
+def _humanize_telegram_send_error(description: str) -> str:
+    low = (description or "").lower()
+    if "can't initiate" in low or "bot can't initiate" in low:
+        return (
+            "бот не может написать первым — откройте чат с ботом, нажмите /start "
+            "и повторите"
+        )
+    if "chat not found" in low:
+        return "Telegram не нашёл чат — откройте бота, нажмите /start и повторите"
+    if "bot was blocked" in low:
+        return "бот заблокирован — разблокируйте бота ASF и повторите"
+    return description or "не удалось отправить файл в чат бота"
+
+
 def _deliver_customer_document(
     project: Project,
     *,
@@ -1010,24 +1024,42 @@ def _deliver_customer_document(
     caption: str,
 ) -> dict:
     from core.config import get_settings
-    from integrations.telegram.notify import send_customer_telegram_document
+    from integrations.telegram.notify import (
+        customer_dm_chat_id,
+        send_customer_telegram_document,
+    )
 
-    chat_id = (project.customer_telegram_id or customer_telegram_id or "").strip()
+    settings = get_settings()
+    chat_id = customer_dm_chat_id(
+        project_customer_telegram_id=project.customer_telegram_id,
+        actor_telegram_id=customer_telegram_id,
+        owner_telegram_id=settings.owner_telegram_id,
+    )
     if not chat_id:
         raise TzSendError(
-            "нет chat_id — откройте Mini App из Telegram, чтобы получить файл в чат бота"
+            "нет chat_id — откройте Mini App из Telegram и нажмите /start"
         )
-    if not (get_settings().telegram_bot_token or "").strip():
-        raise TzSendError("бот не настроен — скачайте файл здесь")
-    ok = send_customer_telegram_document(
+    if not (settings.telegram_bot_token or "").strip():
+        raise TzSendError("бот не настроен — напишите боту /start и повторите позже")
+    result = send_customer_telegram_document(
         chat_id,
         data=payload,
         filename=filename,
         caption=caption,
     )
-    if not ok:
-        raise TzSendError("не удалось отправить файл в чат бота")
-    return {"sent": True, "filename": filename}
+    if not result or not result.get("ok") or not result.get("message_id"):
+        raise TzSendError(
+            _humanize_telegram_send_error((result or {}).get("description") or "")
+        )
+    if str(result.get("chat_id") or "") != str(chat_id):
+        raise TzSendError("файл ушёл не в чат заказчика")
+    return {
+        "sent": True,
+        "filename": filename,
+        "message_id": int(result["message_id"]),
+        "chat_id": str(result["chat_id"]),
+        "bot_username": result.get("bot_username"),
+    }
 
 
 def send_customer_tz_file(

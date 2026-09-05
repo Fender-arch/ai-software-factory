@@ -703,6 +703,19 @@ h1 { font-size: 1.05rem; margin: 4px 0 8px; }
   font-size: 0.78rem;
   margin: 0 0 6px;
 }
+.export-fallback {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+.export-fallback.hidden {
+  display: none;
+}
+.export-fallback .btn {
+  flex: 1 1 auto;
+  min-height: 36px;
+}
 .ws-dock {
   flex: 0 0 24%;
   min-height: 132px;

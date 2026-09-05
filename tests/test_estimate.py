@@ -254,9 +254,10 @@ def test_tz_send_posts_document_to_customer_chat(client, monkeypatch):
 
     def fake_doc(chat_id, *, data, filename, caption=None):
         delivered.append((chat_id, filename, caption, len(data or b"")))
-        return True
+        return {"ok": True, "chat_id": str(chat_id), "message_id": 101, "bot_username": "asf_bot"}
 
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "test-token")
+    monkeypatch.setenv("OWNER_TELEGRAM_ID", "1")
     get_settings.cache_clear()
     monkeypatch.setattr(
         "integrations.telegram.notify.send_customer_telegram_document",
@@ -289,6 +290,8 @@ def test_tz_send_posts_document_to_customer_chat(client, monkeypatch):
     body = sent.json()
     assert body["sent"] is True
     assert body["filename"]
+    assert body["message_id"] == 101
+    assert body["chat_id"] == "88001"
     assert delivered
     assert delivered[-1][0] == "88001"
     assert delivered[-1][3] > 0
@@ -314,8 +317,19 @@ def test_tz_send_without_chat_id_explains_fallback(client, monkeypatch):
     from core.db import get_db
     from core.models import Project
 
+    delivered: list[str] = []
+
+    def fake_doc(chat_id, *, data, filename, caption=None):
+        delivered.append(str(chat_id))
+        return {"ok": True, "chat_id": str(chat_id), "message_id": 303, "bot_username": "asf_bot"}
+
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "test-token")
+    monkeypatch.setenv("OWNER_TELEGRAM_ID", "1")
     get_settings.cache_clear()
+    monkeypatch.setattr(
+        "integrations.telegram.notify.send_customer_telegram_document",
+        fake_doc,
+    )
 
     created = client.post(
         "/projects",
@@ -345,4 +359,122 @@ def test_tz_send_without_chat_id_explains_fallback(client, monkeypatch):
     )
     assert sent.status_code == 409
     assert "chat_id" in sent.json()["detail"]
+    assert "скачайте" not in sent.json()["detail"].lower()
+
+    still = client.post(
+        f"/projects/{project_id}/tz-send",
+        params={"format": "md", "customer_telegram_id": "88009"},
+    )
+    assert still.status_code == 200
+    assert still.json()["sent"] is True
+    assert still.json()["chat_id"] == "88009"
+    assert delivered == ["88009"]
     get_settings.cache_clear()
+
+
+def test_tz_send_surfaces_telegram_start_required(client, monkeypatch):
+    def fake_doc(chat_id, *, data, filename, caption=None):
+        return {
+            "ok": False,
+            "chat_id": str(chat_id),
+            "description": "Forbidden: bot can't initiate conversation with a user",
+        }
+
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "test-token")
+    get_settings.cache_clear()
+    monkeypatch.setattr(
+        "integrations.telegram.notify.send_customer_telegram_document",
+        fake_doc,
+    )
+
+    created = client.post(
+        "/projects",
+        json={
+            "name": "Need Start",
+            "product_type": "website",
+            "customer_telegram_id": "88011",
+        },
+    )
+    project_id = created.json()["id"]
+    last = _drive_discovery_to_owner(client, project_id)
+    assert last.json()["project_status"] == "WAITING_OWNER"
+
+    sent = client.post(
+        f"/projects/{project_id}/tz-send",
+        params={"format": "md", "customer_telegram_id": "88011"},
+    )
+    assert sent.status_code == 409
+    detail = sent.json()["detail"]
+    assert "/start" in detail
+    assert "test-token" not in detail
+    get_settings.cache_clear()
+
+
+def test_tz_send_httpx_posts_customer_chat_not_owner(client, monkeypatch, caplog):
+    import logging
+
+    import httpx
+
+    from integrations.telegram.notify import reset_telegram_identity_cache
+    from tests.test_telegram_document import _fake_client
+
+    posted: list[dict] = []
+
+    def handler(url, data, files):
+        posted.append({"url": url, "data": dict(data), "files": files})
+        if str(url).endswith("/getMe"):
+            return httpx.Response(
+                200, json={"ok": True, "result": {"username": "asf_factory_bot"}}
+            )
+        chat = int(data["chat_id"])
+        return httpx.Response(
+            200,
+            json={
+                "ok": True,
+                "result": {
+                    "message_id": 55,
+                    "chat": {"id": chat, "type": "private"},
+                },
+            },
+        )
+
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "test-token-secret")
+    monkeypatch.setenv("OWNER_TELEGRAM_ID", "1")
+    get_settings.cache_clear()
+    reset_telegram_identity_cache()
+    monkeypatch.setattr(
+        "integrations.telegram.notify.httpx.Client", _fake_client(handler)
+    )
+
+    created = client.post(
+        "/projects",
+        json={
+            "name": "Пекарня сайт",
+            "product_type": "website",
+            "customer_telegram_id": "88021",
+        },
+    )
+    project_id = created.json()["id"]
+    last = _drive_discovery_to_owner(client, project_id)
+    assert last.json()["project_status"] == "WAITING_OWNER"
+
+    caplog.set_level(logging.INFO)
+    sent = client.post(
+        f"/projects/{project_id}/tz-send",
+        params={"format": "md", "customer_telegram_id": "88021"},
+    )
+    assert sent.status_code == 200
+    body = sent.json()
+    assert body["sent"] is True
+    assert body["message_id"] == 55
+    assert body["chat_id"] == "88021"
+    assert body["bot_username"] == "asf_factory_bot"
+    send = next(item for item in posted if str(item["url"]).endswith("/sendDocument"))
+    assert send["data"]["chat_id"] == "88021"
+    assert send["data"]["chat_id"] != "1"
+    name, _payload, mime = send["files"]["document"]
+    assert name == "tz.md"
+    assert mime == "text/markdown"
+    assert "test-token-secret" not in caplog.text
+    get_settings.cache_clear()
+    reset_telegram_identity_cache()

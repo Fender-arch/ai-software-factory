@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>ASF</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="./styles.css?v=20260905-tzcard" />
+  <link rel="stylesheet" href="./styles.css?v=20260905-tzsend" />
   <meta name="asf-mascot-riv" content="./mascot.riv" />
   <meta name="asf-mascot-sm" content="Mascot" />
 </head>
@@ -134,6 +134,10 @@
       </section>
       <div id="ws-dock" class="ws-dock">
         <p id="send-hint" class="muted send-hint hidden"></p>
+        <div id="export-fallback" class="export-fallback hidden">
+          <button type="button" id="export-retry" class="btn primary">Ещё раз в бота</button>
+          <a id="export-open" class="btn" href="#" target="_blank" rel="noopener">Открыть файл</a>
+        </div>
         <form id="composer" class="composer">
           <textarea id="composer-text" rows="4" placeholder="Сообщение…"></textarea>
           <div class="composer-toolbar">
@@ -175,6 +179,6 @@
   </div>
   <script src="./foundry.js?v=20260905-xp"></script>
   <script src="./experience.js?v=20260905-xp"></script>
-  <script src="./app.js?v=20260905-tzcard"></script>
+  <script src="./app.js?v=20260905-tzsend"></script>
 </body>
 </html>
