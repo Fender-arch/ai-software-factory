@@ -3,13 +3,13 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.11 |
+| Version | 0.12 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
 ## Purpose
 
-Internal **owner/analyst** UI to inspect collected TZ requirements as a graph. Customer UI stays the Telegram Mini App. HITL approve of draft TZ stays on the owner bot.
+Internal **owner/analyst** UI to inspect collected TZ requirements as a graph. Customer UI stays the Telegram Mini App. HITL approve of draft TZ stays on the owner bot. Header lockup: UNI4IT wordmark (`apps/console/brand/`, see `docs/17-Brand-Assets.md`).
 
 ADR: [DEC-007](../decisions/DEC-007-Owner-TZ-Console.md).
 
