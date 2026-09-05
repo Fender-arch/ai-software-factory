@@ -32,6 +32,13 @@ APIs: `GET /projects?customer_telegram_id=`, `GET /projects/{id}/workspace`, `PO
 
 Verified: `pytest` covers workspace progress growth after Mini App outline adapt.
 
+## v0.5 — Home buttons by project state
+
+- [x] Hub shows **Создать проект** only when the customer has no projects
+- [x] **Изменить проект** after the first project (Discovery resume, not a new interview)
+- [x] **Замечания к реализации** only after MVP was sent to the client (`sent_to_client` / `/sendreview`), not merely `READY`
+- [x] `GET /projects` exposes `mvp_review_sent`; tests cover the 0 / has-project / review matrix
+
 ## v0.4 — TZ card in thread + sendDocument
 
 - [x] Draft TZ download UI is a thread message, not a sticky dock bar

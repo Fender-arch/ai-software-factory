@@ -33,11 +33,15 @@ A bot has **one** private chat with a user. Bot API cannot open a second DM “f
 
 Short explanation: idea → Discovery → draft TZ → owner review → **client estimate** → tasks → simple MVP.
 
-Then three actions (Russian labels in product UI):
+Home buttons follow project state (do not show extras “just in case”):
 
-1. **Создать проект** (Create project)
-2. **Изменить проект** (Change project)
-3. **Замечания к реализации** (Implementation feedback)
+| State | Buttons |
+|-------|---------|
+| No projects | **Создать проект** |
+| Has a project, MVP not yet sent for client review | **Создать проект** · **Изменить проект** |
+| At least one project already sent to the client (`BuildJob` `sent_to_client` / owner `/sendreview`) | those two plus **Замечания к реализации** |
+
+`READY` after estimate confirm is not enough: the feedback button appears only after the MVP was actually sent for client review. `GET /projects` includes `mvp_review_sent` for that check.
 
 ### Create project
 
@@ -55,7 +59,7 @@ Then three actions (Russian labels in product UI):
 
 ### Implementation feedback
 
-1. Show projects the user may comment on (after delivery / after they reviewed the MVP).
+1. Show only projects already sent for MVP review (`mvp_review_sent`).
 2. User picks a project and submits feedback (text/voice).
 3. System classifies: defect / change request / new requirement.
 4. Check against approved TZ / KG; on contradiction or blocking ambiguity → `HumanDecisionRequired` / owner path.
