@@ -20,6 +20,7 @@ from integrations.telegram.notify import (
     send_customer_telegram_document,
     telegram_bot_username,
     telegram_http_client,
+    telegram_proxy_url,
 )
 
 
@@ -312,6 +313,14 @@ def test_send_document_401_is_unauthorized(monkeypatch, caplog):
 
 
 def test_telegram_http_client_prefers_ipv4_when_asked(monkeypatch):
+    for key in (
+        "TELEGRAM_PROXY",
+        "HTTPS_PROXY",
+        "HTTP_PROXY",
+        "ALL_PROXY",
+        "LLM_HTTP_PROXY",
+    ):
+        monkeypatch.delenv(key, raising=False)
     monkeypatch.setenv("ASF_TELEGRAM_IP", "4")
     client = telegram_http_client(3.0)
     try:
@@ -333,6 +342,7 @@ def test_diagnose_telegram_bot_api_no_token_in_output(monkeypatch, caplog):
         )
 
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "test-token-secret")
+    monkeypatch.setenv("HTTPS_PROXY", "http://user:proxy-secret@127.0.0.1:3128")
     get_settings.cache_clear()
     reset_telegram_identity_cache()
     monkeypatch.setattr("integrations.telegram.notify.httpx.Client", _fake_client(handler))
@@ -343,8 +353,12 @@ def test_diagnose_telegram_bot_api_no_token_in_output(monkeypatch, caplog):
     assert report["egress_ok"] is True
     assert report["bot_ok"] is True
     assert report["bot_username"] == "asf_factory_bot"
+    assert report["via_proxy"] is True
+    assert telegram_proxy_url().startswith("http://")
     dumped = str(report)
     assert "test-token-secret" not in dumped
+    assert "proxy-secret" not in dumped
     assert "test-token-secret" not in caplog.text
+    assert "proxy-secret" not in caplog.text
     get_settings.cache_clear()
     reset_telegram_identity_cache()

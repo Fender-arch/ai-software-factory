@@ -22,6 +22,7 @@ class TelegramHealthResponse(BaseModel):
     bot_username: str | None = None
     bot_http_status: int | None = None
     bot_description: str | None = None
+    via_proxy: bool = False
 
 
 class ProjectCreate(BaseModel):

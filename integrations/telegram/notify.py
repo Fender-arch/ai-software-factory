@@ -9,6 +9,7 @@ import socket
 import httpx
 
 from core.config import get_settings
+from core.egress import resolve_outbound_proxy_url
 from core.client_estimate import (
     ClientEstimate,
     ClientEstimateAction,
@@ -45,15 +46,27 @@ def _has_ipv4_default_route() -> bool:
         return False
 
 
+def telegram_proxy_url() -> str:
+    """Same proxy hop as Groq/OpenAI httpx (never log the URL)."""
+    return resolve_outbound_proxy_url()
+
+
 def telegram_http_client(timeout: float) -> httpx.Client:
     """HTTP client for api.telegram.org.
 
     Dual-stack Docker often resolves AAAA first and then ConnectError (no IPv6
-    NAT). Prefer IPv4 when the box has an IPv4 route. Respects HTTPS_PROXY /
-    HTTP_PROXY from the environment (trust_env). Never logs the bot token.
+    NAT). Prefer IPv4 when the box has an IPv4 route.
+
+    A custom IPv4 HTTPTransport disables httpx env-proxy pickup, so the
+    shared AI/Telegram URL is passed as `proxy=` when set. Never logs the
+    bot token or the proxy URL.
     """
+    proxy = telegram_proxy_url()
     mode = (os.environ.get("ASF_TELEGRAM_IP") or "auto").strip().lower()
     kwargs: dict = {"timeout": timeout, "trust_env": True}
+    if proxy:
+        kwargs["proxy"] = proxy
+        return httpx.Client(**kwargs)
     if mode == "4" or (mode != "6" and _has_ipv4_default_route()):
         kwargs["transport"] = httpx.HTTPTransport(local_address="0.0.0.0")
     return httpx.Client(**kwargs)
@@ -315,6 +328,7 @@ def diagnose_telegram_bot_api() -> dict:
         "bot_username": None,
         "bot_http_status": None,
         "bot_description": None,
+        "via_proxy": bool(telegram_proxy_url()),
     }
     token = (get_settings().telegram_bot_token or "").strip()
     if not token or token == "SET_ME":

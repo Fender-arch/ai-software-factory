@@ -5,7 +5,7 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.14 |
+| Version | 0.15 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -46,7 +46,9 @@ pytest
 |------------|------------|
 | `DATABASE_URL` | URL SQLAlchemy |
 | `TELEGRAM_BOT_TOKEN` | Polling бота **и** Mini App `sendDocument`. Должен быть тем же ботом BotFather, что открывает Mini App |
-| `HTTPS_PROXY` / `TELEGRAM_PROXY` | Опциональный прокси, если VPS не достучаться до `api.telegram.org` |
+| `HTTPS_PROXY` | Предпочтительный исходящий прокси (тот же канал, что уже используют Groq/OpenAI/STT через httpx). Реальный URL не коммитить |
+| `HTTP_PROXY` / `ALL_PROXY` / `LLM_HTTP_PROXY` | Алиасы того же канала. Fallback для Telegram: `TELEGRAM_PROXY` → `HTTPS_PROXY` → `HTTP_PROXY` → `ALL_PROXY` → `LLM_HTTP_PROXY` |
+| `TELEGRAM_PROXY` | Только если Bot API должен идти другим хопом, чем AI |
 | `ASF_TELEGRAM_IP` | `auto` (предпочитать IPv4) \| `4` \| `6` |
 | `GROQ_API_KEY` | Groq Whisper STT (рекомендуемый серверный fallback) |
 | `OPENAI_API_KEY` | OpenAI Whisper при `STT_PROVIDER=whisper` (+ будущий LLM) |

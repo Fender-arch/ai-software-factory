@@ -46,6 +46,27 @@ class Settings(BaseSettings):
     cursor_api_key: str = ""
     cursor_cloud_api_url: str = "https://api.cursor.com"
     cursor_agent_repo: str = ""
+    # Same outbound hop Groq/OpenAI httpx already honor via trust_env.
+    # Never log; URL may include credentials. See core.egress.
+    telegram_proxy: str = ""
+    https_proxy: str = ""
+    http_proxy: str = ""
+    all_proxy: str = ""
+    llm_http_proxy: str = ""
+    asf_telegram_ip: str = "auto"
+
+    def outbound_http_proxy(self) -> str:
+        from core.egress import resolve_outbound_proxy_url
+
+        return resolve_outbound_proxy_url(
+            {
+                "TELEGRAM_PROXY": self.telegram_proxy,
+                "HTTPS_PROXY": self.https_proxy,
+                "HTTP_PROXY": self.http_proxy,
+                "ALL_PROXY": self.all_proxy,
+                "LLM_HTTP_PROXY": self.llm_http_proxy,
+            }
+        )
 
 
 @lru_cache

@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.5 |
+| Version | 0.6 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -105,7 +105,7 @@ Typical failure (prod `ConnectError`, empty `bot_username`):
 | Check | Meaning |
 |-------|---------|
 | Host `curl -4 https://api.telegram.org` works, container does not | Docker IPv6/AAAA or container DNS. App prefers IPv4 (`ASF_TELEGRAM_IP=auto`/`4`). Optional local override `docker-compose.telegram-egress.yml` (`extra_hosts`, not committed). |
-| Host `curl https://example.org` works, Telegram does not | **Provider-level Telegram block** (seen on FirstVDS: DNS + IPv4 route OK, `curl -4 https://api.telegram.org` times out, ufw OUTPUT is allow). Ask the hoster to allow `api.telegram.org:443` (Telegram ranges `149.154.160.0/20`, `91.108.4.0/22`) **or** set GitHub secret `HTTPS_PROXY` / `TELEGRAM_PROXY` (never commit it) and redeploy. IPv4 extra_hosts cannot fix a filtered path. |
+| Host `curl https://example.org` works, Telegram does not | **Provider-level Telegram block** (seen on FirstVDS: DNS + IPv4 route OK, `curl -4 https://api.telegram.org` times out, ufw OUTPUT is allow). Do **not** open a FirstVDS ticket if the VPS already has a foreign hop for Groq/OpenAI: reuse that URL as `HTTPS_PROXY` (below). IPv4 extra_hosts cannot fix a filtered path. |
 | Neither host HTTPS works | Outgoing 443 denied (`ufw` / iptables / panel). Allow OUTPUT 443/tcp. |
 
 Runbook on the VPS (no secrets in the output):
@@ -119,6 +119,43 @@ curl -sS http://127.0.0.1:18000/health/telegram
 ```
 
 GitHub: **Actions → Telegram egress → Run workflow** (uses the same SSH secrets as Deploy VPS; does not print the bot token). Compose also sets container DNS to `8.8.8.8` / `1.1.1.1`. `ASF_TELEGRAM_IP=4` forces IPv4; `6` leaves dual-stack.
+
+## Same proxy as AI (FirstVDS / foreign channel)
+
+There is **no** dedicated `OPENAI_BASE_URL` / WireGuard sidecar in this repo. Groq LLM + Groq/OpenAI STT use vanilla httpx (`trust_env=True`), so they already follow `HTTPS_PROXY` / `HTTP_PROXY` / `ALL_PROXY` when those are in the **container** env. Telegram Bot API now resolves the **same** URL:
+
+`TELEGRAM_PROXY` → `HTTPS_PROXY` → `HTTP_PROXY` → `ALL_PROXY` → `LLM_HTTP_PROXY`
+
+**Do not create a second secret** unless Telegram must use a different hop than Groq.
+
+### Preferred: GitHub Actions secret (survives Deploy VPS)
+
+1. Repo → **Settings → Secrets and variables → Actions**
+2. Set **`HTTPS_PROXY`** to the HTTP(S) proxy URL the AI channel already uses (example shape only: `http://user:pass@203.0.113.10:3128` — never commit the real value).
+3. Leave `TELEGRAM_PROXY` empty.
+4. **Actions → Deploy VPS → Run workflow** (or push to `main`). `write_env.py` writes `/opt/asf/.env`; compose injects the vars into `api` and `bot`.
+5. On the VPS:
+
+```bash
+curl -sS http://127.0.0.1:18000/health/telegram
+# expect egress_ok=true, via_proxy=true, and a non-empty bot_username
+```
+
+### If the proxy exists only on the VPS (not in GitHub)
+
+Deploy VPS rewrites `/opt/asf/.env` from secrets. An empty GitHub `HTTPS_PROXY` no longer wipes a proxy that is already in that file. To attach the existing AI hop without a new GitHub secret:
+
+```bash
+# on the VPS — paste the same URL AI already uses; do not echo it into chat/logs
+# /opt/asf/.env  (add or edit, never commit)
+# HTTPS_PROXY=<existing-ai-proxy-url>
+# HTTP_PROXY=<existing-ai-proxy-url>
+cd /opt/asf
+docker compose -f docker-compose.prod.yml --env-file .env up -d --no-build --force-recreate api bot
+curl -sS http://127.0.0.1:18000/health/telegram
+```
+
+Host-level WireGuard / split-tunnel that is **not** an HTTP proxy is invisible to Docker unless you put an HTTP(S) proxy URL into `HTTPS_PROXY` as above. After a later **Deploy VPS**, either keep the line in `/opt/asf/.env` or copy it into the GitHub secret so the next rewrite stays aligned.
 
 ## Rollback ASF only
 
