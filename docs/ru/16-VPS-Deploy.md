@@ -5,7 +5,7 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.9 |
+| Version | 0.9.1 |
 | Updated | 2026-09-05 |
 | Owner | ASF Core |
 
@@ -169,9 +169,11 @@ Host-level WireGuard / split-tunnel **без** HTTP-прокси контейн�
 1. Выходной VPS: `tinyproxy` на `127.0.0.1:8888` (не в интернет).
 2. VPS ASF: постоянный ключ ed25519 в `/opt/asf-secrets/` (вне tarball деплоя).
 3. Сервис `egress`: `autossh -L 0.0.0.0:8888:127.0.0.1:8888` в сети Docker `asf_internal`.
-4. `HTTPS_PROXY=http://egress:8888` для `api` и `bot`. `NO_PROXY` исключает `db`, localhost и сам `egress`.
+4. `HTTPS_PROXY=http://egress:8888` и `TELEGRAM_PROXY=http://egress:8888` для `api` и `bot`. `NO_PROXY` исключает `db`, localhost и сам `egress`.
 
-Секреты GitHub: `EGRESS_SSH_HOST`, `EGRESS_SSH_USER` (по умолчанию `root`), `EGRESS_SSH_PORT` (по умолчанию `22`). `EGRESS_SSH_PASSWORD` — **только первый деплой** (поставить tinyproxy и pubkey); в `/opt/asf/.env` пароль не пишется. Дальше достаточно ключа. Пустой `EGRESS_SSH_HOST` — прямой исходящий трафик, как раньше.
+Если задан `EGRESS_SSH_HOST`, `GET /health/telegram` должен показать **`via_proxy=true`**, `egress_ok=true` и непустой `bot_username`. `via_proxy=false` значит контейнеры не получили URL туннеля (пустой GitHub `HTTPS_PROXY` раньше перебивал интерполяцию compose — Deploy VPS теперь снимает пустые proxy-секреты, чтобы победил `.env`).
+
+Секреты GitHub: `EGRESS_SSH_HOST`, `EGRESS_SSH_USER` (по умолчанию `root`), `EGRESS_SSH_PORT` (по умолчанию `22`). `EGRESS_SSH_PASSWORD` — **только первый деплой** (поставить tinyproxy и pubkey); в `/opt/asf/.env` пароль не пишется. Дальше достаточно ключа. Пустой `EGRESS_SSH_HOST` — прямой исходящий трафик, как раньше. **Не** кладите `http://egress:8888` в секрет `HTTPS_PROXY` — `write_env.py` сам дописывает этот хоп, когда задан выходной хост.
 
 `asf_sudo` вызывает apt через `env`, чтобы `DEBIAN_FRONTEND=noninteractive` был префиксом окружения, а не командой. В `tinyproxy.conf` на выходном хосте нужны `PidFile` и `LogFile` — юнит Ubuntu Type=forking, без них `systemctl restart` уходит в timeout. Если первый заход на выходной хост всё равно не выходит, добавьте `/opt/asf-secrets/egress_id_ed25519.pub` в `authorized_keys` того хоста и перезапустите **Deploy VPS** (пароль можно оставить пустым).
 

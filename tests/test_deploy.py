@@ -135,6 +135,7 @@ def test_egress_host_sets_container_http_proxy():
     assert values["HTTPS_PROXY"] == "http://egress:8888"
     assert values["HTTP_PROXY"] == "http://egress:8888"
     assert values["ALL_PROXY"] == "http://egress:8888"
+    assert values["TELEGRAM_PROXY"] == "http://egress:8888"
     assert "egress" in values["NO_PROXY"]
     assert "db" in values["NO_PROXY"]
 
@@ -146,6 +147,23 @@ def test_prod_compose_defines_egress_profile():
     assert 'profiles: ["egress"]' in text
     assert "dockerfile: docker/Dockerfile.egress" in text
     assert "HTTPS_PROXY: ${HTTPS_PROXY:-}" in text
+    assert "required: false" in text
+
+
+def test_remote_up_unsets_empty_github_proxy_env():
+    text = Path("deploy/remote_up.sh").read_text(encoding="utf-8")
+    assert "unset \"$key\"" in text
+    assert "HTTPS_PROXY" in text
+    assert "TELEGRAM_PROXY" in text
+
+
+def test_hotfix_egress_proxy_env_does_not_print_secrets():
+    text = Path("deploy/hotfix_egress_proxy_env.sh").read_text(encoding="utf-8")
+    assert "http://egress:8888" in text
+    assert "force-recreate api bot" in text
+    assert "echo \"$HTTPS_PROXY\"" not in text
+    assert "print(parsed" not in text
+    assert "EGRESS_SSH_PASSWORD" not in text
 
 
 def test_nginx_vhost_is_not_default_server():
@@ -189,6 +207,8 @@ def test_telegram_egress_scripts_do_not_print_secrets():
     tunnel = Path("deploy/setup_egress_tunnel.sh").read_text(encoding="utf-8")
     assert "api.telegram.org" in diagnose
     assert "VERDICT=" in diagnose
+    assert "proxy_target=" in diagnose
+    assert "HTTPS_PROXY" in diagnose
     assert "TELEGRAM_BOT_TOKEN" not in diagnose
     assert "TELEGRAM_BOT_TOKEN" not in hotfix
     assert "extra_hosts" in hotfix

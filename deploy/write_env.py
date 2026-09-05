@@ -116,7 +116,9 @@ def build_env_values(raw: dict[str, str] | None = None) -> dict[str, str]:
         egress_port = "22"
     if egress_host:
         tunnel = "http://egress:8888"
-        for key in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"):
+        # TELEGRAM_PROXY too: compose ${HTTPS_PROXY:-} is empty when GitHub
+        # exports a blank secret, and via_proxy reads this key first.
+        for key in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "TELEGRAM_PROXY"):
             if not src.get(key):
                 src[key] = tunnel
     proxy = resolve_outbound_proxy_url(src)
