@@ -90,14 +90,21 @@ def test_telegram_proxy_url_reads_https_proxy(monkeypatch):
     assert telegram_proxy_url() == "http://127.0.0.1:3128"
 
 
-def _client_proxy_url(client) -> str | None:
+def _client_proxy_host_port(client) -> tuple[str, int] | None:
     for transport in client._mounts.values():
         if transport is None:
             continue
         pool = getattr(transport, "_pool", None)
         proxy = getattr(pool, "_proxy_url", None)
-        if proxy is not None:
-            return str(proxy)
+        if proxy is None:
+            continue
+        host = getattr(proxy, "host", None)
+        port = getattr(proxy, "port", None)
+        if host is None:
+            continue
+        if isinstance(host, (bytes, bytearray)):
+            host = host.decode()
+        return str(host), int(port)
     return None
 
 
@@ -114,7 +121,7 @@ def test_telegram_http_client_passes_https_proxy_not_ipv4_transport(monkeypatch)
     monkeypatch.setenv("ASF_TELEGRAM_IP", "4")
     client = telegram_http_client(3.0)
     try:
-        assert "127.0.0.1:3128" in (_client_proxy_url(client) or "")
+        assert _client_proxy_host_port(client) == ("127.0.0.1", 3128)
         pool = getattr(client._transport, "_pool", None)
         local = getattr(pool, "_local_address", None) if pool is not None else None
         assert local != "0.0.0.0"
@@ -134,6 +141,6 @@ def test_telegram_http_client_llm_alias_when_no_https_proxy(monkeypatch):
     monkeypatch.setenv("LLM_HTTP_PROXY", "http://127.0.0.1:1080")
     client = telegram_http_client(2.0)
     try:
-        assert "127.0.0.1:1080" in (_client_proxy_url(client) or "")
+        assert _client_proxy_host_port(client) == ("127.0.0.1", 1080)
     finally:
         client.close()
