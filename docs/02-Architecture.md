@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.5 |
-| Updated | 2026-09-05 |
+| Version | 0.6 |
+| Updated | 2026-09-07 |
 | Owner | ASF Core |
 
 ## Style
@@ -28,11 +28,11 @@ Telegram Mini App (fullscreen) ── text | voice
         │
    Artifacts (Markdown, derived)
         │
-   Owner HITL (bot) → client estimate (Mini App) → Planner → MVP Factory → Cursor executor
-        │                                                    │
-        │                                               Intervention Queue (owner bot / console)
+   Owner HITL (bot / console) → store client estimate → console send TZ+quote → Mini App confirm → Planner → MVP Factory → Cursor executor
+        │                                                                                          │
+        │                                                                               Intervention Queue (owner bot / console)
         │
-   Owner TZ console (`/console/`) ← KG view (DEC-007)
+   Owner TZ console (`/console/`) ← KG + derived commercial pipeline (DEC-007)
 ```
 
 ## Components
@@ -45,9 +45,9 @@ Telegram Mini App (fullscreen) ── text | voice
 | STT | Voice → text (Whisper); then same path as text messages |
 | Telegram Mini App | Primary customer UI: home actions, project workspace; client Experience Layer (DEC-011) |
 | Telegram bot | Entry, notifications; owner HITL commands in MVP |
-| Owner TZ console | Internal graph of requirements + status/links (DEC-007); not customer UI |
+| Owner TZ console | Internal graph + commercial pipeline: quote, send TZ+estimate, human reply (DEC-007); not customer UI |
 | Artifact generator | Markdown derived from graph (TZ, decisions, backlog export) |
-| Client estimate | Market-band quote + report after owner approve (DEC-012); customer confirm unlocks Planner/factory |
+| Client estimate | Market-band quote stored on HITL approve; owner rate/discount + console send; customer confirm unlocks Planner (DEC-012) |
 | Cursor executor | External coding agent; ASF prepares Spec Kit brief + tasks; HTTP Cloud Agent if `CURSOR_API_KEY`, else stub + deep-link ([DEC-013](../decisions/DEC-013-MVP-Factory-Interventions.md)) |
 | Intervention Queue | Owner HITL for tokens/DNS/server/store secrets; encrypted store, not KG plaintext |
 

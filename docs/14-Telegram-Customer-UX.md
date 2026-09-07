@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.16 |
-| Updated | 2026-09-06 |
+| Version | 0.17 |
+| Updated | 2026-09-07 |
 | Owner | ASF Core |
 
 ADR: [DEC-006](../decisions/DEC-006-Telegram-Mini-App.md), [DEC-011](../decisions/DEC-011-Experience-Layer-Mascot.md)
@@ -49,7 +49,7 @@ Home buttons follow project state (do not show extras “just in case”):
 2. Open that project’s workspace in the Mini App.
 3. Run Discovery (text, **choice popup**, and/or voice). After create, a popup explains the interview; «Поехали» starts **acquaintance** (name, contacts, company or individual) — not the product idea (DEC-015). Then: do they already have a brief? If yes, attach a file; if no, ordinary Discovery. The next assistant turn is **only the next question** (no “we recorded that” recap; options live in «Варианты ответа», not in the chat). Inside Telegram, voice is **recorded in the Mini App and sent to Groq Whisper** (`POST /stt/transcribe`); Web Speech is not used in the Telegram WebView because it often starts with no transcript. Outside Telegram (browser smoke with `?uid=`), Web Speech may still be used. The transcript is inserted into the composer, then ingest is the same as text. Interview covers TZ sections until the customer pauses, hands remaining items to the developer, or confirms «готово» after coverage and wrap-up (extra notes, budget figure, attached brief). The workspace shows a **progress bar** (gray track, green fill); the label is a **percent** or «ещё пара уточнений», not «N из M» section counts (DEC-014). Under the bar, `ws-meta` is a **human Russian HUD** (`customer_hud`: «ждём ваш ответ», «уточняем идею», «на ревью у владельца») — never raw `ProjectStatus`, workspace mode (`create`), Discovery stage (`NON_FUNCTIONAL`), topic id, product type, or chip id; unknown maps to «в работе». Multi-select sends **chip labels** into the chat (comma / «и»), not indexes (`1, 3`). A chip like «Сейчас напишу» / «напишу сам» / «свой вариант» stays in the draft and focuses the composer; the turn completes only after Send/Enter with labels + typed text. Ordinary chips still send on tap. After the draft is sent, the **TZ download card is a message in the thread** (not a sticky bar over the composer). Format buttons **send the file to the bot DM** (`POST /projects/{id}/tz-send` → the **VPS** calls Telegram `sendDocument` at `https://api.telegram.org`; this is not the Mini App WebView). Being inside Telegram does not mean the server reached Bot API. Success copy: «Файл в личке с ботом. Закройте Mini App». On failure the Mini App does **not** claim a download (blob/`a[download]` is a no-op in Telegram WebView) and does **not** say the user’s Telegram network is down. Copy is split: VPS timeout/connect → «Сервер не смог связаться с Telegram Bot API (не ваш интернет). Попробуйте ещё раз.»; 403 / can’t initiate / chat not found → «Напишите боту /start в личке и нажмите снова»; 401 invalid token → «бот на сервере настроен неверно» (never show the token); other Bot API `description` as-is — plus **«Ещё раз в бота»** and **«Открыть файл»**. `TELEGRAM_BOT_TOKEN` must be the same BotFather bot that hosts the Mini App. Ops: `GET /health/telegram` and `curl -sS -o /dev/null -w '%{http_code}' https://api.telegram.org` from the VPS (logs: http status + description, no token). A later owner-corrected TZ uses the same send channel (current KG export). When the customer adds notes after the draft, a **new version card** is appended in the thread.
 4. Bot may notify when owner review is needed or when the customer must answer.
-5. After the owner approves the draft TZ, the workspace shows a **client estimate card** (market range, “why it costs this”, disclaimer). Buttons: **Подтверждаю** / **Нужно обсудить**, plus **Markdown / Word / PDF** «Кинуть в чат бота» for the same quote (`POST /projects/{id}/estimate-send` → `sendDocument`; `GET .../estimate-export` only via «Открыть файл» after an explicit send error). Planner starts only after confirm ([DEC-012](../decisions/DEC-012-Client-Market-Estimate.md)). On success the Mini App says «Файл в личке с ботом. Закройте Mini App»; the TZ card stays in the thread.
+5. After the owner **sends** the TZ+estimate package from the console, «Изменить проект» shows the cover letter and files in the thread plus a **package card**: one price, disclaimer, comments on TZ and estimate, **Подтверждаю** / **Отклонить** (reject needs at least one comment). The card is hidden until `package_visible`. Planner starts only after confirm ([DEC-012](../decisions/DEC-012-Client-Market-Estimate.md)). Reject does **not** resume the Discovery interviewer. Owner replies appear in the same thread.
 
 ### Change project
 
@@ -93,7 +93,7 @@ Until Mini App ships, customer may still use `/new`, `/use`, text/voice in the b
 
 ## Notifications (bot DM)
 
-Examples: Discovery needs an answer; draft TZ sent to owner; owner requested changes; **client estimate ready / confirmed / discuss**; MVP / export ready. Deep-link or WebApp button should reopen the relevant Mini App project workspace when possible.
+Examples: Discovery needs an answer; draft TZ sent to owner; owner requested changes; **TZ+estimate package sent / customer confirmed or rejected**; MVP / export ready. Deep-link or WebApp button should reopen the relevant Mini App project workspace when possible.
 
 ## Out of scope here
 

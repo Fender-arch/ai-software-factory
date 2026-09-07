@@ -119,6 +119,13 @@ def submit_implementation_feedback(
             type_="related_to",
         )
 
+    try:
+        from core.commercial_pipeline import mark_unread
+
+        mark_unread(kg, project)
+    except Exception:  # noqa: BLE001
+        pass
+
     if escalate and project.status == ProjectStatus.READY:
         project.status = ProjectStatus.WAITING_OWNER
 

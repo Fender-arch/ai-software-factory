@@ -646,6 +646,8 @@ def api_confirm_client_estimate(
         "confirm",
         customer_telegram_id=payload.customer_telegram_id or customer_telegram_id,
         note=payload.note,
+        tz_comment=payload.tz_comment,
+        estimate_comment=payload.estimate_comment,
     )
 
 
@@ -666,6 +668,8 @@ def api_discuss_client_estimate(
         "discuss",
         customer_telegram_id=payload.customer_telegram_id or customer_telegram_id,
         note=payload.note,
+        tz_comment=payload.tz_comment,
+        estimate_comment=payload.estimate_comment,
     )
 
 
@@ -676,6 +680,8 @@ def _client_estimate_decision(
     *,
     customer_telegram_id: str | None,
     note: str | None,
+    tz_comment: str | None = None,
+    estimate_comment: str | None = None,
 ) -> ClientEstimateDecisionResponse:
     try:
         result = submit_client_estimate_decision(
@@ -684,6 +690,8 @@ def _client_estimate_decision(
             action,
             customer_telegram_id=customer_telegram_id,
             note=note,
+            tz_comment=tz_comment,
+            estimate_comment=estimate_comment,
         )
     except ValueError as exc:
         if str(exc) == "project not found":

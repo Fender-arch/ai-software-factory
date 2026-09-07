@@ -5,8 +5,8 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.7 |
-| Updated | 2026-09-05 |
+| Version | 0.8 |
+| Updated | 2026-09-07 |
 | Owner | ASF Core |
 
 Что нужно Cursor, чтобы реализовать ASF (аудитория A) и проштамповать клиентский репозиторий MVP (аудитория B), не восстанавливая архитектуру из истории чатов.
@@ -19,7 +19,7 @@ ADR: [DEC-009](../../decisions/DEC-009-Agent-Toolkit-Reuse.md). Экономия
 |-------|-------|
 | `AGENTS.md` | **Роутер** — жёсткие ограничения, таблица skills, секции Learned |
 | `docs/00–16` | Vision, scope, architecture, Discovery, KG, Mini App UX, консоль ТЗ владельца, деплой VPS |
-| `core/estimate.py` + `core/client_estimate.py` | Две оценки: эвристика владельца и рыночная смета клиенту (DEC-012) |
+| `core/estimate.py` + `core/client_estimate.py` + `core/commercial_pipeline.py` | Две оценки + derived-позвоночник консоли / отправка пакета (DEC-012, DEC-007) |
 | `docs/13-Dev-Setup.md` | Запуск / тесты / env |
 | `docs/16-VPS-Deploy.md` | VPS рядом с существующим сайтом |
 | `decisions/` | Зафиксированные ADR (в т.ч. DEC-009–014: toolkit, mobile_native, Experience Layer, клиентская смета, factory, UX без меню каталога) |

@@ -164,6 +164,8 @@ class ClientEstimateDecisionRequest(BaseModel):
         pattern="^(confirm|discuss)$",
     )
     note: str | None = None
+    tz_comment: str | None = None
+    estimate_comment: str | None = None
     customer_telegram_id: str | None = None
 
 

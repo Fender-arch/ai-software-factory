@@ -381,13 +381,18 @@ def ingest_text_message(
 
     discovery: DiscoveryTurnResult | None = None
     assistant_message: Message | None = None
-    if run_discovery and role == "customer":
+    from core.commercial_pipeline import discovery_blocked, mark_unread
+
+    blocked = discovery_blocked(kg, project)
+    if run_discovery and role == "customer" and not blocked:
         discovery = run_discovery_turn(
             db, project, text, source_message_id=message.id
         )
         assistant_message = _store_assistant_reply(
             db, project, discovery, after=message.created_at
         )
+    elif blocked and role == "customer":
+        mark_unread(kg, project)
 
     db.commit()
     db.refresh(message)
@@ -695,6 +700,7 @@ def submit_hitl_decision(
     *,
     note: str | None = None,
     actor_telegram_id: str | None = None,
+    skip_owner_check: bool = False,
 ) -> HitlResult:
     project = get_project(db, project_id)
     if project is None:
@@ -706,6 +712,7 @@ def submit_hitl_decision(
         act,
         note=note,
         actor_telegram_id=actor_telegram_id,
+        skip_owner_check=skip_owner_check,
     )
     db.commit()
     db.refresh(project)
@@ -721,6 +728,8 @@ def submit_client_estimate_decision(
     *,
     customer_telegram_id: str | None = None,
     note: str | None = None,
+    tz_comment: str | None = None,
+    estimate_comment: str | None = None,
 ):
     from core.client_estimate import (
         ClientEstimateAction,
@@ -735,7 +744,14 @@ def submit_client_estimate_decision(
         raise ValueError("project not found")
     assert_project_owner(project, customer_telegram_id)
     act = ClientEstimateAction(action)
-    result = apply_client_estimate_decision(db, project, act, note=note)
+    result = apply_client_estimate_decision(
+        db,
+        project,
+        act,
+        note=note,
+        tz_comment=tz_comment,
+        estimate_comment=estimate_comment,
+    )
     db.commit()
     db.refresh(project)
     try:
@@ -745,6 +761,8 @@ def submit_client_estimate_decision(
             project,
             act,
             client_estimate_from_artifact(draft),
+            tz_comment=tz_comment,
+            estimate_comment=estimate_comment,
         )
     except Exception:  # noqa: BLE001 — owner DM must not break confirm
         logger.exception(
@@ -759,7 +777,6 @@ def _notify_client_estimate_ready(db: Session, project: Project) -> None:
         from core.client_estimate import client_estimate_from_artifact
         from core.hitl import get_draft_tz
         from integrations.telegram.notify import (
-            notify_customer_client_estimate_ready,
             notify_owner_client_estimate_ready,
         )
 
@@ -768,8 +785,8 @@ def _notify_client_estimate_ready(db: Session, project: Project) -> None:
         estimate = client_estimate_from_artifact(draft)
         if estimate is None:
             return
-        notify_customer_client_estimate_ready(project, estimate)
         notify_owner_client_estimate_ready(project, estimate)
+        # Customer receives the package only when the owner sends it from the console.
     except Exception:  # noqa: BLE001 — notify must not break HITL
         logger.exception(
             "Failed to notify client estimate ready for project %s",

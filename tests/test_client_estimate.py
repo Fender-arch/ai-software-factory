@@ -245,8 +245,7 @@ def test_approve_persists_client_estimate_and_confirm_unlocks_ready(client, monk
     assert tz2["client_estimate"]["status"] == "confirmed"
 
     blob = "\n".join(sent)
-    assert "88002" in blob
-    assert "Смета" in blob
+    assert "консоли" in blob.lower() or "смета" in blob.lower()
     assert "подтвердил" in blob.lower()
 
     get_settings.cache_clear()
@@ -267,11 +266,16 @@ def test_discuss_returns_waiting_customer_then_can_confirm(client):
 
     discuss = client.post(
         f"/projects/{project_id}/client-estimate/discuss",
-        json={"action": "discuss", "customer_telegram_id": "88003"},
+        json={
+            "action": "discuss",
+            "customer_telegram_id": "88003",
+            "estimate_comment": "Дорого для MVP",
+        },
     )
     assert discuss.status_code == 200
-    assert discuss.json()["project_status"] == "WAITING_CUSTOMER"
+    assert discuss.json()["project_status"] == "WAITING_CLIENT_ESTIMATE"
     assert discuss.json()["client_estimate"]["status"] == "discuss_requested"
+    assert discuss.json()["client_estimate"]["quote_status"] == "customer_rejected"
 
     later = client.post(
         f"/projects/{project_id}/client-estimate/confirm",

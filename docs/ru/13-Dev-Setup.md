@@ -5,8 +5,8 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.15 |
-| Updated | 2026-09-05 |
+| Version | 0.16 |
+| Updated | 2026-09-07 |
 | Owner | ASF Core |
 
 ## Предварительные требования
@@ -110,7 +110,7 @@ HITL владельца (после draft TZ): `/review`, `/approve`, `/changes`
 7. `GET /projects/{id}/workspace` → лента
 8. `POST /projects/{id}/feedback` → классифицированное замечание
 9. После полного интервью `GET /projects/{id}/artifacts/draft-tz` → markdown-черновик
-10. `POST /projects/{id}/hitl` с `{"action":"approve"}` → статус `READY`
+10. `POST /projects/{id}/hitl` с `{"action":"approve"}` → `WAITING_CLIENT_ESTIMATE` (смета сохранена; заказчику ещё не пишем). Отправка из консоли + confirm заказчика → `READY`
 11. `pytest` зелёный
 
 ## VPS (существующий сайт)

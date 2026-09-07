@@ -122,6 +122,12 @@
         <p class="client-estimate-kicker">Смета для согласования</p>
         <div id="ce-cost" class="client-estimate-cost"></div>
         <div id="ce-hours" class="client-estimate-hours"></div>
+        <label class="field ce-comment">Комментарий к ТЗ
+          <textarea id="ce-tz-comment" rows="2" placeholder="Что поправить в ТЗ"></textarea>
+        </label>
+        <label class="field ce-comment">Комментарий к смете
+          <textarea id="ce-est-comment" rows="2" placeholder="Что поправить в сумме или составе"></textarea>
+        </label>
         <p id="ce-disclaimer" class="client-estimate-disclaimer"></p>
         <details id="ce-report" class="client-estimate-report">
           <summary>Почему столько стоит</summary>
@@ -129,7 +135,7 @@
         </details>
         <div id="ce-actions" class="client-estimate-actions hidden">
           <button type="button" id="ce-confirm" class="btn primary">Подтверждаю</button>
-          <button type="button" id="ce-discuss" class="btn">Нужно обсудить</button>
+          <button type="button" id="ce-discuss" class="btn">Отклонить</button>
         </div>
         <p class="client-estimate-download-title">Получить смету в чат бота</p>
         <div id="ce-download" class="tz-download-row">

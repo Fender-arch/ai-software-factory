@@ -68,9 +68,11 @@ def apply_hitl_decision(
     *,
     note: str | None = None,
     actor_telegram_id: str | None = None,
+    skip_owner_check: bool = False,
 ) -> HitlResult:
-    """Apply owner decision. Client estimate gate runs after ``approve``."""
-    assert_owner_actor(actor_telegram_id)
+    """Apply owner decision. Client estimate is stored after ``approve``; customer send is console."""
+    if not skip_owner_check:
+        assert_owner_actor(actor_telegram_id)
 
     if project.status != ProjectStatus.WAITING_OWNER:
         raise HitlError(
@@ -109,7 +111,7 @@ def _approve(
         name="Owner approved draft TZ",
         status="accepted",
         payload={
-            "summary": note or "Draft TZ approved; client estimate sent for confirmation",
+            "summary": note or "Draft TZ approved; send the package from the console",
             "kind": "tz_approval",
             "artifact_id": str(draft.id),
             "action": HitlAction.APPROVE.value,
@@ -153,7 +155,7 @@ def _approve(
         decision_id=decision.id,
         message=(
             "Draft TZ approved. Client market estimate is ready — "
-            "customer must confirm before Planner."
+            "send TZ + quote from the console before the customer can confirm."
         ),
         human_decision_required=False,
     )

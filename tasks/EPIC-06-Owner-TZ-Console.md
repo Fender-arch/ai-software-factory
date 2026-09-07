@@ -21,7 +21,7 @@ Refs: `decisions/DEC-007-Owner-TZ-Console.md`, `docs/15-Owner-TZ-Console.md`.
 
 ## Notes
 
-Customer channel remains Mini App. HITL TZ gate remains bot commands. History is an audit table, not an event bus.
+Customer channel remains Mini App. HITL TZ gate is owner bot **and** console. After approve, the owner sends TZ+estimate from the console; the customer confirms in Mini App. History is an audit table, not an event bus. Commercial spine is derived (`core/commercial_pipeline.py`), not a second writable enum.
 
 APIs: `GET /console/api/projects`, `GET .../tz-graph`, requirement GET/PATCH, relation POST/DELETE, project files GET/POST/DELETE + download. Static UI at `/console/`. Env: `CONSOLE_TOKEN`, `UPLOAD_DIR`.
 

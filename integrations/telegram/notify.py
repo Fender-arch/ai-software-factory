@@ -241,6 +241,8 @@ def notify_owner_client_estimate_decision(
     project: Project,
     action: ClientEstimateAction,
     estimate: ClientEstimate | None,
+    tz_comment: str | None = None,
+    estimate_comment: str | None = None,
 ) -> bool:
     return send_owner_telegram(
         format_owner_client_decision_message(
@@ -248,6 +250,8 @@ def notify_owner_client_estimate_decision(
             project_id=str(project.id),
             action=action,
             estimate=estimate,
+            tz_comment=tz_comment,
+            estimate_comment=estimate_comment,
         )
     )
 

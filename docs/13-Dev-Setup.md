@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.15 |
-| Updated | 2026-09-05 |
+| Version | 0.16 |
+| Updated | 2026-09-07 |
 | Owner | ASF Core |
 
 ## Prerequisites
@@ -108,7 +108,7 @@ Owner HITL (after draft TZ): `/review`, `/approve`, `/changes`, `/reject`, then 
 7. `GET /projects/{id}/workspace` → thread
 8. `POST /projects/{id}/feedback` → classified note
 9. After a full interview, `GET /projects/{id}/artifacts/draft-tz` → markdown draft
-10. `POST /projects/{id}/hitl` with `{"action":"approve"}` → status `READY`
+10. `POST /projects/{id}/hitl` with `{"action":"approve"}` → `WAITING_CLIENT_ESTIMATE` (quote stored; customer not DMed). Console send + customer confirm → `READY`
 11. `pytest` green
 
 ## VPS (existing website)

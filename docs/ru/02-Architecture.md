@@ -5,8 +5,8 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.5 |
-| Updated | 2026-09-05 |
+| Version | 0.6 |
+| Updated | 2026-09-07 |
 | Owner | ASF Core |
 
 ## Стиль
@@ -30,11 +30,11 @@ Telegram Mini App (fullscreen) ── text | voice
         │
    Artifacts (Markdown, derived)
         │
-   Owner HITL (бот) → смета клиенту (Mini App) → Planner → MVP Factory → Cursor executor
-        │                                                    │
-        │                                               Intervention Queue (бот владельца / консоль)
+   Owner HITL (бот / консоль) → сохранить смету → отправка ТЗ+сметы из консоли → confirm в Mini App → Planner → MVP Factory → Cursor executor
+        │                                                                                          │
+        │                                                                               Intervention Queue (бот владельца / консоль)
         │
-   Консоль ТЗ владельца (`/console/`) ← вид KG (DEC-007)
+   Консоль ТЗ владельца (`/console/`) ← KG + derived коммерческий пайплайн (DEC-007)
 ```
 
 ## Компоненты
@@ -47,9 +47,9 @@ Telegram Mini App (fullscreen) ── text | voice
 | STT | Голос → текст (Whisper); далее тот же путь, что у текста |
 | Telegram Mini App | Основной UI заказчика: home-действия, project workspace; клиентский Experience Layer (DEC-011) |
 | Telegram-бот | Вход, уведомления; команды owner HITL в MVP |
-| Консоль ТЗ владельца | Внутренний граф требований + статусы/связи (DEC-007); не UI заказчика |
+| Консоль ТЗ владельца | Граф + коммерческий пайплайн: котировка, отправка ТЗ+сметы, ответ без LLM (DEC-007); не UI заказчика |
 | Artifact generator | Markdown из графа (ТЗ, решения, экспорт backlog) |
-| Смета клиенту | Рыночная вилка + отчёт после approve владельца (DEC-012); confirm заказчика открывает Planner/фабрику |
+| Смета клиенту | Рыночная смета сохраняется при HITL approve; ставка/скидка и отправка из консоли; confirm заказчика открывает Planner (DEC-012) |
 | Cursor executor | Внешний coding-агент; ASF готовит Spec Kit brief + задачи; HTTP Cloud Agent при `CURSOR_API_KEY`, иначе stub + deep-link ([DEC-013](../../decisions/DEC-013-MVP-Factory-Interventions.md)) |
 | Intervention Queue | HITL владельца по токенам/DNS/серверу/магазинам; шифрованное хранилище, не plaintext в KG |
 

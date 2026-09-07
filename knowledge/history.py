@@ -56,3 +56,15 @@ def list_entity_history(
     if project_id is not None:
         q = q.filter(EntityHistory.project_id == project_id)
     return list(q.order_by(EntityHistory.created_at.asc()).all())
+
+
+def list_project_history(
+    db: Session,
+    project_id: uuid.UUID,
+) -> list[EntityHistory]:
+    return list(
+        db.query(EntityHistory)
+        .filter(EntityHistory.project_id == project_id)
+        .order_by(EntityHistory.created_at.asc())
+        .all()
+    )

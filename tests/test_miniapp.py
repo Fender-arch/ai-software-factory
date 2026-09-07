@@ -74,9 +74,9 @@ def test_miniapp_static_served(client):
     assert "sortThreadMessages" in js.text
     assert "setMicTracksEnabled" in js.text
     assert "experience.js" in res.text
-    assert "client-estimate" in res.text
+    assert "ce-tz-comment" in res.text
+    assert "Отклонить" in res.text
     assert "Подтверждаю" in res.text
-    assert "Нужно обсудить" in res.text
     assert "Получить смету в чат бота" in res.text
     assert "data-ce-fmt" in res.text
     assert "ws-progress" in res.text

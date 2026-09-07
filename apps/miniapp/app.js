@@ -733,6 +733,7 @@
   function isTzDownloadMessage(m) {
     if (!m) return false;
     if (m.meta_kind === "tz_download" || m.meta_kind === "tz_updated") return true;
+    if (m.meta_kind === "tz_package" || m.meta_kind === "estimate_package") return true;
     const t = String(m.text || "").toLowerCase();
     if (!t.includes("черновик")) return false;
     return (
@@ -747,6 +748,8 @@
 
   function tzCardTitle(m) {
     if (m && m.meta_kind === "tz_updated") return "ТЗ обновилось";
+    if (m && m.meta_kind === "tz_package") return "ТЗ проекта";
+    if (m && m.meta_kind === "estimate_package") return "Смета";
     return "ТЗ готово";
   }
 
@@ -894,7 +897,7 @@
   function renderClientEstimate(est, projectStatus) {
     const card = $("client-estimate");
     if (!card) return;
-    if (!est) {
+    if (!est || !est.package_visible) {
       card.classList.add("hidden");
       return;
     }
@@ -928,9 +931,15 @@
       const report = est.report || {};
       reportBody.textContent = report.body || "";
     }
-    const pending = est.status === "pending" || est.status === "discuss_requested";
+    const pending =
+      est.quote_status === "sent" ||
+      est.quote_status === "customer_rejected" ||
+      est.status === "pending" ||
+      est.status === "discuss_requested";
     const canDecide =
       pending &&
+      est.quote_status !== "customer_confirmed" &&
+      est.status !== "confirmed" &&
       (projectStatus === "WAITING_CLIENT_ESTIMATE" ||
         projectStatus === "WAITING_CUSTOMER");
     if (actions) actions.classList.toggle("hidden", !canDecide);
@@ -961,6 +970,8 @@
         body: JSON.stringify({
           action,
           customer_telegram_id: userId,
+          tz_comment: ($("ce-tz-comment") && $("ce-tz-comment").value) || "",
+          estimate_comment: ($("ce-est-comment") && $("ce-est-comment").value) || "",
         }),
       });
       haptic("medium");

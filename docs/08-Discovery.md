@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.25 |
-| Updated | 2026-09-05 |
+| Version | 0.26 |
+| Updated | 2026-09-07 |
 | Owner | ASF Core |
 
 ## Purpose
@@ -241,7 +241,7 @@ Derived from Knowledge Graph (presentation only; the KG stays the store):
 
 ## HITL
 
-Owner receives a Telegram DM as soon as a **new** draft TZ is persisted (bot, Mini App, or API ingest): project name, id, **heuristic delivery estimate** (hours × `ASF_ESTIMATE_HOURLY_RATE`, default 3000 RUB/hour), a short Russian rationale (product type, must/should/could, open questions, risks; cap 80h for a simple MVP), the customer’s stated budget envelope from Discovery topic `budget` (flag if the estimate is above/below that range — the chip is **not** the quote), and `/review <id>`. Labelled as an owner HITL aid, not a customer price. The numeric estimate is deterministic (no LLM). Open questions and risks increase hours; they are not guessed away. The payload is stored on the draft TZ Artifact (`payload.estimate`) and shown again on `/review`. Owner `approve` computes a **separate client market estimate** (`payload.client_estimate` + `payload.client_estimate_report`, DEC-012) and moves the project to `WAITING_CLIENT_ESTIMATE`. The customer confirms or asks to discuss in the Mini App; Planner starts only after confirm (`READY`). “Нужно обсудить” returns `WAITING_CUSTOMER`. Implementation feedback that contradicts the approved TZ raises `HumanDecisionRequired`.
+Owner receives a Telegram DM as soon as a **new** draft TZ is persisted (bot, Mini App, or API ingest): project name, id, **heuristic delivery estimate** (hours × `ASF_ESTIMATE_HOURLY_RATE`, default 3000 RUB/hour), a short Russian rationale (product type, must/should/could, open questions, risks; cap 80h for a simple MVP), the customer’s stated budget envelope from Discovery topic `budget` (flag if the estimate is above/below that range — the chip is **not** the quote), and `/review <id>`. Labelled as an owner HITL aid, not a customer price. The numeric estimate is deterministic (no LLM). Open questions and risks increase hours; they are not guessed away. The payload is stored on the draft TZ Artifact (`payload.estimate`) and shown again on `/review`. Owner `approve` computes a **separate client market estimate** (`payload.client_estimate` + `payload.client_estimate_report`, DEC-012) and moves the project to `WAITING_CLIENT_ESTIMATE`. The customer is not DMed yet. The owner sets rate/discount in the console and **sends TZ + quote** as a package. The customer confirms or rejects in the Mini App (comments on TZ and/or estimate). Planner starts only after confirm (`READY`). Reject stays in negotiation (`WAITING_CLIENT_ESTIMATE`, no interviewer). Implementation feedback that contradicts the approved TZ raises `HumanDecisionRequired`.
 
 While the draft is with the owner (`WAITING_OWNER`), the customer may still send additions. Those messages are always recorded as requirements and merged into the draft TZ; they do not skip the owner gate or start planning. A new version card appears in the Mini App thread; «Кинуть в чат бота» sends the current TZ (Markdown / Word / PDF) as a bot document.
 

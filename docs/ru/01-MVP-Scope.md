@@ -5,8 +5,8 @@
 | Поле | Значение |
 |------|----------|
 | Status | Accepted |
-| Version | 0.6 |
-| Updated | 2026-09-05 |
+| Version | 0.7 |
+| Updated | 2026-09-07 |
 | Owner | ASF Core |
 
 ## Цель MVP
@@ -17,7 +17,7 @@
 2. Платформа собирает требования (Discovery) в project workspace Mini App
 3. Формируется черновик спецификации
 4. Владелец ревьюит и утверждает (HITL)
-5. Заказчик видит **рыночную смету + отчёт с обоснованием** и подтверждает (DEC-012)
+5. Владелец отправляет **ТЗ и смету** из консоли; заказчик подтверждает в Mini App (DEC-012)
 6. Работа разбивается на задачи
 7. Cursor может реализовать **простой** MVP по этим задачам
 
@@ -35,8 +35,8 @@ Definition of done для *платформенного* MVP: Telegram Mini App 
 | Память | Логический Knowledge Graph в PostgreSQL (`entity`, `relation`, JSONB) |
 | AI | Один **AI Coordinator** с режимами (не множество OS-процессов) |
 | HITL | Ревью спецификации в боте владельца; `HumanDecisionRequired` на развилках |
-| Клиентская смета | Рыночный ориентир + отчёт на русском после approve владельца; подтверждение до Planner ([DEC-012](../../decisions/DEC-012-Client-Market-Estimate.md)) |
-| Консоль ТЗ владельца | Внутренний граф требований (`/console/`); [DEC-007](../../decisions/DEC-007-Owner-TZ-Console.md), [15-Owner-TZ-Console.md](15-Owner-TZ-Console.md) |
+| Клиентская смета | Рыночный ориентир сохраняется при HITL approve; владелец задаёт ставку/скидку и отправляет пакет из консоли; confirm заказчика до Planner ([DEC-012](../../decisions/DEC-012-Client-Market-Estimate.md)) |
+| Консоль ТЗ владельца | Граф + коммерческий пайплайн (`/console/`); [DEC-007](../../decisions/DEC-007-Owner-TZ-Console.md), [15-Owner-TZ-Console.md](15-Owner-TZ-Console.md) |
 | Типы продуктов | `website`, `telegram_bot`, `rest_service`, `ai_automation`, `mobile_native` ([DEC-010](../../decisions/DEC-010-Mobile-Native.md)) |
 | Поставка | Экспорт задач + правила Cursor; **MVP Factory** BuildJob + Intervention Queue ([DEC-013](../../decisions/DEC-013-MVP-Factory-Interventions.md)); исполнение человеком/Cursor |
 | Стек | FastAPI, PostgreSQL, Alembic, Docker Compose, фронтенд Mini App, консоль владельца |

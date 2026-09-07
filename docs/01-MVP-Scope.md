@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.6 |
-| Updated | 2026-09-05 |
+| Version | 0.7 |
+| Updated | 2026-09-07 |
 | Owner | ASF Core |
 
 ## Goal of MVP
@@ -15,7 +15,7 @@ Get the first real customer flow working:
 2. Platform collects requirements (Discovery) in a per-project Mini App workspace
 3. Draft specification is produced
 4. Owner reviews and approves (HITL)
-5. Customer sees a **market estimate + narrative report** and confirms (DEC-012)
+5. Owner sends **TZ + quote** from the console; customer confirms in Mini App (DEC-012)
 6. Work is broken into tasks
 7. Cursor can implement a **simple** MVP from those tasks
 
@@ -33,8 +33,8 @@ Definition of done for the *platform* MVP: Telegram Mini App → quality TZ → 
 | Memory | Logical Knowledge Graph in PostgreSQL (`entity`, `relation`, JSONB) |
 | AI | One **AI Coordinator** with modes (not many OS processes) |
 | HITL | Spec review in owner bot path; `HumanDecisionRequired` on forks |
-| Client estimate | Market-band quote + RU report after owner approve; customer confirm before Planner ([DEC-012](../decisions/DEC-012-Client-Market-Estimate.md)) |
-| Owner TZ console | Internal graph of requirements (`/console/`); [DEC-007](../decisions/DEC-007-Owner-TZ-Console.md), [15-Owner-TZ-Console.md](15-Owner-TZ-Console.md) |
+| Client estimate | Market quote stored on HITL approve; owner sets rate/discount and sends the package from the console; customer confirm before Planner ([DEC-012](../decisions/DEC-012-Client-Market-Estimate.md)) |
+| Owner TZ console | Graph + commercial pipeline (`/console/`); [DEC-007](../decisions/DEC-007-Owner-TZ-Console.md), [15-Owner-TZ-Console.md](15-Owner-TZ-Console.md) |
 | Product types | `website`, `telegram_bot`, `rest_service`, `ai_automation`, `mobile_native` ([DEC-010](../decisions/DEC-010-Mobile-Native.md)) |
 | Delivery | Task export + Cursor rules; **MVP Factory** BuildJob + Intervention Queue ([DEC-013](../decisions/DEC-013-MVP-Factory-Interventions.md)); human/Cursor execution |
 | Stack | FastAPI, PostgreSQL, Alembic, Docker Compose, Mini App frontend, owner console |

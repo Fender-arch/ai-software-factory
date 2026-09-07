@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.7 |
-| Updated | 2026-09-05 |
+| Version | 0.8 |
+| Updated | 2026-09-07 |
 | Owner | ASF Core |
 
 What Cursor needs to implement ASF (audience A) and to stamp customer MVP repos (audience B) without re-deriving architecture from chat history.
@@ -17,7 +17,7 @@ ADR: [DEC-009](../decisions/DEC-009-Agent-Toolkit-Reuse.md). Token-economy rules
 |-------|-----|
 | `AGENTS.md` | **Router** — hard constraints, skill table, Learned placeholders |
 | `docs/00–16` | Vision, scope, architecture, Discovery, KG, Mini App UX, owner TZ console, VPS deploy |
-| `core/estimate.py` + `core/client_estimate.py` | Dual estimate: owner heuristic vs client market quote (DEC-012) |
+| `core/estimate.py` + `core/client_estimate.py` + `core/commercial_pipeline.py` | Dual estimate + derived console spine / package send (DEC-012, DEC-007) |
 | `docs/13-Dev-Setup.md` | Run / test / env |
 | `docs/16-VPS-Deploy.md` | VPS next to an existing website |
 | `decisions/` | Locked ADR choices (incl. DEC-009–014: toolkit, mobile_native, Experience Layer, client estimate, factory, catalog-menu UX) |

@@ -473,13 +473,23 @@ def delete_requirement_relation(
     return requirement_card(db, project, src_id)
 
 
-def serialize_project(project: Project) -> dict[str, Any]:
+def serialize_project(project: Project, db: Session | None = None) -> dict[str, Any]:
+    unread = False
+    gate = None
+    if db is not None:
+        from core.commercial_pipeline import commercial_payload, derive_pipeline
+
+        kg = KnowledgeRepository(db)
+        unread = bool(commercial_payload(kg, project).get("unread_from_customer"))
+        gate = derive_pipeline(db, kg, project).get("gate")
     return {
         "id": str(project.id),
         "name": project.name,
         "status": project.status.value,
         "product_type": project.product_type,
         "created_at": project.created_at.isoformat() if project.created_at else None,
+        "unread_from_customer": unread,
+        "pipeline_gate": gate,
     }
 
 
@@ -500,8 +510,10 @@ def set_console_project_status(
 
     previous = project.status
     if previous == new_status:
-        return serialize_project(project)
+        return serialize_project(project, db)
 
+    if new_status != ProjectStatus.ARCHIVED:
+        raise ConsoleError("console may only archive a project; use HITL and package actions for the rest")
     project.status = new_status
     kg = KnowledgeRepository(db)
     entities = kg.list_entities(project.id, type_="Project")
@@ -522,4 +534,4 @@ def set_console_project_status(
             payload={"kind": "project_status", "override": True},
         )
     db.flush()
-    return serialize_project(project)
+    return serialize_project(project, db)

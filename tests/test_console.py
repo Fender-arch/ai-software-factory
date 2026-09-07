@@ -71,6 +71,7 @@ def test_console_static_served(client):
     css = client.get("/console/styles.css")
     assert css.status_code == 200
     assert "min(760px" in css.text
+    assert "sheet-resizer" in css.text
     assert "--brand-navy" in css.text
     assert "--brand-cyan" in css.text
     assert "--brand-purple" in css.text
@@ -82,9 +83,8 @@ def test_console_static_served(client):
     assert "Intervention Queue" in js.text
     assert "PROJECT_STATUS_RU" in js.text
     assert "ждём заказчика" in js.text
-    assert "saveProjectStatus" in js.text
-    assert "isRiskyProjectStatus" in js.text
-    assert "project-status-save" in js.text
+    assert "archiveProject" in js.text
+    assert "pipeline-spine" in css.text
     assert "WAITING_CLIENT_ESTIMATE" in js.text
 
 
@@ -121,16 +121,16 @@ def test_console_requires_token_when_configured(client, monkeypatch):
         )
         pid = created.json()["id"]
         denied_patch = client.patch(
-            f"/console/api/projects/{pid}", json={"status": "READY"}
+            f"/console/api/projects/{pid}", json={"status": "ARCHIVED"}
         )
         assert denied_patch.status_code == 401
         ok_patch = client.patch(
             f"/console/api/projects/{pid}",
-            json={"status": "READY"},
+            json={"status": "ARCHIVED"},
             headers={"Authorization": "Bearer s3cret"},
         )
         assert ok_patch.status_code == 200
-        assert ok_patch.json()["status"] == "READY"
+        assert ok_patch.json()["status"] == "ARCHIVED"
     finally:
         monkeypatch.delenv("CONSOLE_TOKEN", raising=False)
         get_settings.cache_clear()
@@ -171,12 +171,8 @@ def test_tz_graph_includes_delivery_estimate(client):
     assert estimate["rationale"]
     assert "must_count" in estimate
     assert estimate["budget_fit_label"]
-    client_est = graph["project"]["client_estimate"]
-    assert client_est
-    assert client_est["cost"] > 0
-    assert client_est["method"] == "market_v1"
-    assert client_est["sources"]
-    assert all("Admin analytics" not in str(src) for src in client_est["sources"])
+    assert graph["project"]["client_estimate"] is None
+    assert graph["project"]["pipeline"]["gate"]
 
 
 def test_status_history_and_rejected_requires_reason(client):
@@ -423,7 +419,7 @@ def test_console_patch_project_status_override_and_validation(client):
     pid, _uid = _seed_project(client, name="Статус override")
     missing = client.patch(
         "/console/api/projects/00000000-0000-0000-0000-000000000000",
-        json={"status": "READY"},
+        json={"status": "ARCHIVED"},
     )
     assert missing.status_code == 404
 
@@ -431,42 +427,20 @@ def test_console_patch_project_status_override_and_validation(client):
     assert bad.status_code == 400
     assert "unsupported" in (bad.json().get("detail") or "").lower()
 
-    ready = client.patch(f"/console/api/projects/{pid}", json={"status": "READY"})
-    assert ready.status_code == 200
-    assert ready.json()["status"] == "READY"
+    blocked = client.patch(f"/console/api/projects/{pid}", json={"status": "READY"})
+    assert blocked.status_code == 400
+
+    archived = client.patch(f"/console/api/projects/{pid}", json={"status": "ARCHIVED"})
+    assert archived.status_code == 200
+    assert archived.json()["status"] == "ARCHIVED"
 
     graph = client.get(f"/console/api/projects/{pid}/tz-graph").json()
-    assert graph["project"]["status"] == "READY"
+    assert graph["project"]["status"] == "ARCHIVED"
+    assert graph["project"]["pipeline"]["gate"] == "archived"
 
     listed = client.get("/console/api/projects").json()
     row = next(p for p in listed if p["id"] == pid)
-    assert row["status"] == "READY"
-
-    back = client.patch(
-        f"/console/api/projects/{pid}",
-        json={"status": "WAITING_CUSTOMER", "reason": "владелец откатил"},
-    )
-    assert back.status_code == 200
-    assert back.json()["status"] == "WAITING_CUSTOMER"
-
-    gen = app.dependency_overrides[get_db]()
-    db = next(gen)
-    try:
-        project = db.get(Project, uuid.UUID(pid))
-        assert project is not None
-        assert project.status == ProjectStatus.WAITING_CUSTOMER
-        kg = KnowledgeRepository(db)
-        ents = kg.list_entities(project.id, type_="Project")
-        assert ents
-        assert (ents[0].payload or {}).get("status") == "WAITING_CUSTOMER"
-        hist = list_entity_history(db, ents[0].id, project_id=project.id)
-        changes = [h for h in hist if h.action == "status_change"]
-        assert changes
-        assert changes[-1].from_status == "READY"
-        assert changes[-1].to_status == "WAITING_CUSTOMER"
-        assert changes[-1].reason == "владелец откатил"
-    finally:
-        db.close()
+    assert row["status"] == "ARCHIVED"
 
 
 def test_console_tz_export_md_docx_pdf(client):
@@ -565,3 +539,94 @@ def test_console_project_files_upload_download_delete_history(client):
     )
     missing = client.get(f"/console/api/projects/{pid}/files/{extra['id']}/content")
     assert missing.status_code == 404
+
+
+def test_console_quote_rate_discount_export_and_package_send(client, monkeypatch):
+    from tests.test_discovery import _drive_discovery_to_owner
+
+    sent_docs: list[str] = []
+
+    def fake_doc(chat_id, *, data, filename, caption=None):
+        sent_docs.append(filename)
+        return {"ok": True, "message_id": 1, "chat_id": chat_id}
+
+    monkeypatch.setattr(
+        "integrations.telegram.notify.send_customer_telegram_document",
+        fake_doc,
+    )
+
+    pid, uid = _seed_project(client, name="Пакет смета")
+    _drive_discovery_to_owner(client, pid)
+    hitl = client.post(
+        f"/console/api/projects/{pid}/hitl", json={"action": "approve"}
+    )
+    assert hitl.status_code == 200
+    graph = client.get(f"/console/api/projects/{pid}/tz-graph").json()
+    assert graph["project"]["pipeline"]["gate"] == "tz_approved"
+    assert graph["project"]["customer"]["line"]
+    assert graph["project"]["client_estimate"]["quote_status"] == "ai_initial"
+
+    patched = client.patch(
+        f"/console/api/projects/{pid}/client-estimate",
+        json={"hourly_rate": 4000, "discount_percent": 10},
+    )
+    assert patched.status_code == 200
+    ce = patched.json()["client_estimate"]
+    assert ce["hourly_rate"] == 4000
+    assert ce["discount_percent"] == 10
+    assert ce["quote_status"] == "owner_approved"
+    hours = float(ce["hours"])
+    assert ce["quoted_cost"] == int(round(hours * 4000 * 0.9))
+
+    md = client.get(f"/console/api/projects/{pid}/estimate-export?format=md")
+    assert md.status_code == 200
+    body = md.content.decode("utf-8")
+    assert "К согласованию" in body
+    assert "4000" in body or "4 000" in body or "4\u00a0000" in body
+
+    preview = client.get(f"/console/api/projects/{pid}/package-preview").json()
+    assert "пакет v1" in preview["caption"]
+
+    sent = client.post(
+        f"/console/api/projects/{pid}/send-tz-estimate",
+        json={"caption": "Здравствуйте, вот ТЗ и смета.", "format": "pdf"},
+    )
+    assert sent.status_code == 200
+    assert sent.json()["package_version"] == 1
+    assert len(sent_docs) == 2
+
+    graph2 = client.get(f"/console/api/projects/{pid}/tz-graph").json()
+    assert graph2["project"]["pipeline"]["gate"] == "agreement"
+    assert graph2["project"]["client_estimate"]["package_visible"] is True
+
+    discuss = client.post(
+        f"/projects/{pid}/client-estimate/discuss",
+        json={
+            "action": "discuss",
+            "customer_telegram_id": uid,
+            "tz_comment": "Мало про админку",
+            "estimate_comment": "",
+        },
+    )
+    assert discuss.status_code == 200
+    listed = client.get("/console/api/projects").json()
+    row = next(p for p in listed if p["id"] == pid)
+    assert row["unread_from_customer"] is True
+
+    reply = client.post(
+        f"/console/api/projects/{pid}/replies",
+        json={"text": "Админку добавим во v2, смета та же."},
+    )
+    assert reply.status_code == 200
+    thread = client.get(f"/console/api/projects/{pid}/thread").json()
+    roles = {m["role"] for m in thread["messages"]}
+    assert "owner" in roles
+    ingest = client.post(
+        f"/projects/{pid}/messages",
+        params={"customer_telegram_id": uid},
+        json={"text": "Ок, жду новую смету", "role": "customer"},
+    )
+    assert ingest.status_code == 201
+    # negotiation: no interviewer recap required
+    assert ingest.json().get("discovery_reply") in (None, "")
+

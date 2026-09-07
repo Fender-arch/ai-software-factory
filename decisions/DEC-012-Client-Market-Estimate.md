@@ -4,6 +4,7 @@
 |-------|-------|
 | Status | Accepted |
 | Date | 2026-09-05 |
+| Updated | 2026-09-07 |
 | Supersedes | — (does **not** replace the owner heuristic in [EPIC-04](../tasks/EPIC-04-MVP-Generation.md)) |
 
 ## Context
@@ -24,16 +25,18 @@ Ship a **dual estimate**:
 Rules:
 
 1. Owner heuristic is **not** replaced and is **not** shown as the customer price.
-2. After owner `approve` on `WAITING_OWNER`, the orchestrator computes the client estimate and moves the project to `WAITING_CLIENT_ESTIMATE`. Planner / MVP build stay locked.
-3. The customer sees the quote and report in the Mini App and either **confirms** → `READY` (Planner may run) or **asks to discuss** → `WAITING_CUSTOMER`.
-4. Sources are logged on the payload (`kind`: `config` or `fetched`). Do not invent labels such as “Source: Admin analytics”. Optional HTTP fetch is allowlisted HTTPS only (no customer-supplied URLs).
-5. Copy and the report include a **disclaimer**: this is a market orientation for scope agreement, not a legal offer and not an invoice.
-6. No Redis, Neo4j, extra microservice, or new table. JSONB on the existing `draft_tz` Artifact is enough.
-7. LLM writes the Russian narrative when a provider is configured; stub / failure uses a deterministic template built from the same numbers.
+2. After owner `approve` on `WAITING_OWNER`, the orchestrator **computes and stores** the client estimate and moves the project to `WAITING_CLIENT_ESTIMATE`. Planner / MVP build stay locked. The customer is **not** notified yet.
+3. The owner sets the customer-facing price in the console: hours × hourly rate × (1 − discount%). Saving rate/discount is the approved quote. The AI market fork stays in the rationale for the studio.
+4. The owner sends **TZ + estimate** as one package from the console (`POST /console/api/projects/{id}/send-tz-estimate`): editable caption + two documents. Only then is `quote_status=sent` and the Mini App card visible (`package_visible`).
+5. The customer **confirms** → `READY` (Planner may run) or **rejects** with at least one comment on TZ or estimate. Reject stays in `WAITING_CLIENT_ESTIMATE` (negotiation, no Discovery interviewer) rather than bouncing to interview `WAITING_CUSTOMER`.
+6. Sources are logged on the payload (`kind`: `config` or `fetched`). Do not invent labels such as “Source: Admin analytics”. Optional HTTP fetch is allowlisted HTTPS only (no customer-supplied URLs).
+7. Copy and the report include a **disclaimer**: this is a market orientation for scope agreement, not a legal offer and not an invoice.
+8. No Redis, Neo4j, extra microservice, or new table. JSONB on the existing `draft_tz` Artifact is enough (`quote_status`, `package_events`, rate, discount).
+9. LLM writes the Russian narrative when a provider is configured; stub / failure uses a deterministic template built from the same numbers.
 
 ## Consequences
 
-- HITL `approve` no longer jumps straight to `READY`.
-- Mini App gains a compact estimate card (confirm / discuss). Owner console shows both estimates side by side.
-- Telegram notifies the customer when the quote is ready and the owner when the customer confirms or wants to discuss.
-- Full MVP factory / Cursor interventions remain a later stage. Sales/finance agents stay in `backlog/Future.md`.
+- HITL `approve` no longer jumps straight to `READY` and no longer auto-DMs the quote to the customer.
+- Mini App shows the package card only after console send: confirm / reject + comments on TZ and estimate.
+- Telegram notifies the owner when the customer decides; the owner replies from the console without Discovery LLM.
+- Sales/finance agents stay in `backlog/Future.md`; this is owner-operated commercial send, not an agent.

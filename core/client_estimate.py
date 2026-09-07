@@ -187,6 +187,16 @@ class ClientEstimate:
     sources: list[dict[str, Any]] = field(default_factory=list)
     ee_comparison: dict[str, Any] | None = None
     report_method: str = REPORT_TEMPLATE_METHOD
+    hourly_rate: float = 0
+    discount_percent: float = 0
+    quoted_cost: int = 0
+    quote_status: str = "ai_initial"
+    package_version: int = 0
+    package_events: list[dict[str, Any]] = field(default_factory=list)
+    tz_comment: str = ""
+    estimate_comment: str = ""
+    ai_cost: int = 0
+    owner_priced: bool = False
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -220,6 +230,16 @@ class ClientEstimate:
             "sources": [dict(src) for src in self.sources],
             "ee_comparison": dict(self.ee_comparison) if self.ee_comparison else None,
             "report_method": self.report_method,
+            "hourly_rate": self.hourly_rate or self.hourly_rate_mid,
+            "discount_percent": self.discount_percent,
+            "quoted_cost": self.quoted_cost or self.cost,
+            "quote_status": self.quote_status,
+            "package_version": self.package_version,
+            "package_events": [dict(ev) for ev in self.package_events if isinstance(ev, dict)],
+            "tz_comment": self.tz_comment,
+            "estimate_comment": self.estimate_comment,
+            "ai_cost": self.ai_cost or self.cost,
+            "owner_priced": self.owner_priced,
         }
 
     @classmethod
@@ -269,6 +289,18 @@ class ClientEstimate:
             sources=[src for src in sources if isinstance(src, dict)],
             ee_comparison=ee if isinstance(ee, dict) else None,
             report_method=str(data.get("report_method") or REPORT_TEMPLATE_METHOD),
+            hourly_rate=float(data.get("hourly_rate") or data.get("hourly_rate_mid") or 0),
+            discount_percent=float(data.get("discount_percent") or 0),
+            quoted_cost=int(data.get("quoted_cost") or cost),
+            quote_status=str(data.get("quote_status") or "ai_initial"),
+            package_version=int(data.get("package_version") or 0),
+            package_events=[
+                ev for ev in (data.get("package_events") or []) if isinstance(ev, dict)
+            ],
+            tz_comment=str(data.get("tz_comment") or ""),
+            estimate_comment=str(data.get("estimate_comment") or ""),
+            ai_cost=int(data.get("ai_cost") or cost),
+            owner_priced=bool(data.get("owner_priced")),
         )
 
 
@@ -415,6 +447,10 @@ def estimate_client_delivery(
         disclaimer=str(table.get("disclaimer") or DISCLAIMER_RU),
         sources=sources,
         ee_comparison=_ee_comparison(hours, ee_band(table)),
+        hourly_rate=rate_mid,
+        quoted_cost=cost,
+        ai_cost=cost,
+        quote_status="ai_initial",
     )
 
 
@@ -593,6 +629,14 @@ def attach_client_estimate_to_draft(
             **estimate.as_dict(),
             "report_method": report.method,
             "status": "pending",
+            "quote_status": "ai_initial",
+            "hourly_rate": estimate.hourly_rate_mid,
+            "discount_percent": 0,
+            "quoted_cost": estimate.cost,
+            "ai_cost": estimate.cost,
+            "owner_priced": False,
+            "package_version": 0,
+            "package_events": [],
         }
     )
     payload = dict(artifact.payload or {})
@@ -600,6 +644,65 @@ def attach_client_estimate_to_draft(
     payload["client_estimate_report"] = report.as_dict()
     kg.update_entity(artifact, payload=payload)
     return estimate, report
+
+
+def apply_owner_quote(
+    db: Session,
+    project: Project,
+    *,
+    hourly_rate: float | None = None,
+    discount_percent: float | None = None,
+) -> ClientEstimate:
+    """Owner sets customer-facing rate and discount. This is the approved quote."""
+    from core.commercial_pipeline import quoted_cost
+    from core.hitl import get_draft_tz
+    from knowledge.history import record_entity_event
+
+    kg = KnowledgeRepository(db)
+    draft = get_draft_tz(kg, project.id)
+    if draft is None:
+        raise ClientEstimateError("draft TZ not found")
+    estimate = client_estimate_from_artifact(draft)
+    if estimate is None:
+        raise ClientEstimateError("client estimate is not ready yet")
+    payload = dict(draft.payload or {})
+    stored = dict(payload.get("client_estimate") or {})
+    rate = float(hourly_rate if hourly_rate is not None else stored.get("hourly_rate") or estimate.hourly_rate_mid)
+    discount = float(
+        discount_percent if discount_percent is not None else stored.get("discount_percent") or 0
+    )
+    if rate <= 0:
+        raise ClientEstimateError("hourly_rate must be positive")
+    if discount < 0 or discount > 100:
+        raise ClientEstimateError("discount_percent must be 0..100")
+    facing = quoted_cost(estimate.hours, rate, discount)
+    stored["hourly_rate"] = rate
+    stored["discount_percent"] = discount
+    stored["quoted_cost"] = facing
+    stored["cost"] = facing
+    stored["owner_priced"] = True
+    stored["quote_status"] = "owner_approved"
+    stored["status"] = "pending"
+    payload["client_estimate"] = stored
+    kg.update_entity(draft, payload=payload)
+    record_entity_event(
+        db,
+        project_id=project.id,
+        entity_id=draft.id,
+        actor="console",
+        action="updated",
+        payload={
+            "kind": "owner_quote",
+            "hourly_rate": rate,
+            "discount_percent": discount,
+            "quoted_cost": facing,
+        },
+    )
+    db.flush()
+    refreshed = ClientEstimate.from_dict(stored)
+    if refreshed is None:
+        raise ClientEstimateError("failed to store owner quote")
+    return refreshed
 
 
 def client_estimate_from_artifact(artifact: Entity | None) -> ClientEstimate | None:
@@ -625,13 +728,25 @@ def customer_estimate_view(
     if estimate is None:
         return None
     data = estimate.as_dict()
-    data["formatted_cost"] = format_money(estimate.cost, estimate.currency)
+    data["formatted_cost"] = format_money(
+        int(estimate.quoted_cost or estimate.cost), estimate.currency
+    )
+    data["formatted_quoted_cost"] = data["formatted_cost"]
+    data["formatted_ai_cost"] = format_money(
+        int(estimate.ai_cost or estimate.cost), estimate.currency
+    )
     data["formatted_cost_low"] = format_money(estimate.cost_low, estimate.currency)
     data["formatted_cost_high"] = format_money(estimate.cost_high, estimate.currency)
     data["formatted_hours"] = format_hours(estimate.hours)
+    facing_rate = estimate.hourly_rate or estimate.hourly_rate_mid
     data["formatted_rate_mid"] = (
-        f"{format_hours(estimate.hourly_rate_mid)} {estimate.currency}/ч"
+        f"{format_hours(facing_rate)} {estimate.currency}/ч"
     )
+    data["package_visible"] = estimate.quote_status in {
+        "sent",
+        "customer_rejected",
+        "customer_confirmed",
+    } or int(estimate.package_version or 0) > 0
     data["product_type_label"] = PRODUCT_TYPE_RU.get(
         estimate.product_type or "", estimate.product_type or "не указан"
     )
@@ -651,6 +766,11 @@ _ESTIMATE_STATUS_RU = {
     "pending": "ожидает подтверждения",
     "confirmed": "подтверждена",
     "discuss_requested": "запрошено обсуждение",
+    "ai_initial": "первоначальная оценка AI",
+    "owner_approved": "утверждена владельцем",
+    "sent": "отправлена заказчику",
+    "customer_rejected": "отклонена заказчиком",
+    "customer_confirmed": "подтверждена заказчиком",
 }
 
 
@@ -664,21 +784,29 @@ def compose_client_estimate_markdown(
         estimate.product_type or project.product_type or "",
         estimate.product_type or project.product_type or "не указан",
     )
+    quote_label = _ESTIMATE_STATUS_RU.get(
+        estimate.quote_status, estimate.quote_status or "—"
+    )
     status = _ESTIMATE_STATUS_RU.get(estimate.status, estimate.status or "—")
+    facing = int(estimate.quoted_cost or estimate.cost)
+    rate = estimate.hourly_rate or estimate.hourly_rate_mid
     lines = [
         f"# Смета — {project.name}",
         "",
         "## Ориентир",
         "",
-        f"- Середина: {format_money(estimate.cost, estimate.currency)}",
-        f"- Вилка: {format_money(estimate.cost_low, estimate.currency)} – "
-        f"{format_money(estimate.cost_high, estimate.currency)}",
+        f"- К согласованию: {format_money(facing, estimate.currency)}",
         f"- Трудоёмкость: ~{format_hours(estimate.hours)} ч",
-        f"- Ставка (середина): {format_hours(estimate.hourly_rate_mid)} "
-        f"{estimate.currency}/ч",
+        f"- Ставка: {format_hours(rate)} {estimate.currency}/ч",
+        f"- Скидка: {float(estimate.discount_percent):g}%",
         f"- Тип продукта: {product}",
-        f"- Статус сметы: {status}",
+        f"- Статус сметы: {quote_label or status}",
         f"- Метод: `{estimate.method}`",
+        "",
+        "Ориентир рынка (AI, не цена письма): "
+        f"{format_money(int(estimate.ai_cost or estimate.cost), estimate.currency)} "
+        f"(вилка {format_money(estimate.cost_low, estimate.currency)} – "
+        f"{format_money(estimate.cost_high, estimate.currency)}).",
         "",
     ]
     if estimate.customer_budget_label:
@@ -741,11 +869,10 @@ def format_owner_client_estimate_ready_message(
     estimate: ClientEstimate,
 ) -> str:
     return (
-        f"ТЗ утверждено. Клиенту отправлена рыночная смета по «{name}».\n"
+        f"ТЗ утверждено. Рыночная смета по «{name}» посчитана — отправьте пакет из консоли.\n"
         f"ID: `{project_id}`\n"
-        f"Середина: {format_money(estimate.cost, estimate.currency)} "
-        f"(~{format_hours(estimate.hours)} ч). Статус: WAITING_CLIENT_ESTIMATE.\n"
-        "Планирование MVP — только после подтверждения клиентом."
+        f"Ориентир: {format_money(int(estimate.quoted_cost or estimate.cost), estimate.currency)} "
+        f"(~{format_hours(estimate.hours)} ч)."
     )
 
 
@@ -755,22 +882,30 @@ def format_owner_client_decision_message(
     project_id: str,
     action: ClientEstimateAction,
     estimate: ClientEstimate | None,
+    tz_comment: str | None = None,
+    estimate_comment: str | None = None,
 ) -> str:
+    comments = []
+    if (tz_comment or "").strip():
+        comments.append(f"ТЗ: {tz_comment.strip()}")
+    if (estimate_comment or "").strip():
+        comments.append(f"Смета: {estimate_comment.strip()}")
+    comment_block = ("\n" + "\n".join(comments)) if comments else ""
     if action == ClientEstimateAction.CONFIRM:
         cost = (
-            format_money(estimate.cost, estimate.currency)
+            format_money(int((estimate.quoted_cost or estimate.cost)), estimate.currency)
             if estimate
             else "сумма в карточке"
         )
         return (
-            f"Клиент подтвердил смету по «{name}» ({cost}).\n"
-            f"ID: `{project_id}`\n"
-            "Можно запускать планирование MVP: /plan"
+            f"Клиент подтвердил ТЗ и смету по «{name}» ({cost}).\n"
+            f"ID: `{project_id}`{comment_block}\n"
+            "Можно запускать MVP из консоли."
         )
     return (
-        f"Клиент хочет обсудить смету по «{name}».\n"
-        f"ID: `{project_id}`\n"
-        "Проект в WAITING_CUSTOMER — не стартуйте сборку, пока не договоритесь."
+        f"Клиент отклонил пакет по «{name}».\n"
+        f"ID: `{project_id}`{comment_block}\n"
+        "Сборка не стартует. Ответьте из консоли и при необходимости отправьте пакет vN+1."
     )
 
 
@@ -826,14 +961,23 @@ def apply_client_estimate_decision(
     action: ClientEstimateAction,
     *,
     note: str | None = None,
+    tz_comment: str | None = None,
+    estimate_comment: str | None = None,
 ) -> ClientEstimateDecisionResult:
-    """Customer confirm / discuss after the owner approved the TZ."""
+    """Customer confirm / reject of the TZ+estimate package."""
+    from core.commercial_pipeline import mark_unread, set_commercial
     from core.hitl import get_draft_tz
+    from core.models import Message, MessageKind
 
     if project.status not in CLIENT_CONFIRMABLE_STATUSES:
         raise ClientEstimateError(
             f"project must be waiting on the client estimate, got {project.status.value}"
         )
+
+    tz_c = (tz_comment or "").strip()
+    est_c = (estimate_comment or "").strip()
+    if not tz_c and not est_c and (note or "").strip():
+        est_c = (note or "").strip()
 
     kg = KnowledgeRepository(db)
     draft = get_draft_tz(kg, project.id)
@@ -844,31 +988,46 @@ def apply_client_estimate_decision(
         raise ClientEstimateError("client estimate is not ready yet")
     if estimate.status == "confirmed" and action == ClientEstimateAction.CONFIRM:
         raise ClientEstimateError("client estimate is already confirmed")
-    if (
-        project.status == ProjectStatus.WAITING_CUSTOMER
-        and estimate.status not in {"pending", "discuss_requested"}
-    ):
-        raise ClientEstimateError("no pending client estimate to decide")
+    if action == ClientEstimateAction.DISCUSS and not tz_c and not est_c:
+        raise ClientEstimateError("reject requires a comment on TZ or estimate")
 
     payload = dict(draft.payload or {})
     stored = dict(payload.get("client_estimate") or {})
+    version = int(stored.get("package_version") or 1)
+    events = [ev for ev in (stored.get("package_events") or []) if isinstance(ev, dict)]
+    stored["tz_comment"] = tz_c
+    stored["estimate_comment"] = est_c
+    stored["decided_at"] = _now_iso()
+
     if action == ClientEstimateAction.CONFIRM:
         stored["status"] = "confirmed"
-        stored["decided_at"] = _now_iso()
+        stored["quote_status"] = "customer_confirmed"
+        events.append(
+            {
+                "kind": "confirmed",
+                "version": version,
+                "at": stored["decided_at"],
+                "tz_comment": tz_c,
+                "estimate_comment": est_c,
+            }
+        )
+        stored["package_events"] = events
         payload["client_estimate"] = stored
         kg.update_entity(draft, payload=payload)
         decision = kg.create_entity(
             project_id=project.id,
             type_="Decision",
-            name="Customer confirmed client estimate",
+            name="Customer confirmed TZ and estimate",
             status="accepted",
             payload={
-                "summary": note or "Customer confirmed the market estimate",
+                "summary": note or "Customer confirmed the package",
                 "kind": "client_estimate_confirmation",
                 "artifact_id": str(draft.id),
                 "action": action.value,
-                "cost": estimate.cost,
+                "cost": stored.get("quoted_cost") or estimate.cost,
                 "currency": estimate.currency,
+                "tz_comment": tz_c,
+                "estimate_comment": est_c,
             },
             confidence=1.0,
         )
@@ -880,6 +1039,7 @@ def apply_client_estimate_decision(
             payload={"role": "confirms_estimate"},
         )
         project.status = ProjectStatus.READY
+        set_commercial(kg, project, {"negotiation": False, "unread_from_customer": True})
         _sync_project_status_payload(
             kg,
             project,
@@ -888,40 +1048,61 @@ def apply_client_estimate_decision(
         )
     else:
         stored["status"] = "discuss_requested"
-        stored["decided_at"] = _now_iso()
+        stored["quote_status"] = "customer_rejected"
+        events.append(
+            {
+                "kind": "rejected",
+                "version": version,
+                "at": stored["decided_at"],
+                "tz_comment": tz_c,
+                "estimate_comment": est_c,
+            }
+        )
+        stored["package_events"] = events
         payload["client_estimate"] = stored
         kg.update_entity(draft, payload=payload)
         decision = kg.create_entity(
             project_id=project.id,
             type_="Decision",
-            name="Customer asked to discuss estimate",
+            name="Customer rejected TZ/estimate package",
             status="open",
             payload={
-                "summary": note or "Customer wants to discuss the market estimate",
-                "kind": "HumanDecisionRequired",
+                "summary": est_c or tz_c or "Customer rejected the package",
+                "kind": "package_rejected",
                 "artifact_id": str(draft.id),
                 "action": action.value,
+                "tz_comment": tz_c,
+                "estimate_comment": est_c,
             },
             confidence=1.0,
         )
-        kg.create_entity(
-            project_id=project.id,
-            type_="OpenQuestion",
-            name=(note or "Обсуждение сметы")[:80],
-            status="open",
-            payload={
-                "question": note
-                or "Клиент нажал «Нужно обсудить» на рыночной смете",
-                "source": "client_estimate",
-            },
-            confidence=1.0,
-        )
-        project.status = ProjectStatus.WAITING_CUSTOMER
+        project.status = ProjectStatus.WAITING_CLIENT_ESTIMATE
+        set_commercial(kg, project, {"negotiation": True, "unread_from_customer": True})
+        mark_unread(kg, project)
         _sync_project_status_payload(
             kg,
             project,
             discovery_stage=DiscoveryStage.READY_FOR_OWNER.value,
             extra={"client_estimate_last_action": action.value},
+        )
+
+    comment_text = "\n".join(
+        p
+        for p in (
+            f"Комментарий к ТЗ: {tz_c}" if tz_c else "",
+            f"Комментарий к смете: {est_c}" if est_c else "",
+        )
+        if p
+    )
+    if comment_text:
+        db.add(
+            Message(
+                project_id=project.id,
+                kind=MessageKind.TEXT,
+                role="customer",
+                text=comment_text,
+                meta={"kind": "package_decision", "action": action.value},
+            )
         )
 
     db.flush()

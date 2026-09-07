@@ -10,8 +10,8 @@ from core.client_estimate import (
     client_estimate_console_panel,
     client_estimate_from_artifact,
     client_estimate_report_from_artifact,
-    estimate_client_project,
 )
+from core.commercial_pipeline import customer_summary, derive_pipeline, requirement_delta_since_package
 from core.estimate import estimate_console_panel, estimate_project
 from core.hitl import get_draft_tz
 from discovery.fsm import DiscoveryStage
@@ -67,7 +67,7 @@ def _client_estimate_panel(kg: KnowledgeRepository, project: Project) -> dict[st
     stored = client_estimate_from_artifact(draft)
     report = client_estimate_report_from_artifact(draft)
     if stored is None:
-        stored = estimate_client_project(kg, project, fetch_market=False)
+        return None
     return client_estimate_console_panel(stored, report)
 
 
@@ -263,6 +263,9 @@ def build_tz_graph(kg: KnowledgeRepository, project: Project) -> dict[str, Any]:
             "product_type": project.product_type,
             "estimate": estimate_console_panel(estimate_project(kg, project)),
             "client_estimate": _client_estimate_panel(kg, project),
+            "customer": customer_summary(kg, project),
+            "pipeline": derive_pipeline(kg.db, kg, project),
+            "requirement_delta": requirement_delta_since_package(kg.db, kg, project),
         },
         "nodes": nodes,
         "edges": edges,

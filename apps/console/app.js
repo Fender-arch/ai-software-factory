@@ -1,5 +1,6 @@
 (() => {
   const TOKEN_KEY = "asf_console_token";
+  const SHEET_WIDTH_KEY = "asf-console-sheet-width";
   const STATUS_LABELS = {
     new: "новое",
     processed: "отработано",
@@ -99,6 +100,7 @@
     anim: null,
     iconMap: { topics: {}, stages: {}, products: {}, fallback: "circle-dot" },
     files: { files: [], history: [], stages: [], current_stage: "" },
+    thread: [],
     factory: {
       job: null,
       interventions: [],
@@ -679,7 +681,9 @@
     for (const p of projects) {
       const opt = document.createElement("option");
       opt.value = p.id;
-      opt.textContent = `${p.name} (${PROJECT_STATUS_RU[p.status] || p.status})`;
+      opt.textContent = `${p.unread_from_customer ? "● " : ""}${p.name} (${
+        p.pipeline_gate || PROJECT_STATUS_RU[p.status] || p.status
+      })`;
       sel.appendChild(opt);
     }
     if (current && [...sel.options].some((o) => o.value === current)) {
@@ -757,8 +761,22 @@
     });
     const fileAdd = $("file-add");
     if (fileAdd) fileAdd.onclick = () => addProjectFile();
-    const projectStatusSave = $("project-status-save");
-    if (projectStatusSave) projectStatusSave.onclick = () => saveProjectStatus();
+    const archiveBtn = $("project-archive");
+    if (archiveBtn) archiveBtn.onclick = () => archiveProject();
+    const hitlApprove = $("hitl-approve");
+    if (hitlApprove) hitlApprove.onclick = () => consoleHitl("approve");
+    const quoteSave = $("quote-save");
+    if (quoteSave) quoteSave.onclick = () => saveOwnerQuote();
+    const packageSend = $("package-send");
+    if (packageSend) packageSend.onclick = () => sendPackage();
+    const ownerReply = $("owner-reply-send");
+    if (ownerReply) ownerReply.onclick = () => sendOwnerReply();
+    const remarksOpen = $("remarks-section");
+    if (remarksOpen) remarksOpen.addEventListener("toggle", () => {
+      if (remarksOpen.open) markRemarksRead();
+    });
+    const reopen = $("reopen-discovery");
+    if (reopen) reopen.onclick = () => reopenDiscovery();
     const statusSave = $("status-save");
     if (statusSave) statusSave.onclick = () => saveStatus(state.selectedId);
     const relAdd = $("rel-add");
@@ -801,6 +819,50 @@
       })
       .join("");
     return `<ul class="roster">${items}</ul>`;
+  }
+
+  function sectionBlock(title, inner) {
+    return `<section class="sheet-section"><h3 class="sheet-section-title">${title}</h3>${inner}</section>`;
+  }
+
+  function pipelineHtml(pipe) {
+    if (!pipe) return "";
+    const spine = (pipe.spine || [])
+      .map(
+        (s) =>
+          `<div class="spine-cell${s.current ? " current" : ""}"><span>${escapeHtml(
+            s.label
+          )}</span></div>`
+      )
+      .join("");
+    const col = (rows, currentKind) => {
+      if (!rows || !rows.length) return `<p class="hint">Пока нет версий</p>`;
+      return `<ol class="version-col">${rows
+        .map((r, i) => {
+          const last = i === rows.length - 1;
+          const extra = r.estimate_comment
+            ? `<div class="col-comment">${escapeHtml(r.estimate_comment)}</div>`
+            : "";
+          const tzc = r.tz_comment
+            ? `<div class="col-comment">${escapeHtml(r.tz_comment)}</div>`
+            : "";
+          return `<li class="${last ? "current" : ""}">${escapeHtml(r.label)}${tzc}${extra}</li>`;
+        })
+        .join("")}</ol>`;
+    };
+    return `
+      <div class="pipeline-spine" aria-label="Пайплайн">${spine}</div>
+      <div class="pipeline-cols">
+        <div>
+          <div class="col-kicker">Согласование</div>
+          ${col(pipe.agreement_column, pipe.current_agreement_kind)}
+        </div>
+        <div>
+          <div class="col-kicker">MVP</div>
+          ${col(pipe.mvp_column, pipe.current_mvp_kind)}
+        </div>
+      </div>
+    `;
   }
 
   function estimateHtml(est) {
@@ -980,36 +1042,76 @@
       .join("");
     const report = est.report || {};
     const statusRu = {
-      pending: "ждёт клиента",
+      pending: "ждёт отправки",
       confirmed: "клиент подтвердил",
-      discuss_requested: "клиент хочет обсудить",
+      discuss_requested: "клиент отклонил",
+      ai_initial: "оценка AI",
+      owner_approved: "утверждена мной",
+      sent: "отправлено",
+      customer_rejected: "отклонено заказчиком",
+      customer_confirmed: "подтверждено заказчиком",
     };
+    const persisted = true;
+    const exportRow = persisted
+      ? `<h3>Выгрузить смету</h3>
+      <div class="export-row">
+        <button type="button" class="btn" data-estimate-export="md">Markdown</button>
+        <button type="button" class="btn" data-estimate-export="docx">Word</button>
+        <button type="button" class="btn primary" data-estimate-export="pdf">PDF</button>
+      </div>`
+      : "";
+    const quoteStatus = est.quote_status || est.status || "";
+    const estCol = ((state.graph.project || {}).pipeline || {}).estimate_column || [];
+    const estColHtml = estCol.length
+      ? `<ol class="version-col">${estCol
+          .map(
+            (r) =>
+              `<li class="${r.current ? "current" : ""}">${escapeHtml(r.label)}${
+                r.estimate_comment
+                  ? `<div class="col-comment">${escapeHtml(r.estimate_comment)}</div>`
+                  : ""
+              }</li>`
+          )
+          .join("")}</ol>`
+      : "";
     return `
-      <h3>Смета клиенту (рынок)</h3>
       <p class="hint">${escapeHtml(est.disclaimer || "Ориентир рынка, не оферта.")}</p>
+      ${estColHtml}
       <div class="estimate-hero client-estimate-hero">
-        <div class="estimate-cost">${escapeHtml(est.formatted_cost || "—")}</div>
-        <div class="estimate-hours">вилка ${escapeHtml(
-          est.formatted_cost_low || "—"
-        )} – ${escapeHtml(est.formatted_cost_high || "—")} · ~${escapeHtml(
-          est.formatted_hours || "—"
-        )} ч × ${escapeHtml(est.formatted_rate_mid || "—")}</div>
+        <div class="estimate-cost">${escapeHtml(est.formatted_quoted_cost || est.formatted_cost || "—")}</div>
+        <div class="estimate-hours">~${escapeHtml(est.formatted_hours || "—")} ч × ${escapeHtml(
+          est.formatted_rate_mid || "—"
+        )} · скидка ${escapeHtml(String(est.discount_percent || 0))}%</div>
       </div>
+      <p class="hint">Было от AI: ${escapeHtml(est.formatted_ai_cost || "—")}
+        (вилка ${escapeHtml(est.formatted_cost_low || "—")} – ${escapeHtml(est.formatted_cost_high || "—")})</p>
       <div class="meta">
-        <div>Статус сметы: <b>${escapeHtml(statusRu[est.status] || est.status || "—")}</b></div>
+        <div>Статус сметы: <b>${escapeHtml(statusRu[quoteStatus] || quoteStatus || "—")}</b></div>
         <div>Метод: <b>${escapeHtml(est.method || "market_v1")}</b> / отчёт <b>${escapeHtml(
           est.report_method || (report.method || "—")
         )}</b></div>
         <div>Ориентир заказчика: <b>${escapeHtml(est.customer_budget_label || "не указан")}</b></div>
       </div>
+      <div class="form-row quote-row">
+        <label class="field">Ставка, ₽/ч
+          <input id="quote-rate" type="number" min="1" step="1" value="${escapeHtml(
+            String(est.hourly_rate || "")
+          )}" />
+        </label>
+        <label class="field">Скидка, %
+          <input id="quote-discount" type="number" min="0" max="100" step="1" value="${escapeHtml(
+            String(est.discount_percent || 0)
+          )}" />
+        </label>
+        <button type="button" class="btn primary" id="quote-save">Сохранить ставку и скидку</button>
+      </div>
+      <label class="field">Письмо заказчику
+        <textarea id="package-caption" rows="5"></textarea>
+      </label>
+      <button type="button" class="btn primary" id="package-send">Отправить ТЗ и смету</button>
       <h3>Отчёт клиенту</h3>
       <pre class="client-estimate-report">${escapeHtml(report.body || "—")}</pre>
-      <h3>Выгрузить смету</h3>
-      <div class="export-row">
-        <button type="button" class="btn" data-estimate-export="md">Markdown</button>
-        <button type="button" class="btn" data-estimate-export="docx">Word</button>
-        <button type="button" class="btn primary" data-estimate-export="pdf">PDF</button>
-      </div>
+      ${exportRow}
       <h3>Источники ставок</h3>
       <ul class="estimate-rationale">${sources || "<li>—</li>"}</ul>
     `;
@@ -1022,37 +1124,92 @@
     const badge = iconImg(node, "sheet-icon");
     if (node.kind === "project") {
       const info = state.graph.project || {};
+      const cust = info.customer || {};
+      const delta = (info.requirement_delta || {}).since_package || {};
+      const snap = (info.requirement_delta || {}).snapshot || breakdown;
+      const unread = info.pipeline && info.pipeline.unread_from_customer;
+      const thread = (state.thread || [])
+        .filter((m) => m.filter === "agreement" || m.filter === "delivery")
+        .map(
+          (m) =>
+            `<li class="remark-row"><span class="remark-role">${escapeHtml(
+              m.role
+            )}</span> ${escapeHtml(m.text || "")}</li>`
+        )
+        .join("");
       showSheet(`
         ${badge}
-        <p class="kicker">${escapeHtml(KIND_RU.project)}</p>
+        <p class="kicker">${escapeHtml(KIND_RU.project)}${
+          unread ? ' <i class="unread-dot" title="Новые сообщения заказчика"></i>' : ""
+        }</p>
         <h2>${escapeHtml(node.label)}</h2>
-        ${countChips(breakdown, [
-          `<span class="count-chip">${kids.length} этапов</span>`,
-          `<span class="count-chip">${leaves.length} требований</span>`,
-        ])}
-        <div class="meta">
-          <div>Тип продукта: <b>${escapeHtml(PRODUCT_RU[info.product_type] || info.product_type || "—")}</b></div>
-          <div>Статус проекта: <b>${escapeHtml(PROJECT_STATUS_RU[info.status] || info.status || "—")}</b></div>
-        </div>
-        <h3>Сменить статус</h3>
-        <p class="hint">Ручной override владельца. Discovery и фабрика смотрят на это поле; откат с «готов» возможен, но лучше понимать последствия.</p>
-        <div class="form-row">
-          <select id="project-status-select">${projectStatusOptions(info.status)}</select>
-          <button type="button" class="btn primary" id="project-status-save">Сохранить статус</button>
-        </div>
-        ${estimateHtml(info.estimate)}
-        ${clientEstimateHtml(info.client_estimate)}
-        ${factoryHtml(state.factory)}
-        <h3>Выгрузить полное ТЗ</h3>
-        <div class="export-row">
-          <button type="button" class="btn" data-tz-export="md">Markdown</button>
-          <button type="button" class="btn" data-tz-export="docx">Word</button>
-          <button type="button" class="btn primary" data-tz-export="pdf">PDF</button>
-        </div>
+        <p class="customer-line">${escapeHtml(cust.line || "заказчик не указан")}</p>
+        ${sectionBlock(
+          "Общее",
+          `
+          ${pipelineHtml(info.pipeline)}
+          <div class="meta">
+            <div>Тип продукта: <b>${escapeHtml(PRODUCT_RU[info.product_type] || info.product_type || "—")}</b></div>
+            <div>Сроки: <b>${escapeHtml(cust.timeline || "не указаны")}</b></div>
+            <div>Бюджет в Discovery: <b>${escapeHtml(cust.budget || "не указан")}</b></div>
+            <div class="hint">Операционный статус: ${escapeHtml(
+              PROJECT_STATUS_RU[info.status] || info.status || "—"
+            )}</div>
+          </div>
+          <button type="button" class="btn" id="project-archive">В архив</button>
+          `
+        )}
+        ${sectionBlock(
+          "ТЗ",
+          `
+          ${
+            info.status === "WAITING_OWNER"
+              ? `<button type="button" class="btn primary" id="hitl-approve">Утвердить ТЗ</button>`
+              : ""
+          }
+          <div class="export-row">
+            <button type="button" class="btn" data-tz-export="md">Markdown</button>
+            <button type="button" class="btn" data-tz-export="docx">Word</button>
+            <button type="button" class="btn primary" data-tz-export="pdf">PDF</button>
+          </div>
+          `
+        )}
+        ${sectionBlock(
+          "Смета",
+          `${estimateHtml(info.estimate)}${clientEstimateHtml(info.client_estimate)}`
+        )}
+        ${sectionBlock("MVP", factoryHtml(state.factory))}
+        ${sectionBlock(
+          "Требования",
+          `
+          ${countChips(snap, [
+            `<span class="count-chip">${kids.length} этапов</span>`,
+            `<span class="count-chip">${leaves.length} требований</span>`,
+          ])}
+          <p class="hint">С последней отправки пакета:
+            новых ${Number(delta.new) || 0},
+            уточняется ${Number(delta.needs_clarification) || 0},
+            конфликтов ${Number(delta.conflict) || 0}</p>
+          ${rosterHtml(kids, (s) => `${requirementLeaves(s.id).length} тр.`)}
+          `
+        )}
+        ${sectionBlock(
+          "Замечания",
+          `
+          <details id="remarks-section" class="remarks">
+            <summary>Переписка по пакету и реализации</summary>
+            <ul class="remark-list">${thread || "<li class=\"hint\">Пока пусто</li>"}</ul>
+            <label class="field">Ответ заказчику (без AI)
+              <textarea id="owner-reply-text" rows="3"></textarea>
+            </label>
+            <button type="button" class="btn primary" id="owner-reply-send">Отправить ответ</button>
+            <button type="button" class="btn" id="reopen-discovery">Открыть досбор требований</button>
+          </details>
+          `
+        )}
         ${filesHtml(state.files)}
-        <h3>Этапы</h3>
-        ${rosterHtml(kids, (s) => `${requirementLeaves(s.id).length} тр.`)}
       `);
+      fillPackageCaption();
       return;
     }
     if (node.kind === "stage") {
@@ -1105,6 +1262,7 @@
       try {
         await loadProjectFiles();
         await loadFactory();
+        await loadThread();
       } catch (err) {
         showError(err.message);
       }
@@ -1488,6 +1646,16 @@
     }
   }
 
+  async function loadThread() {
+    const pid = $("project-select").value;
+    if (!pid) {
+      state.thread = [];
+      return;
+    }
+    const data = await api(`/console/api/projects/${pid}/thread`);
+    state.thread = data.messages || [];
+  }
+
   function projectStatusOptions(current) {
     return PROJECT_STATUS_ORDER.map((key) => {
       const label = PROJECT_STATUS_RU[key] || key;
@@ -1496,38 +1664,124 @@
     }).join("");
   }
 
-  function isRiskyProjectStatus(from, to) {
-    if (!from || !to || from === to) return false;
-    if (from === "ARCHIVED") return true;
-    if (from === "READY" && to !== "ARCHIVED") return true;
-    const fi = PROJECT_STATUS_ORDER.indexOf(from);
-    const ti = PROJECT_STATUS_ORDER.indexOf(to);
-    return fi >= 0 && ti >= 0 && ti < fi;
-  }
-
-  async function saveProjectStatus() {
+  async function archiveProject() {
     const pid = $("project-select").value;
-    const sel = $("project-status-select");
-    if (!pid || !sel) return;
-    const next = sel.value;
-    const current = (state.graph && state.graph.project && state.graph.project.status) || "";
-    if (isRiskyProjectStatus(current, next)) {
-      const fromRu = PROJECT_STATUS_RU[current] || current;
-      const toRu = PROJECT_STATUS_RU[next] || next;
-      const ok = window.confirm(
-        `Сменить статус с «${fromRu}» на «${toRu}»? Это откатит проект назад и может затронуть Discovery / фабрику MVP.`
-      );
-      if (!ok) return;
-    }
+    if (!pid || !window.confirm("Отправить проект в архив?")) return;
     showError("");
     try {
       await api(`/console/api/projects/${pid}`, {
         method: "PATCH",
-        body: JSON.stringify({ status: next }),
+        body: JSON.stringify({ status: "ARCHIVED" }),
       });
       await loadProjects();
       await loadGraph(pid, { keepView: true });
       if (state.selectedId) await inspectNode(state.selectedId);
+    } catch (err) {
+      showError(err.message || String(err));
+    }
+  }
+
+  async function consoleHitl(action) {
+    const pid = $("project-select").value;
+    if (!pid) return;
+    showError("");
+    try {
+      await api(`/console/api/projects/${pid}/hitl`, {
+        method: "POST",
+        body: JSON.stringify({ action }),
+      });
+      await loadGraph(pid, { keepView: true });
+      if (state.selectedId) await inspectNode(state.selectedId);
+    } catch (err) {
+      showError(err.message || String(err));
+    }
+  }
+
+  async function saveOwnerQuote() {
+    const pid = $("project-select").value;
+    const rate = $("quote-rate") && $("quote-rate").value;
+    const discount = $("quote-discount") && $("quote-discount").value;
+    if (!pid) return;
+    showError("");
+    try {
+      await api(`/console/api/projects/${pid}/client-estimate`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          hourly_rate: rate ? Number(rate) : null,
+          discount_percent: discount === "" ? null : Number(discount),
+        }),
+      });
+      await loadGraph(pid, { keepView: true });
+      if (state.selectedId) await inspectNode(state.selectedId);
+    } catch (err) {
+      showError(err.message || String(err));
+    }
+  }
+
+  async function fillPackageCaption() {
+    const pid = $("project-select").value;
+    const box = $("package-caption");
+    if (!pid || !box || box.value.trim()) return;
+    try {
+      const prev = await api(`/console/api/projects/${pid}/package-preview`);
+      if (prev && prev.caption) box.value = prev.caption;
+    } catch (_) {
+      /* estimate may be missing */
+    }
+  }
+
+  async function sendPackage() {
+    const pid = $("project-select").value;
+    const box = $("package-caption");
+    if (!pid) return;
+    showError("");
+    try {
+      await api(`/console/api/projects/${pid}/send-tz-estimate`, {
+        method: "POST",
+        body: JSON.stringify({ caption: box ? box.value : "", format: "pdf" }),
+      });
+      await loadGraph(pid, { keepView: true });
+      if (state.selectedId) await inspectNode(state.selectedId);
+    } catch (err) {
+      showError(err.message || String(err));
+    }
+  }
+
+  async function sendOwnerReply() {
+    const pid = $("project-select").value;
+    const box = $("owner-reply-text");
+    if (!pid || !box) return;
+    showError("");
+    try {
+      await api(`/console/api/projects/${pid}/replies`, {
+        method: "POST",
+        body: JSON.stringify({ text: box.value }),
+      });
+      box.value = "";
+      await loadThread();
+      const node = nodeMap().get(state.selectedId);
+      if (node) renderGroupPanel(node);
+    } catch (err) {
+      showError(err.message || String(err));
+    }
+  }
+
+  async function markRemarksRead() {
+    const pid = $("project-select").value;
+    if (!pid) return;
+    try {
+      await api(`/console/api/projects/${pid}/remarks/read`, { method: "POST", body: "{}" });
+      await loadProjects();
+    } catch (_) {
+      /* ignore */
+    }
+  }
+
+  async function reopenDiscovery() {
+    const pid = $("project-select").value;
+    if (!pid) return;
+    try {
+      await api(`/console/api/projects/${pid}/reopen-discovery`, { method: "POST", body: "{}" });
     } catch (err) {
       showError(err.message || String(err));
     }
@@ -1752,6 +2006,35 @@
     inspectNode(hits[0].id, { toggle: false });
   }
 
+  function initSheetResize() {
+    const sheet = $("panel");
+    const handle = $("sheet-resizer");
+    if (!sheet || !handle) return;
+    const stored = Number(localStorage.getItem(SHEET_WIDTH_KEY) || 0);
+    if (stored >= 420) sheet.style.width = `${stored}px`;
+    let startX = 0;
+    let startW = 0;
+    const onMove = (ev) => {
+      const dx = startX - ev.clientX;
+      const next = Math.min(Math.max(startW + dx, 420), Math.round(window.innerWidth * 0.9));
+      sheet.style.width = `${next}px`;
+      localStorage.setItem(SHEET_WIDTH_KEY, String(next));
+      if (state.network) state.network.redraw();
+    };
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      if (state.network) state.network.fit({ animation: false });
+    };
+    handle.addEventListener("mousedown", (ev) => {
+      startX = ev.clientX;
+      startW = sheet.getBoundingClientRect().width;
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
+      ev.preventDefault();
+    });
+  }
+
   $("token-save").onclick = async () => {
     sessionStorage.setItem(TOKEN_KEY, $("console-token").value.trim());
     showError("");
@@ -1818,6 +2101,10 @@
     } catch (_) {
       /* graph still works as colored dots if icons fail */
     }
+    initSheetResize();
+    setInterval(() => {
+      loadProjects().catch(() => {});
+    }, 15000);
   }
   boot();
   if (window.ASFFoundry) {
