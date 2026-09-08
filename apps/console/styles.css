@@ -332,13 +332,53 @@ input[type="file"]::file-selector-button {
   letter-spacing: 0.04em;
   text-align: center;
   padding: 6px 4px;
+  border: 0;
   border-bottom: 2px solid var(--struct);
   color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
 }
 .spine-cell.current {
   color: var(--text);
   border-bottom-color: var(--accent);
   font-weight: 600;
+}
+.spine-cell.viewing {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.spine-cell.has-snap::after {
+  content: "";
+  display: block;
+  width: 5px;
+  height: 5px;
+  margin: 4px auto 0;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.pipeline-nav {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.tz-preview {
+  max-height: 320px;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  padding: 8px;
+  border: 1px solid var(--line);
+  background: var(--panel-2, #12141a);
+}
+.tz-diff {
+  font-size: 0.8rem;
+  margin: 8px 0;
+}
+.hist-old {
+  margin-top: 4px;
+  color: var(--muted);
+  white-space: pre-wrap;
 }
 .pipeline-cols {
   display: grid;

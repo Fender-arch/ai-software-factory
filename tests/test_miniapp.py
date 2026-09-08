@@ -18,18 +18,19 @@ def test_miniapp_static_served(client):
     assert "ws-dock" in res.text
     js = client.get("/miniapp/app.js")
     assert js.status_code == 200
+    assert "renderPackageCard" in js.text
     assert "scrollThreadToLatest" in js.text
     assert "scrollIntoView" not in js.text
     assert "asf-workspace" in js.text
     assert "wsRequestId" in js.text
     assert "String(ws.project_id) !== pid" in js.text
     assert "renderProgress" in js.text
-    assert "renderClientEstimate" in js.text
+    assert "renderPackageCard" in js.text
     assert "discovery_progress" in js.text
     assert "Ещё пара уточнений" in js.text
     assert "Сбор требований: ${percent}%" in js.text
     assert "из ${total}" not in js.text
-    assert "20260906-matrix" in res.text
+    assert "20260908-pkg" in res.text
     assert "logo-v2.png" in res.text
     assert "logo-full-on-dark.svg" not in res.text
     assert "mascot-bust.png" in res.text
@@ -74,11 +75,10 @@ def test_miniapp_static_served(client):
     assert "sortThreadMessages" in js.text
     assert "setMicTracksEnabled" in js.text
     assert "experience.js" in res.text
-    assert "ce-tz-comment" in res.text
-    assert "Отклонить" in res.text
-    assert "Подтверждаю" in res.text
-    assert "Получить смету в чат бота" in res.text
-    assert "data-ce-fmt" in res.text
+    assert "estimate-reject-modal" in res.text
+    assert "Отклонить ТЗ" in js.text
+    assert "Отклонить смету" in js.text
+    assert "Подтверждаю" in js.text
     assert "ws-progress" in res.text
     assert "foundry-field" in res.text
     assert "matrix-rain" in res.text
@@ -90,7 +90,7 @@ def test_miniapp_static_served(client):
     assert "@UNI4ITBot" in res.text
     assert "8 903 151 7888" in res.text
     assert "Дмитрий Нижебецкий" in res.text
-    assert "tz-download-row" in res.text
+    assert "tz-download-row" in js.text
     assert 'id="tz-download"' not in res.text
     assert "Поехали" in res.text
     assert "Варианты ответа" in res.text
@@ -99,6 +99,7 @@ def test_miniapp_static_served(client):
     css = client.get("/miniapp/styles.css")
     assert css.status_code == 200
     assert ".bubble.tz-card" in css.text
+    assert ".bubble.package-card" in css.text
     assert "position: sticky" not in css.text
     assert ".ws-progress-track" in css.text
     assert "#2ecc71" in css.text

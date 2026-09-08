@@ -740,6 +740,45 @@ h1 { font-size: var(--fs-lg); margin: var(--space-2) 0 var(--space-3); }
   border-bottom-left-radius: 6px;
   box-shadow: inset 2px 0 0 0 var(--brand-cyan);
 }
+.bubble.package-card {
+  max-width: 100%;
+  width: 100%;
+  align-self: stretch;
+  white-space: normal;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-color: rgba(0, 210, 255, 0.35);
+}
+.package-letter {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.45;
+}
+.package-price {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+.package-hours,
+.package-disclaimer {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+.package-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: 4px;
+}
+.package-actions .btn {
+  flex: 1 1 140px;
+  min-height: 44px;
+}
 .bubble.tz-card {
   max-width: 100%;
   display: flex;

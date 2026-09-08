@@ -101,6 +101,8 @@
     allowMultiple: false,
     sending: false,
     exportRetry: null,
+    clientEstimate: null,
+    projectStatus: "",
     recorderExt: "webm",
     recordingStartedAt: 0,
     welcomePending: false,
@@ -420,7 +422,8 @@
     const box = $("composer-text");
     if (box) box.value = "";
     state.tzAvailable = false;
-    renderClientEstimate(null, "");
+    state.clientEstimate = null;
+    state.projectStatus = "";
   }
 
   document.querySelectorAll("[data-back]").forEach((btn) => {
@@ -585,6 +588,8 @@
       );
       renderProgress(ws.discovery_progress, mode !== "feedback");
       state.tzAvailable = Boolean(ws.tz_available);
+      state.clientEstimate = ws.client_estimate || null;
+      state.projectStatus = ws.status || "";
       applyWelcomeGate(ws.messages || [], mode);
       renderChoices(
         mode === "feedback" ? [] : ws.discovery_choices || [],
@@ -597,12 +602,11 @@
           : (ws.discovery_choices || []).length
             ? "Ответьте текстом или откройте варианты…"
           : ws.status === "WAITING_CLIENT_ESTIMATE"
-            ? "Смета ниже — подтвердите или напишите, что обсудить…"
-          : ws.status === "WAITING_OWNER" || ws.status === "READY"
+            ? "Можно подтвердить пакет в сообщении или написать, что поправить в ТЗ…"
+            : ws.status === "WAITING_OWNER" || ws.status === "READY"
             ? "Можно добавить уточнение…"
             : "Ответьте текстом или откройте варианты…";
       $("composer-text").placeholder = placeholder;
-      renderClientEstimate(ws.client_estimate, ws.status);
       if (ws.tz_available) xp("draft_ready");
       else if (afterEvent) xp(afterEvent);
       else xp("idle");
@@ -734,6 +738,7 @@
     if (!m) return false;
     if (m.meta_kind === "tz_download" || m.meta_kind === "tz_updated") return true;
     if (m.meta_kind === "tz_package" || m.meta_kind === "estimate_package") return true;
+    if (m.meta_kind === "package_caption") return false;
     const t = String(m.text || "").toLowerCase();
     if (!t.includes("черновик")) return false;
     return (
@@ -793,13 +798,115 @@
     thread.appendChild(div);
   }
 
+  function packageCanDecide(est, projectStatus) {
+    if (!est || !est.package_visible) return false;
+    if (est.quote_status === "customer_confirmed" || est.status === "confirmed") return false;
+    const pending =
+      est.quote_status === "sent" ||
+      est.quote_status === "customer_rejected" ||
+      est.status === "pending" ||
+      est.status === "discuss_requested";
+    return (
+      pending &&
+      (projectStatus === "WAITING_CLIENT_ESTIMATE" || projectStatus === "WAITING_CUSTOMER")
+    );
+  }
+
+  function renderPackageCard(thread, m, latest) {
+    const est = state.clientEstimate;
+    const div = document.createElement("div");
+    div.className = "bubble assistant package-card";
+    if (latest) div.classList.add("latest");
+    const text = document.createElement("p");
+    text.className = "package-letter";
+    text.textContent = m.text || "Готовы ТЗ и смета по проекту.";
+    div.appendChild(text);
+    if (est && est.formatted_cost) {
+      const price = document.createElement("p");
+      price.className = "package-price";
+      price.textContent = est.formatted_cost;
+      div.appendChild(price);
+    }
+    if (est && est.formatted_hours) {
+      const hours = document.createElement("p");
+      hours.className = "package-hours";
+      hours.textContent = `~${est.formatted_hours} ч`;
+      div.appendChild(hours);
+    }
+    if (est && est.disclaimer) {
+      const disc = document.createElement("p");
+      disc.className = "package-disclaimer";
+      disc.textContent = est.disclaimer;
+      div.appendChild(disc);
+    }
+    const files = document.createElement("div");
+    files.className = "tz-download-row";
+    [
+      ["tz", "md", "ТЗ · MD"],
+      ["tz", "docx", "ТЗ · Word"],
+      ["tz", "pdf", "ТЗ · PDF"],
+      ["estimate", "pdf", "Смета · PDF"],
+    ].forEach(([kind, fmt, label]) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = fmt === "pdf" && kind === "tz" ? "btn primary" : "btn";
+      btn.setAttribute(kind === "tz" ? "data-tz-fmt" : "data-ce-fmt", fmt);
+      btn.textContent = label;
+      files.appendChild(btn);
+    });
+    div.appendChild(files);
+    if (latest && packageCanDecide(est, state.projectStatus)) {
+      const actions = document.createElement("div");
+      actions.className = "package-actions";
+      const ok = document.createElement("button");
+      ok.type = "button";
+      ok.className = "btn primary";
+      ok.textContent = "Подтверждаю";
+      ok.addEventListener("click", () => decideClientEstimate("confirm"));
+      const tzNo = document.createElement("button");
+      tzNo.type = "button";
+      tzNo.className = "btn";
+      tzNo.textContent = "Отклонить ТЗ";
+      tzNo.addEventListener("click", () => rejectTzViaChat());
+      const estNo = document.createElement("button");
+      estNo.type = "button";
+      estNo.className = "btn";
+      estNo.textContent = "Отклонить смету";
+      estNo.addEventListener("click", () => openEstimateRejectModal());
+      actions.append(ok, tzNo, estNo);
+      div.appendChild(actions);
+    } else if (est && (est.status === "confirmed" || est.quote_status === "customer_confirmed")) {
+      const st = document.createElement("p");
+      st.className = "muted";
+      st.textContent = "Пакет подтверждён.";
+      div.appendChild(st);
+    } else if (est && est.quote_status === "customer_rejected") {
+      const st = document.createElement("p");
+      st.className = "muted";
+      st.textContent = "Пакет отклонён. Можно написать уточнение в чат.";
+      div.appendChild(st);
+    }
+    thread.appendChild(div);
+  }
+
   function renderThread(messages) {
     const thread = $("thread");
     thread.innerHTML = "";
     const rows = visibleThreadMessages(messages);
+    const captions = rows.filter((m) => m.meta_kind === "package_caption");
+    const latestCaptionId = captions.length ? captions[captions.length - 1].id : null;
+    const hidePackageFiles = captions.length > 0;
     let cards = 0;
     rows.forEach((m, idx) => {
       const latest = idx === rows.length - 1;
+      if (m.meta_kind === "package_caption") {
+        cards += 1;
+        renderPackageCard(thread, m, String(m.id) === String(latestCaptionId));
+        return;
+      }
+      if (hidePackageFiles && (m.meta_kind === "tz_package" || m.meta_kind === "estimate_package")) {
+        return;
+      }
       if (state.tzAvailable && isTzDownloadMessage(m)) {
         cards += 1;
         renderTzCard(thread, m, latest);
@@ -894,75 +1001,9 @@
     }
   }
 
-  function renderClientEstimate(est, projectStatus) {
-    const card = $("client-estimate");
-    if (!card) return;
-    if (!est || !est.package_visible) {
-      card.classList.add("hidden");
-      return;
-    }
-    card.classList.remove("hidden");
-    const cost = $("ce-cost");
-    const hours = $("ce-hours");
-    const disc = $("ce-disclaimer");
-    const reportBody = $("ce-report-body");
-    const actions = $("ce-actions");
-    const statusEl = $("ce-status");
-    if (cost) {
-      cost.textContent = est.formatted_cost
-        ? `${est.formatted_cost}`
-        : "—";
-    }
-    if (hours) {
-      const range =
-        est.formatted_cost_low && est.formatted_cost_high
-          ? `Вилка ${est.formatted_cost_low} – ${est.formatted_cost_high}`
-          : "";
-      hours.textContent = [
-        est.formatted_hours ? `~${est.formatted_hours} ч` : "",
-        est.formatted_rate_mid ? `середина ${est.formatted_rate_mid}` : "",
-        range,
-      ]
-        .filter(Boolean)
-        .join(" · ");
-    }
-    if (disc) disc.textContent = est.disclaimer || "";
-    if (reportBody) {
-      const report = est.report || {};
-      reportBody.textContent = report.body || "";
-    }
-    const pending =
-      est.quote_status === "sent" ||
-      est.quote_status === "customer_rejected" ||
-      est.status === "pending" ||
-      est.status === "discuss_requested";
-    const canDecide =
-      pending &&
-      est.quote_status !== "customer_confirmed" &&
-      est.status !== "confirmed" &&
-      (projectStatus === "WAITING_CLIENT_ESTIMATE" ||
-        projectStatus === "WAITING_CUSTOMER");
-    if (actions) actions.classList.toggle("hidden", !canDecide);
-    if (statusEl) {
-      if (est.status === "confirmed") {
-        statusEl.textContent = "Смета подтверждена. Можно ждать сборку MVP.";
-      } else if (est.status === "discuss_requested") {
-        statusEl.textContent = "Запрос на обсуждение отправлен разработчику.";
-      } else if (projectStatus === "WAITING_CLIENT_ESTIMATE") {
-        statusEl.textContent = "Подтвердите ориентир — и только потом начнём MVP.";
-      } else {
-        statusEl.textContent = "";
-      }
-    }
-  }
-
-  async function decideClientEstimate(action) {
+  async function decideClientEstimate(action, extra) {
     if (!state.projectId || !requireUser() || state.sending) return;
     state.sending = true;
-    const confirmBtn = $("ce-confirm");
-    const discussBtn = $("ce-discuss");
-    if (confirmBtn) confirmBtn.disabled = true;
-    if (discussBtn) discussBtn.disabled = true;
     try {
       const qs = new URLSearchParams({ customer_telegram_id: userId });
       await api(`/projects/${state.projectId}/client-estimate/${action}?${qs}`, {
@@ -970,8 +1011,9 @@
         body: JSON.stringify({
           action,
           customer_telegram_id: userId,
-          tz_comment: ($("ce-tz-comment") && $("ce-tz-comment").value) || "",
-          estimate_comment: ($("ce-est-comment") && $("ce-est-comment").value) || "",
+          tz_comment: (extra && extra.tz_comment) || "",
+          estimate_comment: (extra && extra.estimate_comment) || "",
+          reject_kind: (extra && extra.reject_kind) || "",
         }),
       });
       haptic("medium");
@@ -980,18 +1022,50 @@
       alert(err.message || String(err));
     } finally {
       state.sending = false;
-      if (confirmBtn) confirmBtn.disabled = false;
-      if (discussBtn) discussBtn.disabled = false;
     }
   }
 
-  const ceConfirm = $("ce-confirm");
-  const ceDiscuss = $("ce-discuss");
-  if (ceConfirm) {
-    ceConfirm.addEventListener("click", () => decideClientEstimate("confirm"));
+  async function rejectTzViaChat() {
+    await decideClientEstimate("discuss", { reject_kind: "tz" });
+    showSendHint("Напишите в чат, что поправить в ТЗ — это уйдёт как обычное сообщение.");
+    const box = $("composer-text");
+    if (box) box.focus();
   }
-  if (ceDiscuss) {
-    ceDiscuss.addEventListener("click", () => decideClientEstimate("discuss"));
+
+  function openEstimateRejectModal() {
+    const modal = $("estimate-reject-modal");
+    if (modal) modal.classList.remove("hidden");
+    const text = $("est-reject-text");
+    if (text) text.focus();
+  }
+
+  function closeEstimateRejectModal() {
+    const modal = $("estimate-reject-modal");
+    if (modal) modal.classList.add("hidden");
+  }
+
+  const estRejectCancel = $("est-reject-cancel");
+  const estRejectSend = $("est-reject-send");
+  const estRejectModal = $("estimate-reject-modal");
+  if (estRejectCancel) estRejectCancel.addEventListener("click", closeEstimateRejectModal);
+  if (estRejectModal) {
+    estRejectModal.addEventListener("click", (ev) => {
+      if (ev.target === estRejectModal) closeEstimateRejectModal();
+    });
+  }
+  if (estRejectSend) {
+    estRejectSend.addEventListener("click", async () => {
+      const text = (($("est-reject-text") && $("est-reject-text").value) || "").trim();
+      if (!text) {
+        alert("Напишите, что не так со сметой.");
+        return;
+      }
+      closeEstimateRejectModal();
+      await decideClientEstimate("discuss", {
+        reject_kind: "estimate",
+        estimate_comment: text,
+      });
+    });
   }
 
   function openCustomerBotChat(username) {
@@ -1079,37 +1153,20 @@
   const threadEl = $("thread");
   if (threadEl) {
     threadEl.addEventListener("click", async (ev) => {
-      const btn = ev.target && ev.target.closest ? ev.target.closest("[data-tz-fmt]") : null;
+      const tzBtn = ev.target && ev.target.closest ? ev.target.closest("[data-tz-fmt]") : null;
+      const ceBtn = ev.target && ev.target.closest ? ev.target.closest("[data-ce-fmt]") : null;
+      const btn = tzBtn || ceBtn;
       if (!btn || !threadEl.contains(btn)) return;
+      const kind = tzBtn ? "tz" : "estimate";
+      const fmt = btn.getAttribute(tzBtn ? "data-tz-fmt" : "data-ce-fmt") || "md";
       try {
-        await downloadExport("tz", btn.getAttribute("data-tz-fmt") || "md");
+        await downloadExport(kind, fmt);
       } catch (err) {
         xp("error");
-        showExportFallback(
-          err.message || String(err),
-          "tz",
-          btn.getAttribute("data-tz-fmt") || "md",
-          ""
-        );
+        showExportFallback(err.message || String(err), kind, fmt, "");
       }
     });
   }
-
-  document.querySelectorAll("[data-ce-fmt]").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      try {
-        await downloadExport("estimate", btn.getAttribute("data-ce-fmt") || "md");
-      } catch (err) {
-        xp("error");
-        showExportFallback(
-          err.message || String(err),
-          "estimate",
-          btn.getAttribute("data-ce-fmt") || "md",
-          ""
-        );
-      }
-    });
-  });
 
   function renderChoices(choices, paused, allowMultiple) {
     const box = $("choice-chips");

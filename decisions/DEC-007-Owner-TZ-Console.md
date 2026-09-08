@@ -4,7 +4,7 @@
 |-------|-------|
 | Status | Accepted |
 | Date | 2026-08-16 |
-| Updated | 2026-09-07 |
+| Updated | 2026-09-08 |
 
 ## Context
 
@@ -22,6 +22,7 @@ Ship a **narrow owner/analyst web console** (not a customer portal, not inside t
 - Append-only `entity_history` audit log — **not** event sourcing / event bus
 - HITL approve of the draft TZ is available on the owner bot **and** from the console (`POST /console/api/projects/{id}/hitl`)
 - Commercial actions live in the console (not a customer portal): rate/discount on the client quote, send TZ+estimate package, human reply, archive. Discovery `ProjectStatus` remains the FSM; the sheet shows a **derived** spine (unique gates left-to-right, versioned agreement/MVP rows stacked in columns)
+- Owner may **view TZ snapshots** by clicking spine gates and **force** previous/next (or any `ProjectStatus`) for recovery and testing. Snapshots live on `Project.payload.commercial.tz_snapshots`
 
 ## Consequences
 

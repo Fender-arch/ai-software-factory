@@ -239,9 +239,11 @@ def test_console_create_and_edit_requirement_keeps_history(client):
     assert "форму заявки" in edited.json()["description"]
     updates = [h for h in edited.json()["history"] if h["action"] == "updated"]
     assert updates
-    assert "Заказать" in (updates[-1].get("payload") or {}).get("fields", {}).get(
-        "description", {}
-    ).get("from", "")
+    old_text = (
+        (updates[-1].get("payload") or {}).get("fields", {}).get("description", {}).get("from", "")
+    )
+    assert "Нужна кнопка" in old_text
+    assert "форму заявки" not in old_text
 
     moved = client.patch(
         f"/console/api/projects/{pid}/requirements/{req_id}",
@@ -428,7 +430,8 @@ def test_console_patch_project_status_override_and_validation(client):
     assert "unsupported" in (bad.json().get("detail") or "").lower()
 
     blocked = client.patch(f"/console/api/projects/{pid}", json={"status": "READY"})
-    assert blocked.status_code == 400
+    assert blocked.status_code == 200
+    assert blocked.json()["status"] == "READY"
 
     archived = client.patch(f"/console/api/projects/{pid}", json={"status": "ARCHIVED"})
     assert archived.status_code == 200
@@ -561,6 +564,24 @@ def test_console_quote_rate_discount_export_and_package_send(client, monkeypatch
         f"/console/api/projects/{pid}/hitl", json={"action": "approve"}
     )
     assert hitl.status_code == 200
+    marker = "Ревью-требование UNIQUE-TZ-REVIEW-8841"
+    added = client.post(
+        f"/console/api/projects/{pid}/requirements",
+        json={
+            "topic_id": "must_features",
+            "description": marker,
+            "priority": "must",
+        },
+    )
+    assert added.status_code == 200
+    tz_live = client.get(f"/console/api/projects/{pid}/tz-export?format=md")
+    assert tz_live.status_code == 200
+    assert marker in tz_live.content.decode("utf-8")
+    preview_gate = client.get(
+        f"/console/api/projects/{pid}/tz-preview", params={"gate": "tz_approved"}
+    )
+    assert preview_gate.status_code == 200
+    assert preview_gate.json()["gate"] == "tz_approved"
     graph = client.get(f"/console/api/projects/{pid}/tz-graph").json()
     assert graph["project"]["pipeline"]["gate"] == "tz_approved"
     assert graph["project"]["customer"]["line"]
@@ -582,6 +603,7 @@ def test_console_quote_rate_discount_export_and_package_send(client, monkeypatch
     assert md.status_code == 200
     body = md.content.decode("utf-8")
     assert "К согласованию" in body
+    assert "вилка" not in body.lower()
     assert "4000" in body or "4 000" in body or "4\u00a0000" in body
 
     preview = client.get(f"/console/api/projects/{pid}/package-preview").json()
@@ -629,4 +651,27 @@ def test_console_quote_rate_discount_export_and_package_send(client, monkeypatch
     assert ingest.status_code == 201
     # negotiation: no interviewer recap required
     assert ingest.json().get("discovery_reply") in (None, "")
+
+
+def test_console_manual_pipeline_and_tz_preview(client):
+    pid, _uid = _seed_project(client, name="Пайплайн вручную")
+    nxt = client.post(
+        f"/console/api/projects/{pid}/pipeline", json={"direction": "next"}
+    )
+    assert nxt.status_code == 200
+    assert nxt.json()["gate"] in {"tz_review", "new_project", "tz_approved"}
+    jump = client.post(
+        f"/console/api/projects/{pid}/pipeline", json={"gate": "tz_review"}
+    )
+    assert jump.status_code == 200
+    assert jump.json()["gate"] == "tz_review"
+    assert jump.json()["status"] == "WAITING_OWNER"
+    prev = client.get(
+        f"/console/api/projects/{pid}/tz-preview", params={"gate": "new_project"}
+    )
+    assert prev.status_code == 200
+    body = prev.json()
+    assert body["gate"] == "new_project"
+    assert "markdown" in body
+    assert "diff" in body
 

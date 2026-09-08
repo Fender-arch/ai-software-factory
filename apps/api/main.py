@@ -648,6 +648,7 @@ def api_confirm_client_estimate(
         note=payload.note,
         tz_comment=payload.tz_comment,
         estimate_comment=payload.estimate_comment,
+        reject_kind=payload.reject_kind,
     )
 
 
@@ -670,6 +671,7 @@ def api_discuss_client_estimate(
         note=payload.note,
         tz_comment=payload.tz_comment,
         estimate_comment=payload.estimate_comment,
+        reject_kind=payload.reject_kind,
     )
 
 
@@ -682,6 +684,7 @@ def _client_estimate_decision(
     note: str | None,
     tz_comment: str | None = None,
     estimate_comment: str | None = None,
+    reject_kind: str | None = None,
 ) -> ClientEstimateDecisionResponse:
     try:
         result = submit_client_estimate_decision(
@@ -692,6 +695,7 @@ def _client_estimate_decision(
             note=note,
             tz_comment=tz_comment,
             estimate_comment=estimate_comment,
+            reject_kind=reject_kind,
         )
     except ValueError as exc:
         if str(exc) == "project not found":

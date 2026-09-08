@@ -139,6 +139,9 @@ def _approve(
         )
 
     attach_client_estimate_to_draft(kg, project, draft)
+    from core.commercial_pipeline import snapshot_tz_at_gate
+
+    snapshot_tz_at_gate(db, kg, project, gate="tz_review")
     project.status = ProjectStatus.WAITING_CLIENT_ESTIMATE
     _sync_project_entity(
         kg,
@@ -146,6 +149,7 @@ def _approve(
         discovery_stage=DiscoveryStage.READY_FOR_OWNER.value,
         hitl=HitlAction.APPROVE.value,
     )
+    snapshot_tz_at_gate(db, kg, project, gate="tz_approved")
     db.flush()
     return HitlResult(
         project_id=project.id,

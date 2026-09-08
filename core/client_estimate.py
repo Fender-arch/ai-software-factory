@@ -780,6 +780,7 @@ def compose_client_estimate_markdown(
     report: ClientEstimateReport | None = None,
 ) -> str:
     """Plain-language client estimate document (DEC-012), same MD pipeline as TZ."""
+    _ = report
     product = PRODUCT_TYPE_RU.get(
         estimate.product_type or project.product_type or "",
         estimate.product_type or project.product_type or "не указан",
@@ -801,12 +802,6 @@ def compose_client_estimate_markdown(
         f"- Скидка: {float(estimate.discount_percent):g}%",
         f"- Тип продукта: {product}",
         f"- Статус сметы: {quote_label or status}",
-        f"- Метод: `{estimate.method}`",
-        "",
-        "Ориентир рынка (AI, не цена письма): "
-        f"{format_money(int(estimate.ai_cost or estimate.cost), estimate.currency)} "
-        f"(вилка {format_money(estimate.cost_low, estimate.currency)} – "
-        f"{format_money(estimate.cost_high, estimate.currency)}).",
         "",
     ]
     if estimate.customer_budget_label:
@@ -817,9 +812,6 @@ def compose_client_estimate_markdown(
                 "",
             ]
         )
-    title = (report.title if report else "") or "Почему столько стоит"
-    body = (report.body if report else "") or ""
-    lines.extend([f"## {title}", "", body or "_Отчёт ещё не готов._", ""])
     items = list(estimate.work_items or [])
     if items:
         lines.extend(["## Состав работ", ""])
@@ -963,6 +955,7 @@ def apply_client_estimate_decision(
     note: str | None = None,
     tz_comment: str | None = None,
     estimate_comment: str | None = None,
+    reject_kind: str | None = None,
 ) -> ClientEstimateDecisionResult:
     """Customer confirm / reject of the TZ+estimate package."""
     from core.commercial_pipeline import mark_unread, set_commercial
@@ -988,8 +981,9 @@ def apply_client_estimate_decision(
         raise ClientEstimateError("client estimate is not ready yet")
     if estimate.status == "confirmed" and action == ClientEstimateAction.CONFIRM:
         raise ClientEstimateError("client estimate is already confirmed")
-    if action == ClientEstimateAction.DISCUSS and not tz_c and not est_c:
-        raise ClientEstimateError("reject requires a comment on TZ or estimate")
+    kind = str(reject_kind or "").strip().lower()
+    if action == ClientEstimateAction.DISCUSS and kind == "estimate" and not est_c:
+        raise ClientEstimateError("reject estimate requires a comment")
 
     payload = dict(draft.payload or {})
     stored = dict(payload.get("client_estimate") or {})

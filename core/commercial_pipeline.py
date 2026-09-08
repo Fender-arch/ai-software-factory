@@ -329,10 +329,21 @@ def derive_pipeline(
                 }
             )
 
+    snaps = commercial.get("tz_snapshots")
+    snap_keys = set(snaps.keys()) if isinstance(snaps, dict) else set()
+
     return {
         "gate": gate,
         "gate_label": SPINE_RU.get(gate, gate),
-        "spine": [{"id": sid, "label": SPINE_RU[sid], "current": sid == gate} for sid in SPINE],
+        "spine": [
+            {
+                "id": sid,
+                "label": SPINE_RU[sid],
+                "current": sid == gate,
+                "has_snapshot": sid in snap_keys,
+            }
+            for sid in SPINE
+        ],
         "agreement_column": agreement_rows,
         "mvp_column": mvp_rows,
         "estimate_column": estimate_rows,
@@ -522,6 +533,7 @@ def send_tz_estimate_package(
             "package_version": version,
         },
     )
+    snapshot_tz_at_gate(db, kg, project, gate="agreement", version=version)
     record_entity_event(
         db,
         project_id=project.id,
@@ -602,3 +614,202 @@ def post_owner_reply(db: Session, project: Project, text: str) -> dict[str, Any]
             chat_id, f"Сообщение по проекту «{project.name}»:\n\n{body}"
         )
     return {"ok": True, "text": body}
+
+
+def requirement_snapshot(kg: KnowledgeRepository, project: Project) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for ent in kg.list_entities(project.id, type_="Requirement"):
+        if ent.status == "archived":
+            continue
+        payload = dict(ent.payload or {})
+        rows.append(
+            {
+                "id": str(ent.id),
+                "description": str(payload.get("description") or ent.name or ""),
+                "status": normalize_requirement_status(ent.status),
+                "topic_id": str(payload.get("topic_id") or ""),
+                "priority": str(payload.get("priority") or ""),
+            }
+        )
+    return rows
+
+
+def snapshot_tz_at_gate(
+    db: Session,
+    kg: KnowledgeRepository,
+    project: Project,
+    *,
+    gate: str | None = None,
+    version: int | None = None,
+) -> str:
+    from core.tz_document import compose_tz_markdown
+
+    pipe = derive_pipeline(db, kg, project)
+    key_gate = gate or str(pipe.get("gate") or "new_project")
+    if key_gate not in SPINE:
+        key_gate = "new_project"
+    snap_key = f"{key_gate}:v{version}" if version else key_gate
+    commercial = commercial_payload(kg, project)
+    snaps = dict(commercial.get("tz_snapshots") or {})
+    snaps[snap_key] = {
+        "at": _now_iso(),
+        "gate": key_gate,
+        "version": version,
+        "project_status": project.status.value,
+        "markdown": compose_tz_markdown(db, project),
+        "requirements": requirement_snapshot(kg, project),
+    }
+    set_commercial(kg, project, {"tz_snapshots": snaps})
+    return snap_key
+
+
+def _requirement_diff(
+    old_rows: list[dict[str, Any]], new_rows: list[dict[str, Any]]
+) -> dict[str, Any]:
+    old_by = {str(r.get("id")): r for r in old_rows}
+    new_by = {str(r.get("id")): r for r in new_rows}
+    added = [r for i, r in new_by.items() if i not in old_by]
+    removed = [r for i, r in old_by.items() if i not in new_by]
+    changed = []
+    for i, now in new_by.items():
+        was = old_by.get(i)
+        if not was:
+            continue
+        if (was.get("description") != now.get("description")) or (
+            was.get("status") != now.get("status")
+        ) or (was.get("priority") != now.get("priority")):
+            changed.append({"id": i, "from": was, "to": now})
+    return {"added": added, "removed": removed, "changed": changed}
+
+
+def tz_preview(
+    db: Session,
+    kg: KnowledgeRepository,
+    project: Project,
+    *,
+    gate: str | None = None,
+) -> dict[str, Any]:
+    from core.tz_document import compose_tz_markdown
+
+    pipe = derive_pipeline(db, kg, project)
+    current = str(pipe.get("gate") or "new_project")
+    target = (gate or current).strip() or current
+    if target not in SPINE:
+        raise ValueError(f"unknown pipeline gate: {target}")
+    live_md = compose_tz_markdown(db, project)
+    live_reqs = requirement_snapshot(kg, project)
+    commercial = commercial_payload(kg, project)
+    snaps = dict(commercial.get("tz_snapshots") or {})
+    stored = snaps.get(target) if isinstance(snaps.get(target), dict) else None
+    is_live = target == current
+    markdown = live_md if is_live else str((stored or {}).get("markdown") or live_md)
+    reqs = live_reqs if is_live else list((stored or {}).get("requirements") or live_reqs)
+    has_snapshot = stored is not None
+    prev_idx = SPINE.index(target) - 1 if target in SPINE else -1
+    prev_gate = SPINE[prev_idx] if prev_idx >= 0 else ""
+    baseline = snaps.get(prev_gate) if prev_gate else None
+    baseline_reqs = list((baseline or {}).get("requirements") or []) if isinstance(baseline, dict) else []
+    compare_from = reqs if not is_live else baseline_reqs
+    compare_to = live_reqs
+    return {
+        "gate": target,
+        "gate_label": SPINE_RU.get(target, target),
+        "current_gate": current,
+        "is_live": is_live,
+        "has_snapshot": has_snapshot,
+        "at": (stored or {}).get("at") if stored else None,
+        "markdown": markdown,
+        "diff": _requirement_diff(compare_from, compare_to),
+        "spine": [
+            {
+                "id": sid,
+                "label": SPINE_RU[sid],
+                "current": sid == current,
+                "viewing": sid == target,
+                "has_snapshot": sid in snaps,
+            }
+            for sid in SPINE
+        ],
+    }
+
+
+def apply_pipeline_gate(
+    db: Session,
+    project: Project,
+    *,
+    gate: str | None = None,
+    direction: str | None = None,
+    actor: str = "console",
+) -> dict[str, Any]:
+    kg = KnowledgeRepository(db)
+    pipe = derive_pipeline(db, kg, project)
+    current = str(pipe.get("gate") or "new_project")
+    target = (gate or "").strip()
+    if direction:
+        idx = SPINE.index(current) if current in SPINE else 0
+        if direction == "next":
+            idx = min(len(SPINE) - 1, idx + 1)
+        elif direction == "prev":
+            idx = max(0, idx - 1)
+        else:
+            raise ValueError("direction must be prev or next")
+        target = SPINE[idx]
+    if target not in SPINE:
+        raise ValueError(f"unknown pipeline gate: {target or '(empty)'}")
+    snapshot_tz_at_gate(db, kg, project, gate=current)
+    _force_gate_state(kg, project, target)
+    snapshot_tz_at_gate(db, kg, project, gate=target)
+    ent = project_entity(kg, project)
+    if ent is not None:
+        from knowledge.history import record_entity_event
+
+        record_entity_event(
+            db,
+            project_id=project.id,
+            entity_id=ent.id,
+            actor=actor,
+            action="status_change",
+            from_status=current,
+            to_status=target,
+            payload={"kind": "pipeline_gate", "manual": True},
+        )
+    db.flush()
+    return {
+        "ok": True,
+        "gate": target,
+        "gate_label": SPINE_RU.get(target, target),
+        "status": project.status.value,
+        "pipeline": derive_pipeline(db, kg, project),
+    }
+
+
+def _force_gate_state(kg: KnowledgeRepository, project: Project, gate: str) -> None:
+    patch: dict[str, Any] = {"mvp_accepted": False, "reopen_discovery": False}
+    if gate == "new_project":
+        project.status = ProjectStatus.INTERVIEW
+        patch["negotiation"] = False
+    elif gate == "tz_review":
+        project.status = ProjectStatus.WAITING_OWNER
+        patch["negotiation"] = False
+    elif gate == "tz_approved":
+        project.status = ProjectStatus.WAITING_CLIENT_ESTIMATE
+        patch["negotiation"] = False
+    elif gate == "agreement":
+        project.status = ProjectStatus.WAITING_CLIENT_ESTIMATE
+        patch["negotiation"] = True
+    elif gate == "mvp":
+        project.status = ProjectStatus.READY
+        patch["negotiation"] = False
+    elif gate == "accepted":
+        project.status = ProjectStatus.READY
+        patch["mvp_accepted"] = True
+        patch["negotiation"] = False
+    elif gate == "archived":
+        project.status = ProjectStatus.ARCHIVED
+        patch["negotiation"] = False
+    set_commercial(kg, project, patch)
+    ent = project_entity(kg, project)
+    if ent is not None:
+        payload = dict(ent.payload or {})
+        payload["status"] = project.status.value
+        kg.update_entity(ent, payload=payload, name=project.name)

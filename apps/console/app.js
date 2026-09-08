@@ -101,6 +101,8 @@
     iconMap: { topics: {}, stages: {}, products: {}, fallback: "circle-dot" },
     files: { files: [], history: [], stages: [], current_stage: "" },
     thread: [],
+    tzPreview: null,
+    pipelineViewGate: "",
     factory: {
       job: null,
       interventions: [],
@@ -763,6 +765,8 @@
     if (fileAdd) fileAdd.onclick = () => addProjectFile();
     const archiveBtn = $("project-archive");
     if (archiveBtn) archiveBtn.onclick = () => archiveProject();
+    const statusForce = $("project-status-save");
+    if (statusForce) statusForce.onclick = () => saveProjectStatus();
     const hitlApprove = $("hitl-approve");
     if (hitlApprove) hitlApprove.onclick = () => consoleHitl("approve");
     const quoteSave = $("quote-save");
@@ -792,6 +796,14 @@
     body.querySelectorAll("[data-iv-resolve]").forEach((btn) => {
       btn.onclick = () => resolveIntervention(btn.getAttribute("data-iv-resolve"));
     });
+    body.querySelectorAll("[data-spine]").forEach((btn) => {
+      btn.onclick = () => viewPipelineGate(btn.getAttribute("data-spine"));
+    });
+    body.querySelectorAll("[data-pipe-dir]").forEach((btn) => {
+      btn.onclick = () => movePipeline(btn.getAttribute("data-pipe-dir"));
+    });
+    const jump = $("pipeline-jump");
+    if (jump) jump.onclick = () => movePipelineGate(state.pipelineViewGate);
   }
 
   function countChips(breakdown, extra = []) {
@@ -804,6 +816,57 @@
       )
     );
     return chips.length ? `<div class="counts">${chips.join("")}</div>` : "";
+  }
+
+  function tzDiffHtml(diff) {
+    if (!diff) return "";
+    const added = diff.added || [];
+    const removed = diff.removed || [];
+    const changed = diff.changed || [];
+    if (!added.length && !removed.length && !changed.length) {
+      return `<p class="hint">С предыдущим снимком требования совпадают.</p>`;
+    }
+    const item = (r, prefix) =>
+      `<li>${prefix}${escapeHtml((r.description || "").slice(0, 180))}</li>`;
+    const ch = changed
+      .map(
+        (c) =>
+          `<li>было: «${escapeHtml((c.from && c.from.description) || "")}» → стало: «${escapeHtml(
+            (c.to && c.to.description) || ""
+          )}»</li>`
+      )
+      .join("");
+    return `<div class="tz-diff">
+      ${added.length ? `<p>Добавлено</p><ul>${added.map((r) => item(r, "+ ")).join("")}</ul>` : ""}
+      ${removed.length ? `<p>Убрано</p><ul>${removed.map((r) => item(r, "− ")).join("")}</ul>` : ""}
+      ${changed.length ? `<p>Изменено</p><ul>${ch}</ul>` : ""}
+    </div>`;
+  }
+
+  function tzPreviewBlock() {
+    const prev = state.tzPreview;
+    if (!prev) {
+      return `<p class="hint">Нажмите шаг пайплайна, чтобы увидеть ТЗ на тот момент.</p>`;
+    }
+    const when = prev.at ? formatDate(prev.at) : "сейчас";
+    const live = prev.is_live ? "текущее ТЗ" : "снимок шага";
+    const missing =
+      !prev.is_live && !prev.has_snapshot
+        ? `<p class="hint">Снимка этого шага ещё нет — показано актуальное ТЗ.</p>`
+        : "";
+    return `
+      <p class="hint">${escapeHtml(prev.gate_label)} · ${live} · ${escapeHtml(when)}</p>
+      ${missing}
+      ${tzDiffHtml(prev.diff)}
+      <pre class="tz-preview">${escapeHtml(prev.markdown || "")}</pre>
+      ${
+        prev.gate && prev.current_gate && prev.gate !== prev.current_gate
+          ? `<button type="button" class="btn primary" id="pipeline-jump">Перевести проект на «${escapeHtml(
+              prev.gate_label
+            )}»</button>`
+          : ""
+      }
+    `;
   }
 
   function rosterHtml(nodes, metaFn) {
@@ -827,15 +890,23 @@
 
   function pipelineHtml(pipe) {
     if (!pipe) return "";
+    const viewing = state.pipelineViewGate || (pipe.gate || "");
     const spine = (pipe.spine || [])
-      .map(
-        (s) =>
-          `<div class="spine-cell${s.current ? " current" : ""}"><span>${escapeHtml(
-            s.label
-          )}</span></div>`
-      )
+      .map((s) => {
+        const cls = [
+          "spine-cell",
+          s.current ? "current" : "",
+          s.id === viewing ? "viewing" : "",
+          s.has_snapshot ? "has-snap" : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
+        return `<button type="button" class="${cls}" data-spine="${escapeHtml(
+          s.id
+        )}" title="Показать ТЗ на этом шаге">${escapeHtml(s.label)}</button>`;
+      })
       .join("");
-    const col = (rows, currentKind) => {
+    const col = (rows) => {
       if (!rows || !rows.length) return `<p class="hint">Пока нет версий</p>`;
       return `<ol class="version-col">${rows
         .map((r, i) => {
@@ -852,14 +923,18 @@
     };
     return `
       <div class="pipeline-spine" aria-label="Пайплайн">${spine}</div>
+      <div class="pipeline-nav">
+        <button type="button" class="btn" data-pipe-dir="prev">← Предыдущий шаг</button>
+        <button type="button" class="btn" data-pipe-dir="next">Следующий шаг →</button>
+      </div>
       <div class="pipeline-cols">
         <div>
           <div class="col-kicker">Согласование</div>
-          ${col(pipe.agreement_column, pipe.current_agreement_kind)}
+          ${col(pipe.agreement_column)}
         </div>
         <div>
           <div class="col-kicker">MVP</div>
-          ${col(pipe.mvp_column, pipe.current_mvp_kind)}
+          ${col(pipe.mvp_column)}
         </div>
       </div>
     `;
@@ -1156,6 +1231,10 @@
               PROJECT_STATUS_RU[info.status] || info.status || "—"
             )}</div>
           </div>
+          <div class="form-row">
+            <select id="project-status-select">${projectStatusOptions(info.status)}</select>
+            <button type="button" class="btn" id="project-status-save">Перевести статус вручную</button>
+          </div>
           <button type="button" class="btn" id="project-archive">В архив</button>
           `
         )}
@@ -1172,6 +1251,7 @@
             <button type="button" class="btn" data-tz-export="docx">Word</button>
             <button type="button" class="btn primary" data-tz-export="pdf">PDF</button>
           </div>
+          ${tzPreviewBlock()}
           `
         )}
         ${sectionBlock(
@@ -1456,12 +1536,14 @@
         }
         if (h.action === "updated") {
           const fields = (h.payload && h.payload.fields) || {};
-          const bits = [];
           if (fields.description) {
-            bits.push(
-              `текст: «${fields.description.from || ""}» → «${fields.description.to || ""}»`
-            );
+            return `<li class="hist-edit">${escapeHtml(when)} · ${escapeHtml(
+              actor
+            )} · правка текста
+              <div class="hist-old">было: ${escapeHtml(fields.description.from || "")}</div>
+            </li>`;
           }
+          const bits = [];
           if (fields.topic_id) {
             bits.push(`раздел: ${fields.topic_id.from || "—"} → ${fields.topic_id.to || "—"}`);
           }
@@ -1603,6 +1685,7 @@
         }),
       });
       await loadGraph(pid, { keepView: true });
+      await loadRequirement(id);
     } catch (err) {
       showError(err.message);
     }
@@ -1662,6 +1745,75 @@
       const selected = key === current ? " selected" : "";
       return `<option value="${key}"${selected}>${label}</option>`;
     }).join("");
+  }
+
+  async function viewPipelineGate(gate) {
+    const pid = $("project-select").value;
+    if (!pid || !gate) return;
+    showError("");
+    try {
+      const qs = new URLSearchParams({ gate });
+      state.tzPreview = await api(`/console/api/projects/${pid}/tz-preview?${qs}`);
+      state.pipelineViewGate = gate;
+      if (state.selectedId) await inspectNode(state.selectedId);
+    } catch (err) {
+      showError(err.message || String(err));
+    }
+  }
+
+  async function movePipeline(direction) {
+    const pid = $("project-select").value;
+    if (!pid) return;
+    showError("");
+    try {
+      await api(`/console/api/projects/${pid}/pipeline`, {
+        method: "POST",
+        body: JSON.stringify({ direction }),
+      });
+      const pipe = ((state.graph && state.graph.project) || {}).pipeline || {};
+      state.pipelineViewGate = "";
+      await loadGraph(pid, { keepView: true });
+      if (state.selectedId) await inspectNode(state.selectedId);
+      const nextGate = (((state.graph && state.graph.project) || {}).pipeline || {}).gate || pipe.gate;
+      if (nextGate) await viewPipelineGate(nextGate);
+    } catch (err) {
+      showError(err.message || String(err));
+    }
+  }
+
+  async function movePipelineGate(gate) {
+    const pid = $("project-select").value;
+    if (!pid || !gate) return;
+    showError("");
+    try {
+      await api(`/console/api/projects/${pid}/pipeline`, {
+        method: "POST",
+        body: JSON.stringify({ gate }),
+      });
+      state.pipelineViewGate = gate;
+      await loadGraph(pid, { keepView: true });
+      await viewPipelineGate(gate);
+    } catch (err) {
+      showError(err.message || String(err));
+    }
+  }
+
+  async function saveProjectStatus() {
+    const pid = $("project-select").value;
+    const sel = $("project-status-select");
+    if (!pid || !sel) return;
+    showError("");
+    try {
+      await api(`/console/api/projects/${pid}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: sel.value, reason: "console manual" }),
+      });
+      await loadProjects();
+      await loadGraph(pid, { keepView: true });
+      if (state.selectedId) await inspectNode(state.selectedId);
+    } catch (err) {
+      showError(err.message || String(err));
+    }
   }
 
   async function archiveProject() {

@@ -430,6 +430,32 @@ def export_markdown_file(
     raise TzExportError(f"unsupported format: {fmt}")
 
 
+def refresh_draft_tz_artifact(db: Session, project: Project) -> None:
+    """Rewrite the latest draft_tz Artifact from the live KG (review edits included)."""
+    from discovery.interview import _refresh_latest_draft_tz
+    from discovery.literacy import ITLiteracy
+    from discovery.tz_outline import plan_from_state
+
+    kg = KnowledgeRepository(db)
+    drafts = [
+        e
+        for e in kg.list_entities(project.id, type_="Artifact")
+        if (e.payload or {}).get("kind") == "draft_tz" and e.status != "archived"
+    ]
+    if not drafts:
+        return
+    ents = kg.list_entities(project.id, type_="Project")
+    state = dict(ents[0].payload or {}) if ents else {}
+    raw = str(state.get("it_literacy") or "medium").lower()
+    try:
+        literacy = ITLiteracy(raw)
+    except ValueError:
+        literacy = ITLiteracy.MEDIUM
+    _refresh_latest_draft_tz(
+        kg, project, literacy=literacy, plan=plan_from_state(state)
+    )
+
+
 def export_tz_file(
     db: Session, project: Project, fmt: TzExportFormat
 ) -> tuple[bytes, str, str]:

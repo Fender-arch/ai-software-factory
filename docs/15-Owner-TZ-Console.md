@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Status | Accepted |
-| Version | 0.14 |
-| Updated | 2026-09-07 |
+| Version | 0.15 |
+| Updated | 2026-09-08 |
 | Owner | ASF Core |
 
 ## Purpose
@@ -44,7 +44,7 @@ Section nodes use a vendored [Lucide](https://lucide.dev/) (ISC) pictogram set i
 
 The project sheet has **Export full TZ**: Markdown, Word (`docx`), PDF — generated live from the KG (`GET /console/api/projects/{id}/tz-export?format=md|docx|pdf`). The client document is `core/tz_document.compose_tz_markdown`: title **Техническое задание** + project name, meta (project + customer contacts + studio/owner contacts), a linked table of contents, numbered sections, and visible requirement codes `ТЗ-N.M`. No Appendix and no “Draft TZ” heading. Owner/studio lines come from `STUDIO_NAME` / `OWNER_CONTACT_*` or a per-project KG hook `Project.payload.owner_contacts` (`{studio, name, email, phone, telegram, note}`). PDF/DOCX reuse the same Markdown (TOC links become plain numbered lines; PDF headings are added to the outline when the exporter supports it).
 
-Clicking the **project hub** opens a sectioned sheet: **Общее** (name + customer line from stakeholders, timeline/budget from KG, derived pipeline), **ТЗ**, **Смета**, **MVP**, **Требования**, **Замечания**. The pipeline spine is seven unique gates left-to-right (`new_project` → `tz_review` → `tz_approved` → `agreement` → `mvp` → `accepted` → `archived`). Versioned events stack **in columns** under Согласование and MVP so the workflow does not grow sideways. Discovery `ProjectStatus` stays the FSM; the spine is derived (`core/commercial_pipeline.py`). Console `PATCH` project status may **archive** only.
+Clicking the **project hub** opens a sectioned sheet: **Общее** (name + customer line from stakeholders, timeline/budget from KG, derived pipeline), **ТЗ**, **Смета**, **MVP**, **Требования**, **Замечания**. The pipeline spine is seven unique gates left-to-right (`new_project` → `tz_review` → `tz_approved` → `agreement` → `mvp` → `accepted` → `archived`). Versioned events stack **in columns** under Согласование and MVP so the workflow does not grow sideways. Discovery `ProjectStatus` stays the FSM; the spine is derived (`core/commercial_pipeline.py`). Clicking a spine cell loads a **TZ snapshot** for that gate (`GET .../tz-preview`) and a requirement diff vs current. Owner can force previous/next or jump (`POST .../pipeline`) and may `PATCH` any `ProjectStatus` (testing/recovery). Snapshots are JSONB on `Project.payload.commercial.tz_snapshots`.
 
 The sheet lists **two estimates**: studio heuristic (`payload.estimate`, not the customer price) and, after HITL approve, the **client quote** (`payload.client_estimate`). Owner sets hourly rate and discount %; the sent price is `hours × rate × (1 − discount%)`. Export (`GET .../estimate-export`) uses the stored quote only (no live preview-as-file). **Утвердить ТЗ** calls the same HITL service. **Отправить ТЗ и смету** sends two Telegram documents plus thread cards (`POST .../send-tz-estimate`); both files must succeed. Owner **human reply** (`POST .../replies`) skips Discovery. Unread from the customer is a dot on the project list and the remarks block (`GET /console/api/projects` includes `unread_from_customer`). Requirement chips show the legend snapshot plus a **delta since last package send**.
 
@@ -69,7 +69,7 @@ The same sheet lists **project files** (customer Mini App attachments and consol
 
 ## Requirement panel
 
-Shows: id, description, created date, author (`payload.author_role` / `author_id`), structural parent, links, status, reject/conflict reason, change history.
+Shows: id, **current** description in the editor, created date, author (`payload.author_role` / `author_id`), structural parent, links, status, reject/conflict reason, change history. Text edits store the **previous full text** in `entity_history` (`payload.fields.description.from`); the sheet shows that old wording under История and the new wording in the main textarea.
 
 Mutations: create a requirement (on a topic/stage sheet); edit text, topic and priority (logged as `updated`); change status; add/remove `depends_on` and `conflicts_with`. Not in v1: HITL approve, LLM auto-detect conflicts.
 
@@ -77,4 +77,4 @@ Adding `conflicts_with` sets both ends to `conflict` unless `rejected` / `supers
 
 ## History
 
-Table `entity_history` is an append-only audit log (`created`, `updated`, `deleted`, `status_change`, `relation_add`, `relation_remove`). It is **not** event sourcing. Text edits store before/after snippets in `payload.fields`. File add/remove store filename and stage in `payload`.
+Table `entity_history` is an append-only audit log (`created`, `updated`, `deleted`, `status_change`, `relation_add`, `relation_remove`). It is **not** event sourcing. Text edits store before/after in `payload.fields` (full previous description, not a truncated snippet). File add/remove store filename and stage in `payload`.

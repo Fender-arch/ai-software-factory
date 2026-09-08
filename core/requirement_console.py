@@ -212,7 +212,7 @@ def update_requirement(
             raise ConsoleError("description is required")
         previous = str(payload.get("description") or entity.name or "")
         if text != previous:
-            fields["description"] = {"from": _snippet(previous), "to": _snippet(text)}
+            fields["description"] = {"from": previous, "to": text}
             payload["description"] = text
             entity_name = _requirement_name(
                 str(payload.get("topic_id") or topic_id or "req"), text
@@ -501,7 +501,7 @@ def set_console_project_status(
     reason: str | None = None,
     actor: str = "console",
 ) -> dict[str, Any]:
-    """Owner override of ``projects.status``. Allows any known ProjectStatus."""
+    """Owner override of ``projects.status``. Allows any known ProjectStatus (testing + recovery)."""
     target = (status or "").strip()
     try:
         new_status = ProjectStatus(target)
@@ -512,10 +512,11 @@ def set_console_project_status(
     if previous == new_status:
         return serialize_project(project, db)
 
-    if new_status != ProjectStatus.ARCHIVED:
-        raise ConsoleError("console may only archive a project; use HITL and package actions for the rest")
-    project.status = new_status
     kg = KnowledgeRepository(db)
+    from core.commercial_pipeline import snapshot_tz_at_gate
+
+    snapshot_tz_at_gate(db, kg, project)
+    project.status = new_status
     entities = kg.list_entities(project.id, type_="Project")
     if entities:
         ent = entities[0]

@@ -730,6 +730,7 @@ def submit_client_estimate_decision(
     note: str | None = None,
     tz_comment: str | None = None,
     estimate_comment: str | None = None,
+    reject_kind: str | None = None,
 ):
     from core.client_estimate import (
         ClientEstimateAction,
@@ -751,6 +752,7 @@ def submit_client_estimate_decision(
         note=note,
         tz_comment=tz_comment,
         estimate_comment=estimate_comment,
+        reject_kind=reject_kind,
     )
     db.commit()
     db.refresh(project)

@@ -45,12 +45,14 @@ from core.client_estimate import (
 )
 from core.commercial_pipeline import (
     PackageSendError,
+    apply_pipeline_gate,
     default_package_caption,
     mark_remarks_read,
     post_owner_reply,
     send_tz_estimate_package,
     serialize_thread,
     set_commercial,
+    tz_preview,
 )
 from core.estimate import format_hours
 from core.services import (
@@ -149,6 +151,11 @@ class OwnerReplyRequest(BaseModel):
     text: str = Field(min_length=1)
 
 
+class PipelineGateRequest(BaseModel):
+    gate: str | None = None
+    direction: Literal["prev", "next"] | None = None
+
+
 def _project_or_404(project_id: uuid.UUID, db: Session):
     project = get_project(db, project_id)
     if project is None:
@@ -178,6 +185,39 @@ def console_patch_project_status(
             db, project, body.status, reason=body.reason
         )
     except ConsoleError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    db.commit()
+    return result
+
+
+@router.get("/projects/{project_id}/tz-preview")
+def console_tz_preview(
+    project_id: uuid.UUID,
+    gate: str | None = None,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_console_auth),
+) -> dict:
+    project = _project_or_404(project_id, db)
+    kg = KnowledgeRepository(db)
+    try:
+        return tz_preview(db, kg, project, gate=gate)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/projects/{project_id}/pipeline")
+def console_pipeline_gate(
+    project_id: uuid.UUID,
+    body: PipelineGateRequest,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_console_auth),
+) -> dict:
+    project = _project_or_404(project_id, db)
+    try:
+        result = apply_pipeline_gate(
+            db, project, gate=body.gate, direction=body.direction
+        )
+    except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     db.commit()
     return result

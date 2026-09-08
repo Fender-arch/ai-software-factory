@@ -299,7 +299,8 @@ def test_compose_client_estimate_markdown_reuses_tz_export_pipeline():
     assert "# Смета — Пекарня" in markdown
     assert DISCLAIMER_RU in markdown
     assert "Форма заявки" in markdown
-    assert "Почему столько стоит" in markdown
+    assert "К согласованию" in markdown
+    assert "вилка" not in markdown.lower()
 
     md, media, name = export_markdown_file(markdown, "pekarnia-smeta", "md")
     assert name.endswith(".md")
